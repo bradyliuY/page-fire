@@ -299,7 +299,7 @@ function pick(p){
 }
 
 const EXAMPLES = {
-  deploy_markdown: { markdown: "# 你好，PageFire\\n\\n这是用 **deploy_markdown** 渲染的页面。\\n\\n- 支持表格、代码块\\n- 三种主题\\n", title: "测试页", theme: "dark" },
+  deploy_markdown: { markdown: "# 你好，PageFire\\n\\n这是用 **deploy_markdown** 渲染的页面。\\n\\n- 支持表格、代码块\\n- 三种主题：light / dark / sepia\\n", title: "测试页", theme: "light" },
   deploy_page:     { html: "<h1>Hello PageFire</h1><p>这是 deploy_page 发布的页面。</p>", title: "测试页" },
   deploy_docs:     { title: "测试文档", theme: "light", files: [
     { path: "index.md", markdown: "# 首页\\n\\n前往 [指南](./guide.md)。" },
@@ -382,7 +382,7 @@ async function onFile(input){
   try {
     if(t==='deploy_zip'){ const b64=await readB64(files[0]); setArgsObj({ zip_base64:b64, title:files[0].name.replace(/\\.zip$/,'') }) }
     else if(t==='deploy_page'){ const txt=await readText(files[0]); setArgsObj({ html:txt, title:files[0].name }) }
-    else if(t==='deploy_markdown'){ const txt=await readText(files[0]); setArgsObj({ markdown:txt, title:files[0].name.replace(/\\.(md|markdown|txt)$/,''), theme:'dark' }) }
+    else if(t==='deploy_markdown'){ const txt=await readText(files[0]); setArgsObj({ markdown:txt, title:files[0].name.replace(/\\.(md|markdown|txt)$/,''), theme:'light' }) }
     else if(t==='deploy_docs'){ const arr=await Promise.all(files.map(async f=>({ path:f.name, markdown:await readText(f) }))); if(!arr.some(x=>x.path==='index.md')) toast('提示：文档站需含 index.md'); setArgsObj({ title:'文档站', theme:'light', files:arr }) }
     else if(t==='deploy_files'){
       const isBin = f => /\.(png|jpg|jpeg|gif|ico|woff2?|ttf|eot|pdf)$/i.test(f.name)
