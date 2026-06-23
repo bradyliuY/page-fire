@@ -1,4 +1,4 @@
-export function renderHome(baseDomain: string): string {
+export function renderHome(baseDomain: string, requireInvite = false): string {
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -131,7 +131,8 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
   <div class="nav-r">
     <a href="#features">功能</a>
     <a href="#quickstart">接入</a>
-    <a href="https://github.com/bradyliuY/page-fire" class="nav-gh">GitHub ↗</a>
+    <a href="#" onclick="showAuth('login');return false">登录</a>
+    <a href="#" onclick="showAuth('register');return false" class="nav-gh">注册</a>
   </div>
 </div></nav>
 
@@ -238,7 +239,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     <div class="qs-item">
       <div class="qn">1</div>
       <div class="qb">
-        <p>向管理员申请 Bearer Token（<span class="inline-c">pf_</span> 开头的密钥）</p>
+        <p><a href="#" onclick="showAuth();return false" style="color:#a78bfa;text-decoration:none">注册账户</a>获取 Bearer Token（<span class="inline-c">pf_</span> 开头的密钥）</p>
       </div>
     </div>
     <div class="qs-item">
@@ -285,6 +286,128 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     <a href="https://mcp.${baseDomain}/mcp">MCP 端点</a>
   </div>
 </div></footer>
+
+<!-- Auth Modal -->
+<div id="modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)closeAuth()">
+<div style="background:#0d0d1f;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:36px 32px;width:100%;max-width:400px;margin:16px;position:relative">
+  <button onclick="closeAuth()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1">×</button>
+
+  <!-- tabs -->
+  <div style="display:flex;gap:0;margin-bottom:28px;border-bottom:1px solid var(--bdr)">
+    <button id="tab-register" onclick="switchTab('register')" style="flex:1;background:none;border:none;padding:10px 0;font-size:14px;font-weight:600;cursor:pointer;color:var(--purple);border-bottom:2px solid var(--purple);transition:.15s">注册</button>
+    <button id="tab-login" onclick="switchTab('login')" style="flex:1;background:none;border:none;padding:10px 0;font-size:14px;font-weight:500;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;transition:.15s">登录</button>
+  </div>
+
+  <form id="auth-form" onsubmit="submitAuth(event)">
+    <div style="margin-bottom:14px">
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">用户名</label>
+      <input id="f-username" autocomplete="username" placeholder="3–20 位，仅 a-z 0-9 _ -"
+        style="width:100%;background:#07071a;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
+        onfocus="this.style.borderColor='rgba(139,92,246,.5)'" onblur="this.style.borderColor='var(--bdr)'">
+    </div>
+    <div id="invite-wrap" style="margin-bottom:14px;display:none">
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">邀请码${requireInvite ? ' <span style="color:#f87171">*</span>' : ' <span style="color:var(--dim)">(可选)</span>'}</label>
+      <input id="f-invite" placeholder="邀请码"
+        style="width:100%;background:#07071a;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
+        onfocus="this.style.borderColor='rgba(139,92,246,.5)'" onblur="this.style.borderColor='var(--bdr)'">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">密码</label>
+      <input id="f-password" type="password" autocomplete="current-password" placeholder="至少 6 位"
+        style="width:100%;background:#07071a;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
+        onfocus="this.style.borderColor='rgba(139,92,246,.5)'" onblur="this.style.borderColor='var(--bdr)'">
+    </div>
+    <div id="auth-err" style="display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:9px 12px;font-size:13px;color:#fca5a5;margin-bottom:14px"></div>
+    <button id="auth-btn" type="submit"
+      style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-size:14.5px;font-weight:600;border:none;cursor:pointer;transition:.2s">
+      注册账户
+    </button>
+  </form>
+
+  <!-- token result (shown after success) -->
+  <div id="auth-ok" style="display:none;text-align:center">
+    <div style="font-size:28px;margin-bottom:12px">🎉</div>
+    <div id="ok-title" style="font-size:16px;font-weight:700;margin-bottom:6px;color:#f1f5f9">注册成功</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:18px">保存你的 Token，仅显示一次</div>
+    <div style="position:relative">
+      <code id="ok-token" style="display:block;background:#07071a;border:1px solid var(--bdr);border-radius:9px;padding:12px 44px 12px 14px;font-family:'SF Mono',Consolas,monospace;font-size:12px;color:#86efac;word-break:break-all;text-align:left;line-height:1.6"></code>
+      <button onclick="copyToken()" title="复制"
+        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.25);border-radius:6px;padding:4px 8px;color:#a78bfa;cursor:pointer;font-size:12px">
+        复制
+      </button>
+    </div>
+    <div id="ok-space" style="font-size:12px;color:var(--dim);margin-top:10px"></div>
+  </div>
+</div></div>
+
+<script>
+const modal = document.getElementById('modal')
+let curTab = 'register'
+
+function showAuth(tab) {
+  modal.style.display = 'flex'
+  switchTab(tab || 'register')
+  document.getElementById('f-username').focus()
+}
+function closeAuth() { modal.style.display = 'none'; resetForm() }
+function resetForm() {
+  document.getElementById('auth-form').style.display = ''
+  document.getElementById('auth-ok').style.display = 'none'
+  document.getElementById('auth-err').style.display = 'none'
+  document.getElementById('f-username').value = ''
+  document.getElementById('f-password').value = ''
+  document.getElementById('f-invite').value = ''
+}
+function switchTab(tab) {
+  curTab = tab
+  const isReg = tab === 'register'
+  document.getElementById('tab-register').style.color = isReg ? 'var(--purple)' : 'var(--dim)'
+  document.getElementById('tab-register').style.borderBottomColor = isReg ? 'var(--purple)' : 'transparent'
+  document.getElementById('tab-login').style.color = isReg ? 'var(--dim)' : 'var(--purple)'
+  document.getElementById('tab-login').style.borderBottomColor = isReg ? 'transparent' : 'var(--purple)'
+  document.getElementById('auth-btn').textContent = isReg ? '注册账户' : '登录'
+  document.getElementById('invite-wrap').style.display = isReg ? '' : 'none'
+  document.getElementById('auth-err').style.display = 'none'
+}
+async function submitAuth(e) {
+  e.preventDefault()
+  const btn = document.getElementById('auth-btn')
+  const errEl = document.getElementById('auth-err')
+  errEl.style.display = 'none'
+  btn.disabled = true; btn.textContent = '请稍候…'
+  const body = {
+    username: document.getElementById('f-username').value.trim(),
+    password: document.getElementById('f-password').value,
+  }
+  if (curTab === 'register') {
+    const ic = document.getElementById('f-invite').value.trim()
+    if (ic) body.invite_code = ic
+  }
+  try {
+    const r = await fetch('/api/' + curTab, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    })
+    const d = await r.json()
+    if (!r.ok) { errEl.textContent = d.error || '操作失败'; errEl.style.display = ''; }
+    else {
+      document.getElementById('auth-form').style.display = 'none'
+      document.getElementById('auth-ok').style.display = ''
+      document.getElementById('ok-title').textContent = curTab === 'register' ? '注册成功 🎉' : '登录成功'
+      document.getElementById('ok-token').textContent = d.token || '(Token 不可用，请联系管理员)'
+      document.getElementById('ok-space').textContent = d.space_id ? 'space_id: ' + d.space_id : ''
+    }
+  } catch { errEl.textContent = '网络错误，请重试'; errEl.style.display = '' }
+  btn.disabled = false; btn.textContent = curTab === 'register' ? '注册账户' : '登录'
+}
+function copyToken() {
+  const t = document.getElementById('ok-token').textContent
+  navigator.clipboard.writeText(t).then(() => {
+    const b = event.target; b.textContent = '已复制'; setTimeout(() => b.textContent = '复制', 1500)
+  })
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth() })
+</script>
 </body>
 </html>`
 }

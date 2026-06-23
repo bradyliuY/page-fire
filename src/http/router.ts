@@ -9,7 +9,7 @@ import { renderHome } from './home.js'
 import { SECURITY_HEADERS } from './headers.js'
 
 let cachedHomeBuf: Buffer | null = null
-let cachedHomeDomain: string | null = null
+let cachedHomeKey: string | null = null
 
 export function handleRequest(
   req: IncomingMessage,
@@ -17,6 +17,7 @@ export function handleRequest(
   db: Database.Database,
   sitesDir: string,
   baseDomain: string,
+  requireInvite = false,
 ): void {
   const host = (req.headers['host'] ?? '').split(':')[0]
   const url = req.url ?? '/'
@@ -30,9 +31,10 @@ export function handleRequest(
 
   // Root domain → serve product homepage
   if (host === baseDomain) {
-    if (cachedHomeDomain !== baseDomain) {
-      cachedHomeBuf = Buffer.from(renderHome(baseDomain), 'utf8')
-      cachedHomeDomain = baseDomain
+    const homeKey = `${baseDomain}:${requireInvite}`
+    if (cachedHomeKey !== homeKey) {
+      cachedHomeBuf = Buffer.from(renderHome(baseDomain, requireInvite), 'utf8')
+      cachedHomeKey = homeKey
     }
     const buf = cachedHomeBuf!
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)

@@ -20,6 +20,8 @@ export interface Config {
   mcpPort: number
   baseDomain: string
   rateLimit: number
+  tokenEncKey: string   // 32-byte hex for AES-256-GCM token encryption
+  requireInvite: boolean // if true, registration requires a valid invite code
 }
 
 export const config: Config = {
@@ -30,4 +32,6 @@ export const config: Config = {
   mcpPort: parseInt(process.env.PAGEFIRE_MCP_PORT ?? '4100'),
   baseDomain: process.env.PAGEFIRE_BASE_DOMAIN ?? 'localhost',
   rateLimit: parseInt(process.env.PAGEFIRE_RATE_LIMIT ?? '30'),
+  tokenEncKey: process.env.PAGEFIRE_TOKEN_ENC_KEY ?? '0'.repeat(64), // must be overridden in production
+  requireInvite: process.env.PAGEFIRE_REQUIRE_INVITE === 'true',
 }

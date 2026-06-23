@@ -106,6 +106,56 @@ export function listExpiredDeployments(db: Database.Database): DeploymentRow[] {
   return db.prepare('SELECT * FROM deployments WHERE pinned = 0 AND expires_at IS NOT NULL AND expires_at <= ?').all(now) as DeploymentRow[]
 }
 
+// ── User repo ────────────────────────────────────────────────────────────────
+
+export interface UserRow {
+  id: string; username: string; password_hash: string
+  token_id: string; invite_code: string | null; created_at: number
+}
+
+export function createUser(db: Database.Database, fields: Omit<UserRow, 'id' | 'created_at'>): UserRow {
+  const id = randomUUID()
+  const created_at = Date.now()
+  db.prepare(`INSERT INTO users (id,username,password_hash,token_id,invite_code,created_at)
+    VALUES (?,?,?,?,?,?)`).run(id, fields.username, fields.password_hash, fields.token_id, fields.invite_code ?? null, created_at)
+  return { id, created_at, ...fields }
+}
+
+export function getUserByUsername(db: Database.Database, username: string): UserRow | undefined {
+  return db.prepare('SELECT * FROM users WHERE username = ?').get(username) as UserRow | undefined
+}
+
+// ── Invite code repo ─────────────────────────────────────────────────────────
+
+export interface InviteRow {
+  id: string; code: string; label: string | null
+  max_uses: number; used: number; created_by: string | null; created_at: number
+}
+
+export function createInvite(db: Database.Database, fields: { code: string; label?: string | null; max_uses?: number; created_by?: string | null }): InviteRow {
+  const id = randomUUID()
+  const row: InviteRow = {
+    id, code: fields.code, label: fields.label ?? null,
+    max_uses: fields.max_uses ?? 1, used: 0,
+    created_by: fields.created_by ?? null, created_at: Date.now(),
+  }
+  db.prepare(`INSERT INTO invites (id,code,label,max_uses,used,created_by,created_at)
+    VALUES (?,?,?,?,?,?,?)`).run(row.id, row.code, row.label, row.max_uses, row.used, row.created_by, row.created_at)
+  return row
+}
+
+export function getInviteByCode(db: Database.Database, code: string): InviteRow | undefined {
+  return db.prepare('SELECT * FROM invites WHERE code = ?').get(code) as InviteRow | undefined
+}
+
+export function useInvite(db: Database.Database, code: string): void {
+  db.prepare('UPDATE invites SET used = used + 1 WHERE code = ?').run(code)
+}
+
+export function listInvites(db: Database.Database): InviteRow[] {
+  return db.prepare('SELECT * FROM invites ORDER BY created_at DESC').all() as InviteRow[]
+}
+
 // ── Audit log ────────────────────────────────────────────────────────────────
 
 export interface AuditFields {

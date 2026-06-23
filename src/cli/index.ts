@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { config } from '../config.js'
 import { openDb } from '../db/migrate.js'
-import { createToken, listTokens, disableToken, rotateSpaceId, getTokenBySlug, listExpiredDeployments, deleteDeploymentRow, insertAuditLog, setSpaceIdByTokenId } from '../db/repo.js'
+import { createToken, listTokens, disableToken, rotateSpaceId, getTokenBySlug, listExpiredDeployments, deleteDeploymentRow, insertAuditLog, setSpaceIdByTokenId, createInvite, listInvites } from '../db/repo.js'
 import { generateTokenSecret, hashToken } from '../auth.js'
 import { generateSpaceId } from '../core/ids.js'
 import { deleteDeploymentFiles } from '../core/deploy.js'
@@ -98,6 +98,28 @@ if (cmd === 'token') {
     process.exit(1)
   }
 
+} else if (cmd === 'invite') {
+  if (sub === 'create') {
+    const flags = parseFlags(rest)
+    const code = flags.code ?? Math.random().toString(36).slice(2, 10)
+    const maxUses = parseInt(flags.uses ?? '1')
+    const inv = createInvite(db, { code, label: flags.label ?? null, max_uses: maxUses })
+    console.log(`Invite created: ${inv.code}  (max uses: ${inv.max_uses})`)
+
+  } else if (sub === 'list') {
+    const invites = listInvites(db)
+    if (invites.length === 0) { console.log('No invites.'); process.exit(0) }
+    console.log(`\n${'CODE'.padEnd(14)} ${'USES'.padEnd(8)} ${'MAX'.padEnd(8)} LABEL`)
+    for (const i of invites) {
+      console.log(`${i.code.padEnd(14)} ${String(i.used).padEnd(8)} ${String(i.max_uses).padEnd(8)} ${i.label ?? ''}`)
+    }
+
+  } else {
+    console.error('Usage: pagefire invite create [--code <code>] [--uses <n>] [--label <text>]')
+    console.error('       pagefire invite list')
+    process.exit(1)
+  }
+
 } else if (cmd === 'gc') {
   const expired = listExpiredDeployments(db)
   if (expired.length === 0) { console.log('No expired deployments to clean up.'); process.exit(0) }
@@ -121,6 +143,8 @@ if (cmd === 'token') {
   console.log('  token disable --slug <name>')
   console.log('  token rotate --slug <name>')
   console.log('  token set-space-id --slug <name> --space-id <custom>')
+  console.log('  invite create [--code <code>] [--uses <n>] [--label <text>]')
+  console.log('  invite list')
   console.log('  gc')
   process.exit(1)
 }
