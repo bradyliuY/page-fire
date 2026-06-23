@@ -52,10 +52,6 @@ export async function handleApiRequest(
   const ip = (req.headers['x-real-ip'] as string | undefined) ?? req.socket.remoteAddress ?? ''
 
   if (req.method === 'POST' && url === '/api/register') {
-    if (!checkRegisterRate(ip)) {
-      json(res, 429, { error: '注册太频繁，请 1 小时后再试' }); return true
-    }
-
     const body = await readJson(req) as any
     const { username, password, invite_code } = body ?? {}
 
@@ -76,6 +72,11 @@ export async function handleApiRequest(
 
     const existing = getUserByUsername(db, username)
     if (existing) { json(res, 409, { error: '用户名已被注册' }); return true }
+
+    // Rate limit check: only count actual new account creations
+    if (!checkRegisterRate(ip)) {
+      json(res, 429, { error: '注册太频繁，请 1 小时后再试' }); return true
+    }
 
     const plainToken = generateTokenSecret()
     const tokenHash = hashToken(plainToken)
