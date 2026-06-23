@@ -3,191 +3,213 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PageFire — AI 发布网页，3 秒上线</title>
+<title>Mira — AI 会议纪要助手</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0a0a0b;--card:#111113;--border:#1e1e22;--text:#f1f0ee;--dim:#6b6a68;--accent:#f97316;--accent2:#fb923c}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB',sans-serif;min-height:100vh;line-height:1.6}
+:root{--bg:#ffffff;--bg2:#f8f8f7;--bdr:#e8e8e4;--text:#1a1917;--muted:#706f6c;--dim:#a8a8a4;--accent:#16a34a;--accent2:#15803d}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;line-height:1.6}
 a{color:inherit;text-decoration:none}
 
-/* NAV */
-nav{display:flex;align-items:center;justify-content:space-between;max-width:960px;margin:0 auto;padding:20px 24px}
-.logo{font-size:18px;font-weight:700;letter-spacing:-0.5px}
+nav{display:flex;align-items:center;justify-content:space-between;max-width:1000px;margin:0 auto;padding:20px 28px;border-bottom:1px solid var(--bdr)}
+.logo{font-size:17px;font-weight:700;letter-spacing:-0.5px;color:var(--text)}
 .logo span{color:var(--accent)}
-.nav-links{display:flex;gap:24px;font-size:14px;color:var(--dim)}
+.nav-links{display:flex;gap:28px;font-size:14px;color:var(--muted)}
 .nav-links a:hover{color:var(--text)}
-.nav-cta{background:#fff;color:#000;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600}
-.nav-cta:hover{background:#e5e5e5}
+.nav-cta{background:var(--text);color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600}
+.nav-cta:hover{background:#333}
 
-/* HERO */
-.hero{max-width:720px;margin:60px auto 0;padding:0 24px;text-align:center}
-.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);color:var(--accent2);padding:6px 14px;border-radius:999px;font-size:13px;font-weight:500;margin-bottom:32px}
-.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;animation:blink 1.8s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-h1{font-size:clamp(36px,6vw,62px);font-weight:800;letter-spacing:-2px;line-height:1.05;margin-bottom:24px}
-h1 em{font-style:normal;color:var(--accent)}
-.sub{color:var(--dim);font-size:18px;max-width:500px;margin:0 auto 40px;line-height:1.7}
+.hero{max-width:680px;margin:80px auto 0;padding:0 28px;text-align:center}
+.badge{display:inline-flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:var(--accent2);padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:500;margin-bottom:28px}
+h1{font-size:clamp(32px,5.5vw,56px);font-weight:800;letter-spacing:-2px;line-height:1.08;margin-bottom:22px;color:var(--text)}
+.sub{color:var(--muted);font-size:17px;max-width:480px;margin:0 auto 36px;line-height:1.7}
 .cta-group{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-primary{background:#fff;color:#000;padding:13px 28px;border-radius:10px;font-size:15px;font-weight:600}
-.btn-primary:hover{background:#e8e8e8}
-.btn-secondary{border:1px solid var(--border);color:var(--dim);padding:13px 28px;border-radius:10px;font-size:15px}
-.btn-secondary:hover{border-color:#444;color:var(--text)}
+.btn-primary{background:var(--text);color:#fff;padding:13px 28px;border-radius:10px;font-size:15px;font-weight:600}
+.btn-primary:hover{background:#333}
+.btn-sec{border:1px solid var(--bdr);color:var(--muted);padding:12px 26px;border-radius:10px;font-size:15px}
+.btn-sec:hover{border-color:#bbb;color:var(--text)}
 
-/* CODE DEMO */
-.demo{max-width:680px;margin:64px auto;padding:0 24px}
-.demo-label{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
-.code-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;line-height:1.8;overflow-x:auto}
-.c-comment{color:#4a4a52}.c-str{color:#fb923c}.c-key{color:#93c5fd}.c-fn{color:#86efac}.c-num{color:#c4b5fd}
-.result-arrow{display:flex;align-items:center;gap:12px;margin:16px 0 16px 4px;font-size:13px;color:var(--dim)}
-.result-arrow::before{content:"";flex:1;height:1px;background:var(--border)}
-.result-url{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px}
-.result-url .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e}
+.proof{display:flex;align-items:center;justify-content:center;gap:24px;margin:48px 0 0;font-size:13px;color:var(--dim)}
+.proof span{display:flex;align-items:center;gap:6px}
+.proof::before,.proof::after{content:"";flex:1;max-width:80px;height:1px;background:var(--bdr)}
 
-/* FEATURES */
-.features{max-width:920px;margin:80px auto;padding:0 24px}
-.sec-tag{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:12px}
-.sec-title{font-size:32px;font-weight:700;letter-spacing:-1px;margin-bottom:48px}
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.feat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
-.feat-icon{font-size:24px;margin-bottom:16px}
-.feat h3{font-size:15px;font-weight:600;margin-bottom:8px}
-.feat p{font-size:14px;color:var(--dim);line-height:1.65}
+.demo-card{max-width:760px;margin:64px auto;padding:0 28px}
+.demo-wrap{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;overflow:hidden}
+.demo-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--bdr)}
+.demo-bar .dot{width:10px;height:10px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.demo-url{flex:1;background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:4px 12px;font-size:12px;color:var(--dim);text-align:center}
+.demo-body{padding:28px 32px}
+.dm-msg{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;font-size:13.5px;color:#166534;margin-bottom:20px}
+.dm-msg::before{content:"💬  "}
+.dm-summary{background:#fff;border:1px solid var(--bdr);border-radius:10px;padding:18px 20px}
+.dm-summary h4{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text)}
+.dm-summary ul{font-size:13px;color:var(--muted);line-height:1.8;padding-left:16px}
+.dm-actions{display:flex;gap:8px;margin-top:16px}
+.dm-btn{font-size:12px;padding:6px 14px;border-radius:6px;font-weight:500}
+.dm-btn.pri{background:var(--accent);color:#fff}
+.dm-btn.sec{background:#f0f0ee;color:var(--muted)}
 
-/* TOOLS */
-.tools{max-width:920px;margin:80px auto;padding:0 24px}
-.tool-list{display:grid;gap:1px;background:var(--border);border-radius:12px;overflow:hidden}
-.tool-row{display:flex;align-items:flex-start;gap:20px;background:var(--card);padding:20px 24px}
-.tool-name{font-family:'SF Mono','Fira Code',monospace;font-size:13px;color:var(--accent2);min-width:140px;padding-top:2px}
-.tool-desc{font-size:14px;color:var(--dim);line-height:1.6;flex:1}
+.features{max-width:960px;margin:80px auto;padding:0 28px}
+.sec-tag{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:10px}
+.sec-title{font-size:30px;font-weight:700;letter-spacing:-1px;margin-bottom:10px}
+.sec-sub{color:var(--muted);font-size:15px;margin-bottom:44px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.feat{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:26px}
+.feat-icon{font-size:22px;margin-bottom:14px}
+.feat h3{font-size:14.5px;font-weight:600;margin-bottom:8px}
+.feat p{font-size:13.5px;color:var(--muted);line-height:1.65}
 
-/* STATS */
-.stats{max-width:920px;margin:80px auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center}
-.stat-num{font-size:40px;font-weight:800;letter-spacing:-2px;color:var(--text)}
-.stat-num span{color:var(--accent)}
-.stat-label{font-size:13px;color:var(--dim);margin-top:8px}
+.how{max-width:960px;margin:80px auto;padding:0 28px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;position:relative}
+.steps::before{content:"";position:absolute;top:20px;left:calc(16.7% + 20px);right:calc(16.7% + 20px);height:1px;background:var(--bdr)}
+.step{padding:0 16px;text-align:center}
+.step-n{width:40px;height:40px;border-radius:50%;background:var(--bg2);border:1px solid var(--bdr);color:var(--text);font-size:14px;font-weight:700;display:grid;place-items:center;margin:0 auto 16px;position:relative;z-index:1}
+.step h4{font-size:14px;font-weight:600;margin-bottom:6px}
+.step p{font-size:13px;color:var(--muted);line-height:1.6}
 
-/* FOOTER */
-footer{border-top:1px solid var(--border);max-width:920px;margin:80px auto 0;padding:32px 24px;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--dim)}
-footer a{color:var(--dim)}
+.testimonials{max-width:960px;margin:80px auto;padding:0 28px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.tcard{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:24px}
+.tcard p{font-size:13.5px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.tcard-author{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;color:#fff}
+.tcard-info strong{font-size:13px;display:block}
+.tcard-info span{font-size:12px;color:var(--dim)}
+
+.cta-sec{background:var(--bg2);border-top:1px solid var(--bdr);margin-top:80px;padding:64px 28px;text-align:center}
+.cta-sec h2{font-size:30px;font-weight:700;letter-spacing:-1px;margin-bottom:12px}
+.cta-sec p{color:var(--muted);font-size:15px;margin-bottom:32px}
+
+footer{border-top:1px solid var(--bdr);padding:28px;text-align:center;font-size:13px;color:var(--dim)}
+footer a{color:var(--dim);margin:0 12px}
 footer a:hover{color:var(--text)}
 
-@media(max-width:600px){
-  .stats{grid-template-columns:1fr}
-  .tool-row{flex-direction:column;gap:6px}
-  .tool-name{min-width:unset}
+@media(max-width:640px){
   nav .nav-links{display:none}
+  .steps::before{display:none}
 }
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="logo">Page<span>Fire</span></div>
+  <div class="logo">Mi<span>ra</span></div>
   <div class="nav-links">
-    <a href="#features">特性</a>
-    <a href="#tools">工具</a>
-    <a href="https://pagefire.openhkt.com/playground">Playground</a>
+    <a href="#features">功能</a>
+    <a href="#how">使用流程</a>
+    <a href="#testimonials">用户评价</a>
   </div>
-  <a class="nav-cta" href="https://pagefire.openhkt.com/#quickstart">开始使用 →</a>
+  <a class="nav-cta" href="#">免费试用</a>
 </nav>
 
 <div class="hero">
-  <div class="badge">MCP 驱动 · 自托管 · 即发即得</div>
-  <h1>对 AI 说一句话，<br><em>网页就上线了</em></h1>
-  <p class="sub">通过 MCP 协议，Claude / Cursor 可以直接把 HTML、Markdown、ZIP 发布成公网 HTTPS 页面，3 秒内完成。</p>
+  <div class="badge">✦ 已帮助 3,000+ 团队节省会议时间</div>
+  <h1>开会结束，<br>纪要已发到群里</h1>
+  <p class="sub">Mira 接入会议录音后自动生成结构化纪要，提取决策与待办，一键发送给所有参与者。</p>
   <div class="cta-group">
-    <a class="btn-primary" href="https://pagefire.openhkt.com/#quickstart">5 分钟接入</a>
-    <a class="btn-secondary" href="https://pagefire.openhkt.com/playground">在线体验 Playground</a>
+    <a class="btn-primary" href="#">免费开始 14 天</a>
+    <a class="btn-sec" href="#">查看演示视频</a>
+  </div>
+  <div class="proof">
+    <span>⚡ 接入仅需 5 分钟</span>
+    <span>🔒 数据本地处理</span>
+    <span>📝 支持中英双语</span>
   </div>
 </div>
 
-<div class="demo">
-  <div class="demo-label">你在 Claude 里说</div>
-  <div class="code-block"><span class="c-comment">// 告诉 AI 发布一篇文章</span>
-<span class="c-str">"把下面这份报告发布成网页，用深色主题，标题叫'Q2 增长分析'"</span>
-
-<span class="c-comment">// AI 自动调用 MCP 工具</span>
-<span class="c-fn">deploy_markdown</span>({
-  <span class="c-key">markdown</span>: <span class="c-str">"# Q2 增长分析\n..."</span>,
-  <span class="c-key">theme</span>: <span class="c-str">"dark"</span>,
-  <span class="c-key">title</span>: <span class="c-str">"Q2 增长分析"</span>,
-  <span class="c-key">did</span>: <span class="c-str">"q2-report"</span>   <span class="c-comment">// 链接永久固定</span>
-})</div>
-  <div class="result-arrow">发布完成</div>
-  <div class="result-url">
-    <div class="dot"></div>
-    <span style="color:#6b6a68">https://</span><span style="color:#f97316">q2-report</span><span style="color:#6b6a68">-yourspace.pagefire.openhkt.com/</span>
-    <span style="color:#22c55e;margin-left:auto;font-size:12px">HTTPS · 3s</span>
+<div class="demo-card">
+  <div class="demo-wrap">
+    <div class="demo-bar">
+      <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+      <div class="demo-url">mira.ai · 周三产品评审 · 2026-06-18</div>
+    </div>
+    <div class="demo-body">
+      <div class="dm-msg">会议已结束，Mira 已生成本次纪要并发送至飞书群组「产品周会」</div>
+      <div class="dm-summary">
+        <h4>📋 产品评审周会 · 53 分钟</h4>
+        <ul>
+          <li>确定 v2.3 发布时间为 6 月 28 日，功能冻结 6 月 23 日</li>
+          <li>搜索功能改为下期，本期聚焦稳定性</li>
+          <li>待办：@张伟 同步设计稿，@李敏 更新测试用例（截止 6 月 20 日）</li>
+          <li>下次会议：6 月 25 日（周三）10:00</li>
+        </ul>
+        <div class="dm-actions">
+          <a class="dm-btn pri" href="#">查看完整纪要</a>
+          <a class="dm-btn sec" href="#">导出为文档</a>
+          <a class="dm-btn sec" href="#">同步到 Jira</a>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="features" id="features">
-  <div class="sec-tag">为什么选择 PageFire</div>
-  <div class="sec-title">AI 工作流里，<br>发布不该是瓶颈</div>
-  <div class="feat-grid">
-    <div class="feat">
-      <div class="feat-icon">⚡</div>
-      <h3>即时上线</h3>
-      <p>发布调用完成即可访问，无需等待构建流水线。HTML、Markdown、ZIP 打包产物全部支持。</p>
+  <div class="sec-tag">核心功能</div>
+  <div class="sec-title">让会议真正产生结果</div>
+  <p class="sec-sub">从录音到行动项，Mira 完成中间所有繁琐的步骤。</p>
+  <div class="grid3">
+    <div class="feat"><div class="feat-icon">🎙️</div><h3>自动录音转写</h3><p>接入腾讯会议、Zoom、飞书会议，会议结束后 2 分钟内完成转写，中英混合准确率 98%。</p></div>
+    <div class="feat"><div class="feat-icon">🧠</div><h3>AI 结构化摘要</h3><p>自动提取会议背景、讨论重点、决策结论、待办事项，按标准格式输出，无需手动整理。</p></div>
+    <div class="feat"><div class="feat-icon">✅</div><h3>待办自动指派</h3><p>识别「@张伟 负责」「下周五前完成」等表述，自动创建带截止日期的任务，同步到项目管理工具。</p></div>
+    <div class="feat"><div class="feat-icon">🔗</div><h3>无缝集成</h3><p>支持飞书、钉钉、企业微信推送，Jira / Linear / Notion 任务同步，Slack 频道通知。</p></div>
+    <div class="feat"><div class="feat-icon">🔒</div><h3>数据安全</h3><p>音频在本地转写后立即销毁，仅保留文本摘要。支持私有化部署，数据不出企业内网。</p></div>
+    <div class="feat"><div class="feat-icon">📊</div><h3>会议洞察</h3><p>统计各团队会议时长、决策效率、待办完成率，帮助管理者识别会议文化中的低效点。</p></div>
+  </div>
+</div>
+
+<div class="how" id="how">
+  <div class="sec-tag">使用流程</div>
+  <div class="sec-title">三步，告别会议纪要</div>
+  <p class="sec-sub" style="margin-bottom:44px">第一次配置只需 5 分钟，之后完全自动。</p>
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><h4>接入会议平台</h4><p>授权腾讯会议或 Zoom，Mira 自动加入你的会议。</p></div>
+    <div class="step"><div class="step-n">2</div><h4>正常开会</h4><p>无需任何操作，Mira 在后台静默录音和实时转写。</p></div>
+    <div class="step"><div class="step-n">3</div><h4>纪要自动到达</h4><p>会议结束后 2 分钟，纪要发送至飞书群、邮件或 Slack。</p></div>
+  </div>
+</div>
+
+<div class="testimonials" id="testimonials">
+  <div class="sec-tag">用户评价</div>
+  <div class="sec-title">3,000+ 团队的选择</div>
+  <p class="sec-sub" style="margin-bottom:36px">来自不同行业、规模团队的真实反馈。</p>
+  <div class="tgrid">
+    <div class="tcard">
+      <p>「以前每次周会后都要花 30 分钟整理纪要，现在会议结束纪要已经在群里了，待办也自动到了 Jira，省了我们整个 PM 团队每周至少 3 小时。」</p>
+      <div class="tcard-author">
+        <div class="avatar" style="background:#6366f1">陈</div>
+        <div class="tcard-info"><strong>陈晓雯</strong><span>产品总监 · 某 B2B SaaS 公司</span></div>
+      </div>
     </div>
-    <div class="feat">
-      <div class="feat-icon">🔗</div>
-      <h3>链接永不变</h3>
-      <p>用 <code style="font-size:12px;color:var(--accent2)">did</code> 参数给站点起别名，无论更新多少次，URL 始终不变，分享出去的链接永久有效。</p>
+    <div class="tcard">
+      <p>「我们是纯远程团队，跨时区开会后从来没人知道决定了什么。Mira 让每个人在自己的时区醒来就能看到结构清晰的纪要，减少了大量重复沟通。」</p>
+      <div class="tcard-author">
+        <div class="avatar" style="background:#059669">W</div>
+        <div class="tcard-info"><strong>Wei L.</strong><span>Engineering Lead · 某出海团队</span></div>
+      </div>
     </div>
-    <div class="feat">
-      <div class="feat-icon">🔒</div>
-      <h3>密码保护</h3>
-      <p>内部文档、客户报告加一行 <code style="font-size:12px;color:var(--accent2)">password</code> 即可加锁，访问时前端提示输入密码。</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">🌐</div>
-      <h3>多租户隔离</h3>
-      <p>每个 API Key 拥有独立子域空间，完全隔离。团队成员各自管理，互不干扰。</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">🗂️</div>
-      <h3>文档站一键生成</h3>
-      <p>多篇 Markdown 自动生成带侧边导航的文档站，跨页链接开箱即用，无需任何配置。</p>
-    </div>
-    <div class="feat">
-      <div class="feat-icon">🏠</div>
-      <h3>完全自托管</h3>
-      <p>一台 VPS 即可运行，数据全部在自己手里。复用现有 nginx，PM2 一个进程搞定。</p>
+    <div class="tcard">
+      <p>「最惊喜的是它能识别谁在说话、谁负责什么。之前待办总是落在空气里，现在每个人都能看到自己名下的任务。会议文化变了。」</p>
+      <div class="tcard-author">
+        <div class="avatar" style="background:#dc2626">刘</div>
+        <div class="tcard-info"><strong>刘建国</strong><span>CTO · 早期创业公司</span></div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="tools" id="tools">
-  <div class="sec-tag">MCP 工具</div>
-  <div class="sec-title">11 个工具，覆盖所有场景</div>
-  <div class="tool-list">
-    <div class="tool-row"><div class="tool-name">deploy_page</div><div class="tool-desc">发布单个 HTML 字符串，最快路径，适合 AI 生成的落地页和报告。</div></div>
-    <div class="tool-row"><div class="tool-name">deploy_markdown</div><div class="tool-desc">Markdown → 精致排版网页，支持 light / dark / sepia 三种主题，代码高亮、表格、任务列表齐全。</div></div>
-    <div class="tool-row"><div class="tool-name">deploy_docs</div><div class="tool-desc">多篇 Markdown → 带左侧导航的文档站，必须含 index.md，.md 链接自动改写为 .html。</div></div>
-    <div class="tool-row"><div class="tool-name">deploy_files</div><div class="tool-desc">逐文件发布多页站点（HTML + CSS + JS），支持子目录结构，适合手写多页网站。</div></div>
-    <div class="tool-row"><div class="tool-name">deploy_zip</div><div class="tool-desc">上传 ZIP 打包产物，自动解包，支持 SPA 客户端路由模式（spa: true）。</div></div>
-    <div class="tool-row"><div class="tool-name">set_access</div><div class="tool-desc">随时修改访问控制：公开 / 密码保护 / 私有，无需重新发布内容。</div></div>
-    <div class="tool-row"><div class="tool-name">list_deployments</div><div class="tool-desc">查看当前 space 下所有部署，含 URL、状态、文件数、大小、创建时间。</div></div>
-    <div class="tool-row"><div class="tool-name">get_deployment</div><div class="tool-desc">查看单个部署的详细信息。</div></div>
-    <div class="tool-row"><div class="tool-name">delete_deployment</div><div class="tool-desc">删除指定部署，释放存储配额。</div></div>
-  </div>
-</div>
-
-<div class="stats">
-  <div class="stat"><div class="stat-num">3<span>s</span></div><div class="stat-label">平均发布耗时</div></div>
-  <div class="stat"><div class="stat-num">11</div><div class="stat-label">MCP 工具</div></div>
-  <div class="stat"><div class="stat-num">∞</div><div class="stat-label">可部署站点数</div></div>
+<div class="cta-sec">
+  <h2>今天就告别手写纪要</h2>
+  <p>免费试用 14 天，无需信用卡，随时取消。</p>
+  <a class="btn-primary" href="#" style="display:inline-block;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;background:#1a1917;color:#fff">免费开始 →</a>
 </div>
 
 <footer>
-  <div>PageFire · 自托管 MCP 静态发布服务</div>
-  <div style="display:flex;gap:20px">
-    <a href="https://pagefire.openhkt.com/">主页</a>
-    <a href="https://pagefire.openhkt.com/playground">Playground</a>
-    <a href="https://demodocs-demo.pagefire.openhkt.com/">用户文档</a>
-  </div>
+  <a href="#">产品功能</a>
+  <a href="#">定价</a>
+  <a href="#">隐私政策</a>
+  <a href="#">联系我们</a>
+  <br><br>
+  <span>© 2026 Mira AI · 本页由 <a href="https://pagefire.openhkt.com" style="color:inherit">PageFire</a> 发布</span>
 </footer>
 
 </body>

@@ -1,134 +1,125 @@
-# 工具参考
+# API 参考
 
-PageFire 提供 9 个 MCP 工具，覆盖从单页到文档站的所有发布场景。
+所有请求需携带 `Authorization: Bearer tf_your_api_key` Header。
 
-## 通用参数
+Base URL：`https://api.taskflow.io/v2`
 
-以下参数大多数发布工具都支持：
+## 任务（Tasks）
 
-| 参数 | 类型 | 默认 | 说明 |
+### 创建任务
+
+```
+POST /tasks
+```
+
+**请求体**
+
+| 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `did` | string | 随机 | 站点别名 `[a-z0-9]{3,32}`，复用同名时原地更新 URL 不变 |
-| `access` | enum | `public` | 访问控制：`public` / `password` / `private` |
-| `password` | string | — | 当 `access=password` 时的访问密码 |
-| `ttl_days` | number | — | 自动过期天数，留空永不过期 |
-| `pin` | boolean | false | 是否永久保留（跳过自动 GC） |
+| `title` | string | ✅ | 任务标题，最长 200 字符 |
+| `project_id` | string | ✅ | 所属项目 ID |
+| `assignee` | string | — | 被分配人邮箱 |
+| `due_date` | string | — | 截止日期（ISO 8601，仅日期部分） |
+| `priority` | enum | — | `low` / `medium` / `high` / `urgent` |
+| `labels` | string[] | — | 标签数组，最多 10 个 |
+| `description` | string | — | 任务描述，支持 Markdown，最长 10000 字符 |
 
-## deploy_page
-
-发布单个 HTML 字符串，最简单最快的发布方式。
-
-```json
-{
-  "html": "<h1>Hello</h1>",
-  "title": "页面标题",
-  "did": "my-page"
-}
-```
-
-**适用场景**：AI 生成的报告、落地页、单页工具。
-
-## deploy_markdown
-
-Markdown → 精致排版网页，内置代码高亮、表格、任务列表。
+**响应**（201 Created）
 
 ```json
 {
-  "markdown": "# 标题\n正文...",
-  "title": "文章标题",
-  "theme": "sepia",
-  "did": "my-article"
+  "id": "task_01hx9v3c",
+  "title": "完成 Q2 季报",
+  "status": "todo",
+  "priority": "high",
+  "assignee": { "id": "usr_abc", "email": "wei@company.com", "name": "Wei L." },
+  "due_date": "2026-06-30",
+  "labels": ["季报", "财务"],
+  "created_at": "2026-06-18T09:30:00Z",
+  "updated_at": "2026-06-18T09:30:00Z",
+  "url": "https://app.taskflow.io/tasks/task_01hx9v3c"
 }
 ```
 
-**主题**：`light`（白底）/ `dark`（黑底）/ `sepia`（米黄，阅读友好）
+### 列出任务
 
-## deploy_docs
+```
+GET /projects/{project_id}/tasks
+```
 
-多篇 Markdown → 带左侧导航的文档站。
+**查询参数**
+
+| 参数 | 说明 | 默认 |
+|------|------|------|
+| `status` | 过滤状态：`todo` / `in_progress` / `done` | 全部 |
+| `assignee` | 过滤被分配人邮箱 | — |
+| `limit` | 每页条数，最大 100 | 20 |
+| `cursor` | 分页游标（从上一页响应的 `next_cursor` 获取） | — |
+
+**响应**
 
 ```json
 {
-  "files": [
-    { "path": "index.md", "markdown": "# 欢迎..." },
-    { "path": "guide/install.md", "markdown": "# 安装..." },
-    { "path": "api.md", "markdown": "# API..." }
-  ],
-  "title": "我的文档",
-  "theme": "light",
-  "did": "my-docs"
+  "data": [ /* Task 对象数组 */ ],
+  "next_cursor": "cur_abc123",
+  "has_more": true
 }
 ```
 
-**注意**：必须包含 `index.md`，`.md` 链接自动改写为 `.html`。
+### 更新任务
 
-## deploy_files
-
-逐文件发布多页站点，支持 HTML + CSS + JS 混合。
-
-```json
-{
-  "files": [
-    { "path": "index.html", "content": "<html>...", "encoding": "utf8" },
-    { "path": "style.css", "content": "body{...}", "encoding": "utf8" }
-  ],
-  "did": "my-site"
-}
+```
+PATCH /tasks/{task_id}
 ```
 
-**二进制文件**：`encoding` 设为 `base64`，`content` 传 Base64 字符串。
+只传需要修改的字段，未传字段保持不变。
 
-## deploy_zip
+### 删除任务
 
-上传 ZIP 打包产物，自动解包。适合 React / Vue 等构建输出。
-
-```json
-{
-  "zip_base64": "UEsDBBQA...",
-  "spa": true,
-  "did": "my-app"
-}
+```
+DELETE /tasks/{task_id}
 ```
 
-**`spa: true`**：开启 SPA 模式，所有未匹配路径 fallback 到 `index.html`，支持 React Router / Vue Router。
+返回 204 No Content。
 
-## set_access
+---
 
-随时修改已有站点的访问控制，无需重新发布内容。
+## 项目（Projects）
 
-```json
-{
-  "did": "my-site",
-  "access": "password",
-  "password": "secret123"
-}
+### 创建项目
+
+```
+POST /projects
 ```
 
-## list_deployments
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | string | ✅ | 项目名称 |
+| `description` | string | — | 项目描述 |
+| `members` | string[] | — | 初始成员邮箱列表 |
 
-列出当前 space 下所有站点。
+### 列出项目
 
-```json
-{}
+```
+GET /projects
 ```
 
-返回字段：`did`、`url`、`file_count`、`size_bytes`、`created_at`、`access`。
+返回当前 API Key 所属工作区下的所有项目。
 
-## get_deployment
+---
 
-获取单个站点详情。
+## Webhooks
 
-```json
-{ "did": "my-site" }
-```
+在控制台配置 Webhook URL 后，以下事件会向该 URL 发送 POST 请求：
 
-## delete_deployment
+| 事件 | 触发时机 |
+|------|---------|
+| `task.created` | 新任务创建 |
+| `task.status_changed` | 任务状态变更 |
+| `task.due_date_approaching` | 任务在截止前 24h |
+| `task.overdue` | 任务已逾期 |
 
-删除站点，释放配额。
-
-```json
-{ "did": "my-site" }
-```
+**Webhook 签名验证**（推荐）：请求头 `X-TaskFlow-Signature` 为 `sha256=HMAC(secret, body)`，用你在控制台设置的 Webhook Secret 验证。
 
 ---
 

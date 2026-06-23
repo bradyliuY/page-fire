@@ -239,17 +239,17 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     <a class="feat" href="https://demosite-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
       <div class="fi">⚡</div>
       <h3>产品落地页 <span style="color:var(--dim);font-weight:400">deploy_page</span></h3>
-      <p>PageFire 自身的产品介绍页，由 AI 生成 HTML 后一键发布，3 秒上线。<span style="color:var(--fire2)">打开 →</span></p>
+      <p>某 AI 团队用 PageFire 发布的 SaaS 产品落地页，AI 生成 HTML 后一句话上线，全程不碰服务器。<span style="color:var(--fire2)">打开 →</span></p>
     </a>
     <a class="feat" href="https://demoarticle-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
       <div class="fi">📝</div>
       <h3>技术文章 <span style="color:var(--dim);font-weight:400">deploy_markdown</span></h3>
-      <p>《MCP 协议详解》，Markdown 一键渲染成 sepia 主题精致排版，代码高亮、表格齐全。<span style="color:var(--fire2)">打开 →</span></p>
+      <p>《MCP 协议详解》，开发者把 Markdown 丢给 Claude，秒发为精致排版的公开技术文章。<span style="color:var(--fire2)">打开 →</span></p>
     </a>
     <a class="feat" href="https://demodocs-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
       <div class="fi">📖</div>
-      <h3>用户文档站 <span style="color:var(--dim);font-weight:400">deploy_docs</span></h3>
-      <p>PageFire 的真实用户文档，多页 Markdown 自动生成带左侧导航的文档站。<span style="color:var(--fire2)">打开 →</span></p>
+      <h3>开发者文档站 <span style="color:var(--dim);font-weight:400">deploy_docs</span></h3>
+      <p>某团队把 API 文档的多篇 Markdown 一次发布为带侧栏导航的文档站，更新只需重新运行工具。<span style="color:var(--fire2)">打开 →</span></p>
     </a>
   </div>
 </div></div>

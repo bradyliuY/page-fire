@@ -1,29 +1,31 @@
-# PageFire 用户文档
+# TaskFlow API 文档
 
-**PageFire** 是一个自托管的 MCP 静态发布服务，让 AI 助手（Claude、Cursor 等）通过 MCP 协议直接把 HTML / Markdown / ZIP 发布成公网 HTTPS 页面。
+**TaskFlow** 是一个轻量级任务管理服务，提供 REST API 供团队将任务数据集成到自己的工具与工作流中。
+
+本文档由 TaskFlow 工程团队使用 [PageFire](https://pagefire.openhkt.com) `deploy_docs` 工具生成并发布，每次更新文档只需重新发布 Markdown 文件，无需维护任何前端。
 
 ## 快速导航
 
-- [快速开始](./getting-started.md) — 5 分钟完成注册、获取 API Key、接入 Claude
-- [工具参考](./api.md) — 全部 9 个 MCP 工具的参数说明
-- [使用技巧](./guide/tips.md) — did 别名、密码保护、配额管理
-- [更新日志](./changelog.md) — 版本记录
+- [快速开始](./getting-started.md) — 5 分钟完成首次 API 调用
+- [API 参考](./api.md) — 完整的端点、参数与响应说明
+- [使用技巧](./guide/tips.md) — 分页、鉴权、批量操作最佳实践
+- [更新日志](./changelog.md) — 版本记录与 Breaking Changes
 
-## 核心特性
+## 基础信息
 
-| 特性 | 说明 |
+| 项目 | 说明 |
 |------|------|
-| 即时上线 | 发布调用完成即可访问，无 CI/CD 等待 |
-| 链接稳定 | `did` 别名让 URL 在多次更新后保持不变 |
-| 多种格式 | HTML · Markdown · 多文件 · ZIP 打包产物 |
-| 访问控制 | 公开 / 密码保护 / 私有，随时切换 |
-| 文档站 | 多篇 Markdown 自动生成带侧边导航的文档站 |
+| Base URL | `https://api.taskflow.io/v2` |
+| 协议 | HTTPS only |
+| 鉴权 | Bearer Token（API Key） |
+| 响应格式 | JSON |
+| 频率限制 | 1000 次 / 分钟（标准版） |
 
-## 服务地址
+## SDK 支持
 
-| 用途 | 地址 |
-|------|------|
-| 主页 / 注册 | `https://pagefire.openhkt.com` |
-| MCP 端点 | `https://mcp.pagefire.openhkt.com/mcp` |
-| Playground | `https://pagefire.openhkt.com/playground` |
-| 已发布站点 | `https://<did>-<space_id>.pagefire.openhkt.com/` |
+TaskFlow 官方提供以下 SDK，也可直接调用 HTTP API：
+
+```bash
+npm install @taskflow/sdk      # Node.js / TypeScript
+pip install taskflow-python    # Python
+```

@@ -1,29 +1,39 @@
 # 更新日志
 
-## v0.3（当前）
+## v2.1.0（2026-06-10）
 
-- **Playground**：在线测试全部 MCP 工具，支持文件上传，无需配置 Claude
-- **用户注册 / 控制台**：支持自助注册、自助申请 API Key，控制台管理所有 Key
-- **邀请码机制**：可配置邀请码限制注册，可绑定来源
-- **自定义 space_id**：创建 Key 时可指定自己的 space_id（查重，全局唯一）
-- **MCP 连接测试**：控制台每个 Key 旁可一键测试 MCP 连接是否正常
+**新增**
+- `GET /tasks/search` 支持全文检索，参数 `q` 匹配标题和描述
+- 任务支持 `watchers` 字段，关注人变更时收到通知
+- Webhook 新增 `task.due_date_approaching` 事件（截止前 24h）
 
-## v0.2
+**改进**
+- 批量创建接口（`POST /tasks/batch`）单次上限从 20 提升至 50
+- 列表接口响应新增 `total_count` 字段（不影响已有代码）
 
-- **`deploy_markdown`**：Markdown → 精致排版网页，三主题（light / dark / sepia）
-- **`deploy_docs`**：多篇 Markdown → 带侧边导航的文档站
-- **`did` 别名**：所有发布工具支持 `did` 参数，复用时原地更新 URL 不变
-- **Session 认证**：httpOnly Cookie，30 天有效期
-- **token_enc**：注册/创建 Key 时完整显示一次明文，DB 只存哈希
+## v2.0.0（2026-04-01）🔴 Breaking Change
 
-## v0.1
+**Breaking Changes**
+- 所有 ID 从数字改为前缀字符串（如 `12345` → `task_01hx9v`），请更新存储字段类型
+- `/v1/` 接口将于 2026-10-01 停止服务，请迁移至 `/v2/`
+- 鉴权方式从 `?api_key=` 查询参数改为 `Authorization: Bearer` Header
 
-- `deploy_page` / `deploy_zip` / `deploy_files` 三个基础工具
-- 密码保护（access + password）
-- TTL 自动过期、Pin 永久保留
-- SPA 客户端路由模式（spa: true）
-- Streamable HTTP transport，Bearer Token 鉴权
-- SQLite WAL 模式，单进程三角色（MCP + HTTP + 数据库）
+**新增**
+- 项目（Projects）资源独立为一级对象，支持 CRUD
+- Webhook 签名验证（`X-TaskFlow-Signature`）
+- 游标分页替代偏移分页，性能提升明显
+
+**迁移指南**：[v1 → v2 迁移文档](https://docs.taskflow.io/migration-v2)
+
+## v1.3.0（2025-11-15）
+
+- 新增任务标签（Labels）支持，每个任务最多 10 个
+- 优先级字段新增 `urgent` 级别
+- 修复：分配人删除账号后任务列表报错的问题
+
+## v1.0.0（2025-06-01）
+
+初始版本发布，支持任务的基础 CRUD 操作。
 
 ---
 

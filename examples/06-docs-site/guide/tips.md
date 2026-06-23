@@ -1,96 +1,81 @@
 # 使用技巧
 
-## did 别名：让链接永不失效
+## 分页处理
 
-`did`（Deployment ID）是你给站点起的别名，格式为 `[a-z0-9]{3,32}`（纯小写字母数字，3-32 位，无连字符）。
+TaskFlow API 使用游标分页（Cursor Pagination），比偏移分页更稳定——新任务插入不会导致结果重复或漏掉。
 
-**使用场景**：
+```typescript
+async function getAllTasks(projectId: string) {
+  const tasks = []
+  let cursor: string | undefined
 
-```json
-// 第一次发布
-{ "markdown": "# 版本 1.0 内容", "did": "weekly-report" }
-// → https://weekly-report-abc123.pagefire.openhkt.com/
+  do {
+    const res = await tf.tasks.list(projectId, { limit: 100, cursor })
+    tasks.push(...res.data)
+    cursor = res.has_more ? res.next_cursor : undefined
+  } while (cursor)
 
-// 下次更新，同样的 did，URL 完全不变
-{ "markdown": "# 版本 2.0 内容", "did": "weekly-report" }
-// → https://weekly-report-abc123.pagefire.openhkt.com/（同一个链接！）
-```
-
-已经分享出去的链接无需更新，访客下次打开就是最新内容。
-
-## 密码保护内部文档
-
-```json
-{
-  "html": "...",
-  "did": "internal-report",
-  "access": "password",
-  "password": "team2024"
+  return tasks
 }
 ```
 
-访客打开页面时会看到密码输入框，输入正确密码后才能访问。密码验证在客户端进行，无需服务器参与。
+## 批量创建
 
-也可以事后加密码，不用重新发布：
+单次可批量创建最多 50 个任务，减少 HTTP 往返：
 
-```json
-// 用 set_access 工具
-{ "did": "internal-report", "access": "password", "password": "team2024" }
-```
+```bash
+POST /tasks/batch
 
-## 文档站链接写法
-
-在 `deploy_docs` 里，页面之间的链接写 `.md` 扩展名，系统会自动改写为 `.html`：
-
-```markdown
-<!-- index.md -->
-- [快速开始](./getting-started.md)  ✅ 会被改写为 getting-started.html
-- [API 文档](./api.md)              ✅
-- [子目录页面](./guide/install.md)  ✅
-
-<!-- 不要写 .html，发布前系统不知道路径 -->
-- [快速开始](./getting-started.html) ❌
-```
-
-## SPA 客户端路由
-
-React / Vue 项目使用客户端路由时，需要开启 SPA 模式：
-
-```json
 {
-  "zip_base64": "...",
-  "spa": true,
-  "did": "my-react-app"
+  "tasks": [
+    { "title": "任务 A", "project_id": "proj_abc", "assignee": "a@co.com" },
+    { "title": "任务 B", "project_id": "proj_abc", "assignee": "b@co.com" }
+  ]
 }
 ```
 
-SPA 模式下，所有未匹配的路径（如 `/dashboard/settings`）都会返回 `index.html`，让前端路由接管。
+响应包含每个任务的结果（包括失败项），即使部分失败整体也返回 200。
 
-## 自动过期（TTL）
+## 频率限制最佳实践
 
-临时内容可以设置自动过期：
+标准版限制 1000 次/分钟。超出限制会返回 429，响应头 `Retry-After` 告诉你等几秒。
 
-```json
-{
-  "html": "...",
-  "ttl_days": 7  // 7 天后自动删除
+推荐做法：
+
+- 批量操作优先于单条循环
+- 用指数退避（exponential backoff）重试 429
+- 非实时场景使用 Webhook 替代轮询
+
+```typescript
+async function withRetry(fn: () => Promise<any>, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try { return await fn() }
+    catch (e: any) {
+      if (e.status !== 429 || i === maxRetries - 1) throw e
+      await new Promise(r => setTimeout(r, 2 ** i * 1000))
+    }
+  }
 }
 ```
 
-长期保留的重要内容加 `pin: true` 防止 GC 误删：
+## Webhook 与轮询的选择
 
-```json
-{
-  "markdown": "...",
-  "did": "important-doc",
-  "pin": true
-}
-```
+| 场景 | 建议 |
+|------|------|
+| 任务状态变更时触发通知 | Webhook（实时，无额外 API 消耗） |
+| 展示任务列表（用户主动刷新） | 轮询（简单） |
+| 后台同步到其他系统 | Webhook + 幂等处理 |
 
-## 查看配额
+## API Key 权限范围
 
-在[控制台](https://pagefire.openhkt.com/dashboard)可以看到每个 API Key 的部署数量。用 `list_deployments` 工具可以列出所有站点，用 `delete_deployment` 清理不需要的内容。
+在控制台可以为每个 API Key 设置权限范围：
+
+- **只读**：适合报表、数据分析脚本
+- **读写**：适合集成工具、自动化脚本
+- **管理员**：可管理成员、删除项目（谨慎分配）
+
+建议遵循最小权限原则，不同用途使用不同的 Key。
 
 ---
 
-**返回**：[首页](../index.md) | [工具参考](../api.md)
+**返回**：[首页](../index.md) | [API 参考](../api.md)

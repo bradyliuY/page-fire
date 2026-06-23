@@ -1,83 +1,77 @@
 # 快速开始
 
-本指南帮你在 5 分钟内完成注册、获取 API Key，并在 Claude 里发布第一个网页。
+本指南帮你在 5 分钟内完成首次 TaskFlow API 调用。
 
-## 第一步：注册账号
+## 获取 API Key
 
-访问 [https://pagefire.openhkt.com](https://pagefire.openhkt.com)，在首页表单填写：
+登录 [TaskFlow 控制台](https://app.taskflow.io/settings/api)，在 **API Keys** 页面点击「生成新 Key」，复制后妥善保存（只显示一次）。
 
-- **用户名**：3-20 位字母数字（唯一）
-- **密码**：至少 8 位
-- **邀请码**：如有，填写；无邀请码留空也可注册
+## 第一个请求
 
-注册成功后，页面会显示你的第一个 **API Key**（格式 `pf_xxxxxx`）。
+创建一个任务：
 
-> **重要**：API Key 只在注册时完整显示一次，请立即复制保存。进入控制台后可以申请更多 Key，但已有 Key 只显示末 4 位。
+```bash
+curl -X POST https://api.taskflow.io/v2/tasks \
+  -H "Authorization: Bearer tf_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "完成 Q2 季报",
+    "assignee": "wei@company.com",
+    "due_date": "2026-06-30",
+    "priority": "high"
+  }'
+```
 
-## 第二步：获取更多 API Key（可选）
-
-登录后进入 [控制台](https://pagefire.openhkt.com/dashboard)：
-
-1. 点击「+ 新建 API Key」
-2. 填写备注名（如"Claude Desktop"）
-3. 可选：自定义 space_id（默认随机生成）
-4. 点击「创建」，复制 Key
-
-每个 Key 对应一个独立的子域空间，你在该 Key 下发布的所有站点都在这个空间里。
-
-## 第三步：接入 Claude Desktop
-
-在你的项目目录（或全局）创建 `.mcp.json`：
+成功响应（201 Created）：
 
 ```json
 {
-  "mcpServers": {
-    "pagefire": {
-      "type": "http",
-      "url": "https://mcp.pagefire.openhkt.com/mcp",
-      "headers": {
-        "Authorization": "Bearer pf_你的API_Key"
-      }
-    }
-  }
+  "id": "task_01hx9v3c",
+  "title": "完成 Q2 季报",
+  "status": "todo",
+  "assignee": { "email": "wei@company.com", "name": "Wei L." },
+  "due_date": "2026-06-30",
+  "priority": "high",
+  "created_at": "2026-06-18T09:30:00Z",
+  "url": "https://app.taskflow.io/tasks/task_01hx9v3c"
 }
 ```
 
-重启 Claude Desktop，在对话框右下角可以看到 PageFire 工具已激活。
+## 列出项目下的任务
 
-## 第四步：发布第一个网页
-
-在 Claude 里直接说：
-
-> "帮我把下面这段 Markdown 发布成网页，用 sepia 主题：\n\n# Hello PageFire\n\n这是我的第一个 MCP 发布的页面！"
-
-Claude 会自动调用 `deploy_markdown`，几秒后返回：
-
-```
-✅ 发布成功！
-访问地址：https://xxxxx-yourspace.pagefire.openhkt.com/
+```bash
+curl https://api.taskflow.io/v2/projects/proj_abc/tasks \
+  -H "Authorization: Bearer tf_your_api_key"
 ```
 
-## 接入 Cursor
+返回数组，默认按 `created_at` 降序排列，每页 20 条（可通过 `?limit=` 和 `?cursor=` 分页）。
 
-在 Cursor 设置里找到 MCP，添加：
+## Node.js SDK 示例
 
-```json
-{
-  "pagefire": {
-    "type": "http",
-    "url": "https://mcp.pagefire.openhkt.com/mcp",
-    "headers": {
-      "Authorization": "Bearer pf_你的API_Key"
-    }
-  }
-}
+```typescript
+import { TaskFlow } from '@taskflow/sdk'
+
+const tf = new TaskFlow({ apiKey: process.env.TF_API_KEY })
+
+const task = await tf.tasks.create({
+  projectId: 'proj_abc',
+  title: '审核合同文件',
+  assignee: 'chen@company.com',
+  dueDate: '2026-07-01',
+})
+
+console.log(task.url) // https://app.taskflow.io/tasks/task_xxx
 ```
 
-## 在 Playground 测试
+## 常见错误
 
-不想配置 Claude？直接在 [Playground](https://pagefire.openhkt.com/playground) 的「测试」标签里测试每个工具——无需安装任何客户端。
+| 状态码 | 含义 | 处理建议 |
+|--------|------|---------|
+| 401 | API Key 无效或已过期 | 检查 Authorization header 格式 |
+| 403 | 无权限操作该资源 | 确认 Key 拥有对应项目的写权限 |
+| 422 | 参数校验失败 | 检查 `errors` 字段获取具体原因 |
+| 429 | 超出频率限制 | 等待响应头 `Retry-After` 指定的秒数 |
 
 ---
 
-**下一步**：阅读 [工具参考](./api.md) 了解所有工具的完整参数。
+**下一步**：阅读 [API 参考](./api.md) 了解全部端点。

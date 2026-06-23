@@ -87,6 +87,14 @@ textarea{font-family:'SF Mono',ui-monospace,monospace;font-size:12.5px;line-heig
 .upbtn{display:inline-flex;align-items:center;gap:7px;background:var(--sur2);border:1px solid var(--bdr);border-radius:9px;padding:9px 14px;font-size:13px;color:var(--txt);cursor:pointer;transition:.15s}
 .upbtn:hover{border-color:var(--bdr2)}
 .upnote{font-size:12px;color:var(--dim)}
+/* tool list (replaces grid) */
+.tool-list{border:1px solid var(--bdr);border-radius:13px;overflow:hidden}
+.tl-row{display:flex;align-items:flex-start;gap:0;border-bottom:1px solid var(--bdr)}
+.tl-row:last-child{border-bottom:none}
+.tl-name{font-family:'SF Mono',ui-monospace,monospace;font-size:12.5px;color:var(--fire2);min-width:160px;padding:18px 16px 18px 20px;background:var(--bg2);border-right:1px solid var(--bdr);word-break:break-all}
+.tl-body{padding:16px 20px;flex:1}
+.tl-title{font-size:13.5px;font-weight:600;color:var(--txt);margin-bottom:5px}
+.tl-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px}
 /* drag & drop zone */
 .dropzone{border:1.5px dashed var(--bdr);border-radius:11px;padding:22px 16px;text-align:center;font-size:13px;color:var(--dim);cursor:pointer;transition:.2s;margin-bottom:14px;position:relative}
 .dropzone.drag{border-color:var(--fire2);background:var(--fire-dim);color:var(--fire2)}
@@ -160,18 +168,18 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
 
   <!-- 工具 -->
   <div class="pane" id="pane-tools">
-    <div class="grid">
-      <div class="card"><h3><code>deploy_page</code> · 单页 HTML</h3><p>发布一段 HTML，秒得独立子域名。</p><div class="params"><code>html</code> <code>title?</code> <code>did?</code> <code>pin?</code> <code>spa?</code></div></div>
-      <div class="card"><h3><code>deploy_markdown</code> · Markdown</h3><p>Markdown 渲染成精致网页，三主题。</p><div class="params"><code>markdown</code> <code>theme?</code> <code>title?</code> <code>did?</code></div></div>
-      <div class="card"><h3><code>deploy_docs</code> · 文档站</h3><p>多篇 Markdown 生成带侧栏文档站。</p><div class="params"><code>files[]</code> <code>title?</code> <code>theme?</code> <code>did?</code></div></div>
-      <div class="card"><h3><code>deploy_zip</code> · 整站打包</h3><p>上传 ZIP 自动解压发布，支持 SPA。</p><div class="params"><code>zip_base64</code> <code>did?</code> <code>spa?</code></div></div>
-      <div class="card"><h3><code>deploy_files</code> · 多文件</h3><p>逐文件发布，支持子目录结构。</p><div class="params"><code>files[]</code> <code>did?</code> <code>spa?</code></div></div>
-      <div class="card"><h3><code>list_deployments</code> · 列出</h3><p>列出当前 Key 下的所有部署。</p><div class="params"><code>include_expired?</code></div></div>
-      <div class="card"><h3><code>get_deployment</code> · 详情</h3><p>查某个部署的详情与 URL。</p><div class="params"><code>did</code></div></div>
-      <div class="card"><h3><code>set_access</code> · 访问控制</h3><p>切换公开 / 密码访问。</p><div class="params"><code>did</code> <code>access</code> <code>password?</code></div></div>
-      <div class="card"><h3><code>pin_deployment</code> · 永久保留</h3><p>把临时部署置为永不过期。</p><div class="params"><code>did</code></div></div>
-      <div class="card"><h3><code>delete_deployment</code> · 删除</h3><p>立即删除某个部署及其文件。</p><div class="params"><code>did</code></div></div>
-      <div class="card"><h3><code>set_space_id</code> · 子域名</h3><p>自定义 Key 的 space_id 段。</p><div class="params"><code>space_id</code></div></div>
+    <div class="tool-list">
+      <div class="tl-row"><div class="tl-name">deploy_page</div><div class="tl-body"><div class="tl-title">单页 HTML</div><div class="tl-desc">发布一段 HTML 字符串，立即得到独立 HTTPS 子域名，适合 AI 生成的报告与落地页。</div><div class="params"><code>html</code> <code>title?</code> <code>did?</code> <code>access?</code> <code>password?</code> <code>ttl_days?</code> <code>pin?</code> <code>spa?</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">deploy_markdown</div><div class="tl-body"><div class="tl-title">Markdown 渲染</div><div class="tl-desc">Markdown 渲染成精致排版网页，支持 light / dark / sepia 三主题，代码高亮、表格、任务列表开箱即用。自动剥离 YAML frontmatter。</div><div class="params"><code>markdown</code> <code>theme?</code> <code>title?</code> <code>did?</code> <code>access?</code> <code>pin?</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">deploy_docs</div><div class="tl-body"><div class="tl-title">多页文档站</div><div class="tl-desc">多篇 Markdown 文件自动生成带左侧导航的文档站，必须含 index.md，.md 链接自动改写为 .html。</div><div class="params"><code>files[]</code> <code>title?</code> <code>theme?</code> <code>did?</code> <code>pin?</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">deploy_files</div><div class="tl-body"><div class="tl-title">多文件站点</div><div class="tl-desc">逐文件发布 HTML + CSS + JS，支持子目录结构，二进制文件用 base64 编码传输。</div><div class="params"><code>files[]</code> <code>did?</code> <code>spa?</code> <code>pin?</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">deploy_zip</div><div class="tl-body"><div class="tl-title">整站打包</div><div class="tl-desc">上传 ZIP 包自动解压发布，支持 SPA 模式（客户端路由 fallback 到 index.html）。</div><div class="params"><code>zip_base64</code> <code>did?</code> <code>spa?</code> <code>pin?</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">set_access</div><div class="tl-body"><div class="tl-title">修改访问控制</div><div class="tl-desc">随时切换已有站点的访问方式：public（公开）/ password（密码保护）/ private（私有），无需重新发布内容。</div><div class="params"><code>did</code> <code>access</code> <code>password?</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">list_deployments</div><div class="tl-body"><div class="tl-title">列出部署</div><div class="tl-desc">列出当前 API Key 下的所有站点，返回 URL、状态、文件数、大小、创建时间。</div><div class="params"><code>include_expired?</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">get_deployment</div><div class="tl-body"><div class="tl-title">查询单个部署</div><div class="tl-desc">获取指定站点的完整详情，包括 URL、文件列表、访问控制、过期时间。</div><div class="params"><code>did</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">delete_deployment</div><div class="tl-body"><div class="tl-title">删除部署</div><div class="tl-desc">立即删除指定站点及其全部文件，释放存储配额，不可恢复。</div><div class="params"><code>did</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">pin_deployment</div><div class="tl-body"><div class="tl-title">永久保留</div><div class="tl-desc">将临时站点（设有 TTL）标记为永久保留，跳过自动 GC 清理。</div><div class="params"><code>did</code></div></div></div>
+      <div class="tl-row"><div class="tl-name">set_space_id</div><div class="tl-body"><div class="tl-title">自定义子域名</div><div class="tl-desc">设置当前 API Key 的 space_id 段（全局唯一），影响该 Key 下所有站点的子域名。</div><div class="params"><code>space_id</code></div></div></div>
     </div>
   </div>
 
@@ -319,8 +327,16 @@ function setArgs(){ $('args').value = JSON.stringify(EXAMPLES[$('tool-sel').valu
 function setArgsObj(o){ $('args').value = JSON.stringify(o, null, 2) }
 function syncUpload(){
   const t=$('tool-sel').value, u=UPLOAD[t]
-  if(u){ $('uprow').style.display='block'; $('file-in').accept=u.accept; $('file-in').multiple=u.multiple; $('up-label').textContent=u.label; $('up-note').textContent='可选：上传文件自动填入参数' }
-  else $('uprow').style.display='none'
+  if(u){
+    $('uprow').style.display='block'
+    $('file-in').accept=u.accept
+    $('file-in').multiple=!!u.multiple
+    $('up-label').textContent=u.label
+    $('up-note').textContent='可选：上传文件，自动填入参数（' + u.accept + '）'
+    $('file-in').value=''  // reset so same file can be re-selected
+  } else {
+    $('uprow').style.display='none'
+  }
 }
 
 // Drag & drop support
