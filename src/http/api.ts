@@ -20,6 +20,14 @@ const USERNAME_RE = /^[a-z0-9_-]{3,20}$/
 const SESSION_COOKIE = 'pf_session'
 const MAX_KEYS_PER_USER = 10
 
+// Tools allowed through the public Playground proxy. Excludes set_space_id
+// (would rewrite every existing URL of the key) — destructive global change.
+const PLAYGROUND_TOOLS = new Set([
+  'list_deployments', 'get_deployment',
+  'deploy_page', 'deploy_markdown', 'deploy_docs', 'deploy_files',
+  'pin_deployment', 'set_access', 'delete_deployment',
+])
+
 // In-memory IP rate limiter for register endpoint (max 5/hour)
 const registerLimiter = new Map<string, number[]>()
 
@@ -241,10 +249,45 @@ export async function handleApiRequest(
     try { plain = decryptToken(row.token_enc, config.tokenEncKey) }
     catch { json(res, 500, { error: '密钥解密失败' }); return true }
     try {
-      const r = await mcpLoopbackTest(config.mcpPort, config.httpHost, plain)
-      json(res, 200, { ok: true, deployment_count: r.count })
+      const data = await mcpLoopback(config.mcpPort, config.httpHost, plain, 'list_deployments', {})
+      if (data?.error) throw new Error(data.error)
+      const count = Array.isArray(data?.deployments) ? data.deployments.length : 0
+      json(res, 200, { ok: true, deployment_count: count })
     } catch (e: any) {
       json(res, 502, { ok: false, error: e?.message ?? 'MCP 连接失败' })
+    }
+    return true
+  }
+
+  // ── Playground: call an MCP tool with one of the user's own keys (same-origin proxy) ──
+  if (method === 'POST' && url === '/api/playground') {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const body = await readJson(req) as any
+    const keyId = String(body?.key_id ?? '')
+    const tool = String(body?.tool ?? '')
+    const toolArgs = body?.arguments ?? {}
+    if (!PLAYGROUND_TOOLS.has(tool)) {
+      json(res, 400, { error: `演练场不支持工具 "${tool}"` }); return true
+    }
+    const tok = getTokenByIdForUser(db, keyId, user.id)
+    if (!tok || tok.status !== 'active') { json(res, 400, { error: 'API Key 无效或已吊销' }); return true }
+    const row = db.prepare('SELECT token_enc FROM tokens WHERE id = ?').get(keyId) as { token_enc: string | null } | undefined
+    if (!row?.token_enc) { json(res, 400, { error: '无法读取该 Key（请重建）' }); return true }
+    let plain: string
+    try { plain = decryptToken(row.token_enc, config.tokenEncKey) }
+    catch { json(res, 500, { error: '密钥解密失败' }); return true }
+    const started = Date.now()
+    try {
+      const data = await mcpLoopback(config.mcpPort, config.httpHost, plain, tool, toolArgs)
+      json(res, 200, {
+        ok: !data?.error,
+        request: { name: tool, arguments: toolArgs },
+        result: data,
+        ms: Date.now() - started,
+      })
+    } catch (e: any) {
+      json(res, 502, { ok: false, error: e?.message ?? 'MCP 调用失败' })
     }
     return true
   }
@@ -265,12 +308,15 @@ export async function handleApiRequest(
   return false
 }
 
-// Exercise the real MCP endpoint over loopback with the given token (calls list_deployments).
-// Confirms the full MCP auth + transport path works for this key.
-function mcpLoopbackTest(mcpPort: number, host: string, token: string): Promise<{ count: number }> {
+// Call the real MCP endpoint over loopback with the given token, returning the tool's
+// parsed JSON result. Used by the connection test and the playground proxy — exercising
+// the full MCP auth + transport path the same way an external client would.
+function mcpLoopback(
+  mcpPort: number, host: string, token: string, name: string, args: unknown,
+): Promise<any> {
   const payload = JSON.stringify({
     jsonrpc: '2.0', id: 1, method: 'tools/call',
-    params: { name: 'list_deployments', arguments: {} },
+    params: { name, arguments: args ?? {} },
   })
   return new Promise((resolve, reject) => {
     const req = httpRequest({
@@ -290,15 +336,12 @@ function mcpLoopbackTest(mcpPort: number, host: string, token: string): Promise<
         try {
           const parsed = JSON.parse(m[0])
           const text = parsed?.result?.content?.[0]?.text
-          const data = text ? JSON.parse(text) : {}
-          if (data.error) return reject(new Error(data.error))
-          const count = Array.isArray(data.deployments) ? data.deployments.length : 0
-          resolve({ count })
-        } catch (e: any) { reject(new Error('解析 MCP 响应失败')) }
+          resolve(text ? JSON.parse(text) : (parsed?.result ?? parsed))
+        } catch { reject(new Error('解析 MCP 响应失败')) }
       })
     })
     req.on('error', (e) => reject(e))
-    req.setTimeout(5000, () => { req.destroy(new Error('MCP 连接超时')) })
+    req.setTimeout(15000, () => { req.destroy(new Error('MCP 连接超时')) })
     req.end(payload)
   })
 }

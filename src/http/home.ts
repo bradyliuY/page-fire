@@ -55,8 +55,13 @@ h1{font-size:clamp(38px,6.5vw,68px);font-weight:720;line-height:1.05;letter-spac
 .d{width:11px;height:11px;border-radius:50%}
 .dr{background:#ff5f57}.dy{background:#febc2e}.dg{background:#28c840}
 .t-title{font-size:12px;color:var(--dim);margin-left:7px}
-.t-body{background:#0c0c0e;padding:22px 24px;overflow-x:auto}
-pre{font-size:12.5px;line-height:2;color:#d4d4d8;white-space:pre}
+.t-tabs{display:flex;gap:4px;margin-left:10px}
+.t-tab{background:none;border:none;color:var(--dim);font-size:12px;font-family:inherit;padding:4px 11px;border-radius:6px;cursor:pointer;transition:.15s}
+.t-tab:hover{color:var(--muted)}
+.t-tab.active{color:var(--fire2);background:var(--fire-dim)}
+.t-body{background:#0c0c0e;padding:22px 24px;overflow-x:auto;min-height:236px}
+pre{font-size:12.5px;line-height:2;color:#d4d4d8;white-space:pre;transition:opacity .25s}
+pre.fade{opacity:0}
 .kw{color:var(--fire2)}.fn{color:#fafafa;font-weight:600}.str{color:#a3e635}.cm{color:#52525b}.num{color:var(--fire2)}
 
 /* stats */
@@ -132,6 +137,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
   <a class="logo" href="/"><span class="flame">🔥</span>PageFire</a>
   <div class="nav-r">
     <a href="#features">功能</a>
+    <a href="/playground">Playground</a>
     <a href="#quickstart">接入</a>
     <a onclick="showAuth('login')" class="nav-login">登录</a>
     <a onclick="showAuth('register')" class="nav-reg">注册</a>
@@ -140,30 +146,24 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
 
 <main>
 <div class="sec hero w">
-  <div class="badge"><span class="ping"></span>MCP 驱动 · 自托管 · 开源</div>
-  <h1>让 AI 直接发布<br>静态网页</h1>
-  <p class="hero-sub">通过 MCP 协议，AI 把 HTML / ZIP 发布成公网 HTTPS 页面，3 秒内完成。自托管、多租户，无需任何 CI/CD 流水线。</p>
+  <div class="badge"><span class="ping"></span>MCP 驱动 · 自托管 · 即发即得</div>
+  <h1>对 AI 说一句话，<br>网页就上线了</h1>
+  <p class="hero-sub">PageFire 让 Claude、Cursor 等 AI 把 HTML、Markdown、整站打包直接发布成公网 HTTPS 页面——几秒完成，链接可长期固定，不碰任何部署流程。</p>
   <div class="btns">
     <a class="bp" onclick="showAuth('register')">免费开始 →</a>
-    <a class="bg" href="#quickstart">5 分钟接入</a>
+    <a class="bg" href="/playground">在线试用 →</a>
   </div>
 
   <div class="term">
     <div class="t-bar">
       <div class="d dr"></div><div class="d dy"></div><div class="d dg"></div>
-      <span class="t-title">Claude Desktop — MCP 工具调用示例</span>
+      <div class="t-tabs">
+        <button class="t-tab active" data-i="0" onclick="pickScene(0)">单页</button>
+        <button class="t-tab" data-i="1" onclick="pickScene(1)">Markdown</button>
+        <button class="t-tab" data-i="2" onclick="pickScene(2)">文档站</button>
+      </div>
     </div>
-    <div class="t-body"><pre><span class="cm">// 你对 AI 说一句话</span>
-<span class="str">"把这份产品介绍发布成公网网页，永久保留"</span>
-
-<span class="cm">// PageFire MCP 自动执行</span>
-<span class="fn">deploy_page</span>({
-  html: <span class="str">"&lt;h1&gt;Hello World&lt;/h1&gt;..."</span>,
-  pin: <span class="kw">true</span>
-})
-
-<span class="cm">// ✓ 2 秒后返回可访问地址</span>
-{ url: <span class="str">"https://f4vyog-3ixketu6.${baseDomain}/"</span> }</pre></div>
+    <div class="t-body"><pre id="scene"></pre></div>
   </div>
 
   <div class="stats">
@@ -280,16 +280,17 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     <p style="color:var(--muted);font-size:15px;margin:14px auto 34px;line-height:1.7;max-width:440px">注册即可在控制台自助创建 API Key，数据完全自主可控。从注册到第一个页面上线，不超过 5 分钟。</p>
     <div class="btns">
       <a class="bp" onclick="showAuth('register')">免费开始 →</a>
-      <a class="bg" href="https://github.com/bradyliuY/page-fire">GitHub 源码</a>
+      <a class="bg" href="/playground">在线试用 Playground</a>
     </div>
   </div>
 </div></div>
 </main>
 
 <footer><div class="w fi-row">
-  <div class="fc">© 2026 PageFire · Self-hosted MCP static publisher · MIT License</div>
+  <div class="fc">© 2026 PageFire · Self-hosted MCP static publisher</div>
   <div class="fl">
-    <a href="https://github.com/bradyliuY/page-fire">GitHub</a>
+    <a href="/playground">Playground</a>
+    <a href="#quickstart">接入文档</a>
     <a href="https://mcp.${baseDomain}/mcp">MCP 端点</a>
   </div>
 </div></footer>
@@ -346,6 +347,45 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
 </div></div>
 
 <script>
+// ── Interactive hero demo: switchable / auto-rotating scenarios ───────────────
+const C = (cls, t) => '<span class="' + cls + '">' + t + '</span>'
+const SCENES = [
+  C('cm','// 你对 AI 说') + '\\n' +
+  C('str','"把这份产品介绍发布成网页，永久保留"') + '\\n\\n' +
+  C('cm','// PageFire 自动执行') + '\\n' +
+  C('fn','deploy_page') + '({ html: ' + C('str','"&lt;h1&gt;...&lt;/h1&gt;"') + ', pin: ' + C('kw','true') + ' })\\n\\n' +
+  C('cm','// ✓ 几秒后返回') + '\\n' +
+  '{ url: ' + C('str','"https://f4vyog-3ixketu6.${baseDomain}/"') + ' }',
+
+  C('cm','// 你对 AI 说') + '\\n' +
+  C('str','"把这篇 Markdown 发布成网页，用暗色主题"') + '\\n\\n' +
+  C('cm','// PageFire 自动执行') + '\\n' +
+  C('fn','deploy_markdown') + '({ markdown: ' + C('str','"# 标题..."') + ', theme: ' + C('str','"dark"') + ' })\\n\\n' +
+  C('cm','// ✓ 自动套用精致排版') + '\\n' +
+  '{ url: ' + C('str','"https://ragdemo-bmwvx12a.${baseDomain}/"') + ' }',
+
+  C('cm','// 你对 AI 说') + '\\n' +
+  C('str','"把这套文档做成带侧栏的文档站"') + '\\n\\n' +
+  C('cm','// PageFire 自动执行') + '\\n' +
+  C('fn','deploy_docs') + '({ files: [' + C('str','"index.md"') + ', ' + C('str','"guide.md"') + ', ...] })\\n\\n' +
+  C('cm','// ✓ 多页 + 导航一次生成') + '\\n' +
+  '{ url: ' + C('str','"https://pfdocs-vguan2uk.${baseDomain}/"') + ' }',
+]
+let sceneI = 0, sceneTimer = null
+const sceneEl = document.getElementById('scene')
+function renderScene(i){
+  sceneEl.classList.add('fade')
+  setTimeout(() => {
+    sceneEl.innerHTML = SCENES[i]
+    document.querySelectorAll('.t-tab').forEach(b => b.classList.toggle('active', +b.dataset.i === i))
+    sceneEl.classList.remove('fade')
+  }, 200)
+}
+function pickScene(i){ sceneI = i; renderScene(i); clearInterval(sceneTimer); sceneTimer = setInterval(autoScene, 4500) }
+function autoScene(){ sceneI = (sceneI + 1) % SCENES.length; renderScene(sceneI) }
+sceneEl.innerHTML = SCENES[0]
+sceneTimer = setInterval(autoScene, 4500)
+
 const modal = document.getElementById('modal')
 let curTab = 'register'
 

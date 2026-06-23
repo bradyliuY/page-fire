@@ -7,12 +7,15 @@ import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
 import { hashToken } from '../auth.js'
 import { renderHome } from './home.js'
 import { renderDashboard } from './dashboard.js'
+import { renderPlayground } from './playground.js'
 import { SECURITY_HEADERS } from './headers.js'
 
 let cachedHomeBuf: Buffer | null = null
 let cachedHomeKey: string | null = null
 let cachedDashBuf: Buffer | null = null
 let cachedDashKey: string | null = null
+let cachedPlayBuf: Buffer | null = null
+let cachedPlayKey: string | null = null
 
 export function handleRequest(
   req: IncomingMessage,
@@ -41,6 +44,20 @@ export function handleRequest(
         cachedDashKey = baseDomain
       }
       const buf = cachedDashBuf!
+      for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.setHeader('Content-Length', buf.length)
+      res.statusCode = 200
+      res.end(buf)
+      return
+    }
+    // Playground (auth enforced client-side via /api/me; deploys proxied through /api/playground)
+    if (url === '/playground' || url.startsWith('/playground?')) {
+      if (cachedPlayKey !== baseDomain) {
+        cachedPlayBuf = Buffer.from(renderPlayground(baseDomain), 'utf8')
+        cachedPlayKey = baseDomain
+      }
+      const buf = cachedPlayBuf!
       for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
       res.setHeader('Content-Length', buf.length)

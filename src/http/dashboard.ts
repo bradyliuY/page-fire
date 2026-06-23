@@ -99,6 +99,7 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 <nav><div class="nav-i">
   <a class="logo" href="/"><span class="flame">🔥</span>PageFire</a>
   <div class="nav-r">
+    <a class="btn-ghost" href="/playground" style="text-decoration:none">Playground</a>
     <span class="uname" id="uname"></span>
     <button class="btn-ghost" onclick="logout()">退出</button>
   </div>
