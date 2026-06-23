@@ -11,6 +11,9 @@ node_modules/
 dist/
 *.log
 
+# PageFire local data
+dev-data/
+
 # OS
 .DS_Store
 Thumbs.db
