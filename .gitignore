@@ -1,4 +1,5 @@
 # 凭证 / 私钥 —— 绝不入库
+.mcp.json
 *.pem
 *.key
 docs/deploy/ssh.txt
