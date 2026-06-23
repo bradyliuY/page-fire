@@ -1,4 +1,5 @@
 import { join, resolve } from 'path'
+import { existsSync } from 'fs'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type Database from 'better-sqlite3'
 import { serve404, serve401, serveFile } from './serve.js'
@@ -83,15 +84,18 @@ export function handleRequest(
 
   // Resolve file path
   const deployDir = join(sitesDir, String(deployment.token_id), deployment.did)
-  const filePath =
-    url === '/' || url === ''
-      ? join(deployDir, 'index.html')
-      : join(deployDir, url.split('?')[0])
+  const requestedPath = url === '/' || url === '' ? 'index.html' : url.split('?')[0]
+  let filePath = join(deployDir, requestedPath)
 
   // Security: ensure resolved path is within deployDir
   if (!resolve(filePath).startsWith(resolve(deployDir))) {
     serve404(res)
     return
+  }
+
+  // SPA fallback: serve index.html for unknown paths so client-side routing works
+  if (deployment.spa && !existsSync(filePath)) {
+    filePath = join(deployDir, 'index.html')
   }
 
   serveFile(res, filePath)

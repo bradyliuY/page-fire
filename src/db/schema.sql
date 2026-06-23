@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS deployments (
   expires_at  INTEGER,
   size_bytes  INTEGER NOT NULL DEFAULT 0,
   file_count  INTEGER NOT NULL DEFAULT 0,
+  spa         INTEGER NOT NULL DEFAULT 0,
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL
 );

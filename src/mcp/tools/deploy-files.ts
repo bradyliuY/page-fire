@@ -14,6 +14,7 @@ export async function deployFilesTool(
     password?: string
     ttl_days?: number
     pin?: boolean
+    spa?: boolean
   },
   authHeader: string | undefined,
   db: Database.Database,
@@ -54,6 +55,7 @@ export async function deployFilesTool(
     expires_at,
     size_bytes: sizeBytes,
     file_count: fileCount,
+    spa: args.spa ?? false,
   })
   insertAuditLog(db, {
     token_id: token.id,

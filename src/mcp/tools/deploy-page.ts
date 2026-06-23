@@ -14,6 +14,7 @@ export interface DeployPageArgs {
   password?: string
   ttl_days?: number
   pin?: boolean
+  spa?: boolean
 }
 
 export async function deployPage(
@@ -61,6 +62,7 @@ export async function deployPage(
     expires_at,
     size_bytes: sizeBytes,
     file_count: fileCount,
+    spa: args.spa ?? false,
   })
 
   insertAuditLog(db, {

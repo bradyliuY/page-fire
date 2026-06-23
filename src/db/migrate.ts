@@ -23,5 +23,14 @@ export function openDb(dbPath: string): Database.Database {
       // PRAGMA statements return info, not rows — ignore errors from those
     }
   }
+
+  // Column migrations — safe to run on existing DBs (errors mean column already exists)
+  const colMigrations = [
+    'ALTER TABLE deployments ADD COLUMN spa INTEGER NOT NULL DEFAULT 0',
+  ]
+  for (const stmt of colMigrations) {
+    try { db.prepare(stmt).run() } catch { /* column already exists */ }
+  }
+
   return db
 }

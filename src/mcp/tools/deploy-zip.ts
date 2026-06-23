@@ -17,6 +17,7 @@ export async function deployZip(
     password?: string
     ttl_days?: number
     pin?: boolean
+    spa?: boolean
   },
   authHeader: string | undefined,
   db: Database.Database,
@@ -64,6 +65,7 @@ export async function deployZip(
     expires_at,
     size_bytes: result.sizeBytes,
     file_count: result.fileCount,
+    spa: args.spa ?? false,
   })
   insertAuditLog(db, {
     token_id: token.id,

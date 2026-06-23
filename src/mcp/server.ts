@@ -99,6 +99,10 @@ export async function startMcpServer(
           .boolean()
           .optional()
           .describe('Pin the deployment so it never expires (default false)'),
+        spa: z
+          .boolean()
+          .optional()
+          .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
       },
       async (args) => {
         try {
@@ -135,6 +139,10 @@ export async function startMcpServer(
           .boolean()
           .optional()
           .describe('Pin the deployment so it never expires (default false)'),
+        spa: z
+          .boolean()
+          .optional()
+          .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
       },
       async (args) => {
         try {
@@ -183,6 +191,10 @@ export async function startMcpServer(
           .boolean()
           .optional()
           .describe('Pin the deployment so it never expires (default false)'),
+        spa: z
+          .boolean()
+          .optional()
+          .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
       },
       async (args) => {
         try {
