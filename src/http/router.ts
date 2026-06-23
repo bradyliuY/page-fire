@@ -6,10 +6,13 @@ import { serve404, serve401, serveFile } from './serve.js'
 import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
 import { hashToken } from '../auth.js'
 import { renderHome } from './home.js'
+import { renderDashboard } from './dashboard.js'
 import { SECURITY_HEADERS } from './headers.js'
 
 let cachedHomeBuf: Buffer | null = null
 let cachedHomeKey: string | null = null
+let cachedDashBuf: Buffer | null = null
+let cachedDashKey: string | null = null
 
 export function handleRequest(
   req: IncomingMessage,
@@ -29,8 +32,22 @@ export function handleRequest(
     return
   }
 
-  // Root domain → serve product homepage
+  // Root domain → serve product homepage / dashboard
   if (host === baseDomain) {
+    // Dashboard shell (auth enforced client-side via /api/me + httpOnly session cookie)
+    if (url === '/dashboard' || url.startsWith('/dashboard?')) {
+      if (cachedDashKey !== baseDomain) {
+        cachedDashBuf = Buffer.from(renderDashboard(baseDomain), 'utf8')
+        cachedDashKey = baseDomain
+      }
+      const buf = cachedDashBuf!
+      for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.setHeader('Content-Length', buf.length)
+      res.statusCode = 200
+      res.end(buf)
+      return
+    }
     const homeKey = `${baseDomain}:${requireInvite}`
     if (cachedHomeKey !== homeKey) {
       cachedHomeBuf = Buffer.from(renderHome(baseDomain, requireInvite), 'utf8')

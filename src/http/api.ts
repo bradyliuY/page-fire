@@ -5,10 +5,19 @@ import type { Config } from '../config.js'
 import { generateTokenSecret, hashToken } from '../auth.js'
 import { generateSpaceId } from '../core/ids.js'
 import { encryptToken, decryptToken } from '../core/token-enc.js'
-import { createToken, createUser, getUserByUsername, insertAuditLog, getInviteByCode, useInvite } from '../db/repo.js'
+import {
+  createToken, createUser, getUserByUsername, insertAuditLog,
+  getInviteByCode, useInvite,
+  createSession, getSessionUser, deleteSession,
+  listTokensByUser, getTokenByIdForUser, revokeTokenById, countActiveTokensByUser,
+  type UserRow,
+} from '../db/repo.js'
+import { validateCustomSpaceId, ValidationError } from '../core/validate.js'
 import { SECURITY_HEADERS } from './headers.js'
 
 const USERNAME_RE = /^[a-z0-9_-]{3,20}$/
+const SESSION_COOKIE = 'pf_session'
+const MAX_KEYS_PER_USER = 10
 
 // In-memory IP rate limiter for register endpoint (max 5/hour)
 const registerLimiter = new Map<string, number[]>()
@@ -24,9 +33,10 @@ function checkRegisterRate(ip: string): boolean {
   return true
 }
 
-function json(res: ServerResponse, status: number, data: unknown): void {
+function json(res: ServerResponse, status: number, data: unknown, extraHeaders?: Record<string, string>): void {
   const body = Buffer.from(JSON.stringify(data), 'utf8')
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+  if (extraHeaders) for (const [k, v] of Object.entries(extraHeaders)) res.setHeader(k, v)
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Content-Length', body.length)
   res.writeHead(status)
@@ -42,16 +52,53 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   })
 }
 
+function parseCookies(req: IncomingMessage): Record<string, string> {
+  const out: Record<string, string> = {}
+  const raw = req.headers['cookie']
+  if (!raw) return out
+  for (const part of raw.split(';')) {
+    const idx = part.indexOf('=')
+    if (idx > 0) out[part.slice(0, idx).trim()] = part.slice(idx + 1).trim()
+  }
+  return out
+}
+
+function sessionCookie(sid: string): string {
+  // 30 days; Secure because served over HTTPS via nginx; Lax so it survives top-level nav
+  return `${SESSION_COOKIE}=${sid}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${30 * 24 * 3600}`
+}
+
+function clearCookie(): string {
+  return `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`
+}
+
+function currentUser(req: IncomingMessage, db: Database.Database): UserRow | undefined {
+  const sid = parseCookies(req)[SESSION_COOKIE]
+  if (!sid) return undefined
+  return getSessionUser(db, sid)
+}
+
+// Mask a token for display: pf_1234••••••cdef
+function maskToken(enc: string | null, keyHex: string): string {
+  if (!enc) return 'pf_••••••'
+  try {
+    const t = decryptToken(enc, keyHex)
+    return t.slice(0, 7) + '••••••' + t.slice(-4)
+  } catch { return 'pf_••••••' }
+}
+
 export async function handleApiRequest(
   req: IncomingMessage,
   res: ServerResponse,
   db: Database.Database,
   config: Config,
 ): Promise<boolean> {
-  const url = req.url ?? ''
+  const url = (req.url ?? '').split('?')[0]
+  const method = req.method ?? 'GET'
   const ip = (req.headers['x-real-ip'] as string | undefined) ?? req.socket.remoteAddress ?? ''
 
-  if (req.method === 'POST' && url === '/api/register') {
+  // ── Register ────────────────────────────────────────────────────────────────
+  if (method === 'POST' && url === '/api/register') {
     const body = await readJson(req) as any
     const { username, password, invite_code } = body ?? {}
 
@@ -78,39 +125,27 @@ export async function handleApiRequest(
       json(res, 429, { error: '注册太频繁，请 1 小时后再试' }); return true
     }
 
-    const plainToken = generateTokenSecret()
-    const tokenHash = hashToken(plainToken)
-    const tokenEnc = encryptToken(plainToken, config.tokenEncKey)
-    const spaceId = generateSpaceId(db)
-    const slug = `user-${username}`
-
-    const token = createToken(db, {
-      slug, space_id: spaceId, token_hash: tokenHash,
-      label: username, status: 'active',
-      quota_deployments: 100, quota_bytes: 209715200,
-    })
-    // store encrypted token for later display
-    db.prepare('UPDATE tokens SET token_enc = ? WHERE id = ?').run(tokenEnc, token.id)
-
     const passwordHash = await bcrypt.hash(password, 10)
+    // Two tables reference each other (users.token_id ↔ tokens.user_id).
+    // Order to satisfy FKs: create token (user_id null) → create user → backfill token.user_id.
+    const { token, plainToken, spaceId } = createApiKey(db, config, null, username)
     const user = createUser(db, {
       username, password_hash: passwordHash,
       token_id: token.id, invite_code: invite_code ?? null,
     })
+    db.prepare('UPDATE tokens SET user_id = ? WHERE id = ?').run(user.id, token.id)
 
     if (config.requireInvite && invite_code) useInvite(db, invite_code)
-
     insertAuditLog(db, { token_id: token.id, action: 'user_register', ip })
 
-    json(res, 200, {
-      username: user.username,
-      space_id: spaceId,
-      token: plainToken,
-    })
+    const sid = createSession(db, user.id)
+    json(res, 200, { username: user.username, space_id: spaceId, token: plainToken },
+      { 'Set-Cookie': sessionCookie(sid) })
     return true
   }
 
-  if (req.method === 'POST' && url === '/api/login') {
+  // ── Login ─────────────────────────────────────────────────────────────────────
+  if (method === 'POST' && url === '/api/login') {
     const body = await readJson(req) as any
     const { username, password } = body ?? {}
 
@@ -127,23 +162,102 @@ export async function handleApiRequest(
     const ok = await bcrypt.compare(password, user.password_hash)
     if (!ok) { json(res, 401, { error: '用户名或密码错误' }); return true }
 
-    const tokenRow = db.prepare('SELECT * FROM tokens WHERE id = ?').get(user.token_id) as any
-    if (!tokenRow || tokenRow.status !== 'active') {
-      json(res, 403, { error: '账户已被禁用，请联系管理员' }); return true
+    const sid = createSession(db, user.id)
+    json(res, 200, { username: user.username }, { 'Set-Cookie': sessionCookie(sid) })
+    return true
+  }
+
+  // ── Logout ──────────────────────────────────────────────────────────────────
+  if (method === 'POST' && url === '/api/logout') {
+    const sid = parseCookies(req)[SESSION_COOKIE]
+    if (sid) deleteSession(db, sid)
+    json(res, 200, { ok: true }, { 'Set-Cookie': clearCookie() })
+    return true
+  }
+
+  // ── Current user ──────────────────────────────────────────────────────────────
+  if (method === 'GET' && url === '/api/me') {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    json(res, 200, { username: user.username })
+    return true
+  }
+
+  // ── List API keys ─────────────────────────────────────────────────────────────
+  if (method === 'GET' && url === '/api/keys') {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const keys = listTokensByUser(db, user.id).map(k => ({
+      id: k.id,
+      label: k.label,
+      space_id: k.space_id,
+      token_masked: maskToken(k.token_enc, config.tokenEncKey),
+      status: k.status,
+      deployment_count: k.deployment_count,
+      created_at: k.created_at,
+      base_url: `https://${k.space_id}.${config.baseDomain}`,
+    }))
+    json(res, 200, { keys })
+    return true
+  }
+
+  // ── Create API key ──────────────────────────────────────────────────────────
+  if (method === 'POST' && url === '/api/keys') {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    if (countActiveTokensByUser(db, user.id) >= MAX_KEYS_PER_USER) {
+      json(res, 400, { error: `最多创建 ${MAX_KEYS_PER_USER} 个 API Key` }); return true
+    }
+    const body = await readJson(req) as any
+    const label = typeof body?.label === 'string' ? body.label.trim().slice(0, 40) : ''
+    const customSpaceId = typeof body?.space_id === 'string' ? body.space_id.trim() : ''
+
+    if (customSpaceId) {
+      try { validateCustomSpaceId(customSpaceId) }
+      catch (e) { json(res, 400, { error: (e as ValidationError).message }); return true }
     }
 
-    let plainToken = ''
-    if (tokenRow.token_enc) {
-      try { plainToken = decryptToken(tokenRow.token_enc, config.tokenEncKey) } catch { /* old token without enc */ }
+    try {
+      const { plainToken, spaceId } = createApiKey(db, config, user.id, label || user.username, customSpaceId || undefined)
+      json(res, 200, { token: plainToken, space_id: spaceId, label: label || null })
+    } catch (e: any) {
+      json(res, 400, { error: e?.message ?? '创建失败' })
     }
+    return true
+  }
 
-    json(res, 200, {
-      username: user.username,
-      space_id: tokenRow.space_id,
-      token: plainToken,
-    })
+  // ── Revoke API key ──────────────────────────────────────────────────────────
+  if (method === 'DELETE' && url.startsWith('/api/keys/')) {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const id = decodeURIComponent(url.slice('/api/keys/'.length))
+    const tok = getTokenByIdForUser(db, id, user.id)
+    if (!tok) { json(res, 404, { error: 'Key 不存在' }); return true }
+    revokeTokenById(db, id)
+    insertAuditLog(db, { token_id: id, action: 'key_revoke', ip })
+    json(res, 200, { ok: true })
     return true
   }
 
   return false
+}
+
+// Create a token (API key) for a user. Handles space_id allocation + token_enc storage.
+function createApiKey(
+  db: Database.Database, config: Config, userId: string | null, label: string, customSpaceId?: string,
+): { token: ReturnType<typeof createToken>; plainToken: string; spaceId: string } {
+  const plainToken = generateTokenSecret()
+  const tokenHash = hashToken(plainToken)
+  const tokenEnc = encryptToken(plainToken, config.tokenEncKey)
+  const spaceId = customSpaceId ?? generateSpaceId(db)
+  // unique, human-meaningless slug
+  const slug = `k-${spaceId}`
+
+  const token = createToken(db, {
+    slug, space_id: spaceId, token_hash: tokenHash,
+    label: label || null, user_id: userId, status: 'active',
+    quota_deployments: 100, quota_bytes: 209715200,
+  })
+  db.prepare('UPDATE tokens SET token_enc = ? WHERE id = ?').run(tokenEnc, token.id)
+  return { token, plainToken, spaceId }
 }

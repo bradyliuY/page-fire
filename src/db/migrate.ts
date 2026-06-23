@@ -28,6 +28,7 @@ export function openDb(dbPath: string): Database.Database {
   const colMigrations = [
     'ALTER TABLE deployments ADD COLUMN spa INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE tokens ADD COLUMN token_enc TEXT',
+    'ALTER TABLE tokens ADD COLUMN user_id TEXT',
   ]
   for (const stmt of colMigrations) {
     try { db.prepare(stmt).run() } catch { /* column already exists */ }

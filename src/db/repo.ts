@@ -1,20 +1,45 @@
 import type Database from 'better-sqlite3'
-import { randomUUID } from 'crypto'
+import { randomUUID, randomBytes } from 'crypto'
 
 // ── Token repo ──────────────────────────────────────────────────────────────
 
 export interface TokenRow {
   id: string; slug: string; space_id: string; token_hash: string
-  label: string | null; status: string; quota_deployments: number
-  quota_bytes: number; created_at: number
+  label: string | null; user_id: string | null; status: string
+  quota_deployments: number; quota_bytes: number; created_at: number
 }
 
-export function createToken(db: Database.Database, fields: Omit<TokenRow, 'id' | 'created_at'>): TokenRow {
+export function createToken(db: Database.Database, fields: Omit<TokenRow, 'id' | 'created_at' | 'user_id'> & { user_id?: string | null }): TokenRow {
   const id = randomUUID()
   const created_at = Date.now()
-  db.prepare(`INSERT INTO tokens (id,slug,space_id,token_hash,label,status,quota_deployments,quota_bytes,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?)`).run(id, fields.slug, fields.space_id, fields.token_hash, fields.label ?? null, fields.status, fields.quota_deployments, fields.quota_bytes, created_at)
-  return { id, created_at, ...fields }
+  const user_id = fields.user_id ?? null
+  db.prepare(`INSERT INTO tokens (id,slug,space_id,token_hash,label,user_id,status,quota_deployments,quota_bytes,created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id, fields.slug, fields.space_id, fields.token_hash, fields.label ?? null, user_id, fields.status, fields.quota_deployments, fields.quota_bytes, created_at)
+  return { id, created_at, user_id, ...fields }
+}
+
+// ── User-scoped API key management ────────────────────────────────────────────
+
+export interface UserKeyRow extends TokenRow { token_enc: string | null; deployment_count: number }
+
+export function listTokensByUser(db: Database.Database, userId: string): UserKeyRow[] {
+  return db.prepare(`
+    SELECT t.*, (SELECT COUNT(*) FROM deployments d WHERE d.token_id = t.id) AS deployment_count
+    FROM tokens t WHERE t.user_id = ? ORDER BY t.created_at DESC
+  `).all(userId) as UserKeyRow[]
+}
+
+export function getTokenByIdForUser(db: Database.Database, id: string, userId: string): TokenRow | undefined {
+  return db.prepare('SELECT * FROM tokens WHERE id = ? AND user_id = ?').get(id, userId) as TokenRow | undefined
+}
+
+export function revokeTokenById(db: Database.Database, id: string): void {
+  db.prepare("UPDATE tokens SET status = 'disabled' WHERE id = ?").run(id)
+}
+
+export function countActiveTokensByUser(db: Database.Database, userId: string): number {
+  const r = db.prepare("SELECT COUNT(*) AS n FROM tokens WHERE user_id = ? AND status = 'active'").get(userId) as { n: number }
+  return r.n
 }
 
 export function getTokenByHash(db: Database.Database, hash: string): TokenRow | undefined {
@@ -154,6 +179,28 @@ export function useInvite(db: Database.Database, code: string): void {
 
 export function listInvites(db: Database.Database): InviteRow[] {
   return db.prepare('SELECT * FROM invites ORDER BY created_at DESC').all() as InviteRow[]
+}
+
+// ── Session repo ─────────────────────────────────────────────────────────────
+
+const SESSION_TTL = 30 * 24 * 3600_000 // 30 days
+
+export function createSession(db: Database.Database, userId: string): string {
+  const id = randomBytes(32).toString('hex')
+  const now = Date.now()
+  db.prepare('INSERT INTO sessions (id,user_id,created_at,expires_at) VALUES (?,?,?,?)')
+    .run(id, userId, now, now + SESSION_TTL)
+  return id
+}
+
+export function getSessionUser(db: Database.Database, sid: string): UserRow | undefined {
+  const s = db.prepare('SELECT * FROM sessions WHERE id = ?').get(sid) as { user_id: string; expires_at: number } | undefined
+  if (!s || s.expires_at <= Date.now()) return undefined
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(s.user_id) as UserRow | undefined
+}
+
+export function deleteSession(db: Database.Database, sid: string): void {
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(sid)
 }
 
 // ── Audit log ────────────────────────────────────────────────────────────────
