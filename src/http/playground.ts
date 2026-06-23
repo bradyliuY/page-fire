@@ -64,15 +64,14 @@ h1{font-size:clamp(26px,4.5vw,38px);font-weight:720;letter-spacing:-1.2px;margin
 .codeblk{background:#0c0c0e;border:1px solid var(--bdr);border-radius:11px;padding:16px 18px;overflow-x:auto;margin:14px 0}
 .codeblk pre{font-size:12.5px;line-height:1.7;color:#d4d4d8;white-space:pre}
 .kw{color:var(--fire2)}.str{color:#a3e635}.cm{color:#52525b}
-.connect-step{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--bdr)}
-.connect-step:last-child{border:none}
+.cs{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--bdr)}
+.cb{flex:1;min-width:0;font-size:13px;color:var(--muted);line-height:1.7}
+.cb b{color:var(--txt);display:block;margin-bottom:3px}
+.cb a{color:var(--fire2)}
 .cn{width:26px;height:26px;border-radius:8px;background:var(--fire-dim);border:1px solid rgba(249,115,22,.25);color:var(--fire2);font-size:12px;font-weight:700;display:grid;place-items:center;flex-shrink:0;margin-top:2px}
-.connect-step h4{font-size:14px;font-weight:600;margin-bottom:4px}
-.connect-step p{font-size:13px;color:var(--muted)}
-.connect-step a{color:var(--fire2)}
-.kv{display:flex;gap:10px;font-size:13px;margin:5px 0}
-.kv span:first-child{color:var(--dim);min-width:72px}
-.kv code{color:var(--fire2)}
+.conn-info{margin-top:18px;padding:14px 18px;border:1px solid var(--bdr);border-radius:11px;background:var(--bg2);display:flex;flex-direction:column;gap:8px}
+.ci-row{display:flex;align-items:baseline;gap:10px;font-size:13px}
+.ci-k{color:var(--muted);min-width:52px;flex-shrink:0}
 
 /* tester */
 .panel{border:1px solid var(--bdr);border-radius:14px;background:var(--bg2);overflow:hidden}
@@ -186,46 +185,32 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
   </div>
 
   <!-- 接入 -->
-  <div class="pane" id="pane-connect">
-    <div class="connect-step"><div class="cn">1</div><div><h4>获取 Token</h4><p>在 <a href="/dashboard">控制台</a> 注册并创建一个 API Key（<code style="color:var(--fire2)">pf_</code> 开头）。</p></div></div>
-    <div class="connect-step"><div class="cn">2</div><div style="flex:1;min-width:0"><h4>配置 .mcp.json</h4><p>在项目根目录创建（加入 .gitignore，不要提交）：</p>
-      <div class="codeblk"><pre>{
-  <span class="str">"mcpServers"</span>: {
-    <span class="str">"pagefire"</span>: {
-      <span class="str">"type"</span>: <span class="str">"http"</span>,
-      <span class="str">"url"</span>: <span class="str">"https://mcp.${baseDomain}/mcp"</span>,
-      <span class="str">"headers"</span>: { <span class="str">"Authorization"</span>: <span class="str">"Bearer &lt;你的token&gt;"</span> }
+  <div class=”pane” id=”pane-connect”>
+    <div class=”cs”><div class=”cn”>1</div><div class=”cb”><b>获取 Token</b><br>在 <a href=”/dashboard”>控制台</a> 注册并创建 API Key（<code class=”ic”>pf_</code> 开头）。</div></div>
+    <div class=”cs”><div class=”cn”>2</div><div class=”cb” style=”min-width:0;flex:1”><b>配置连接</b><br>以 Claude Desktop / Claude Code 为例，在项目根目录创建 <code class=”ic”>.mcp.json</code>（加入 .gitignore）：
+      <div class=”codeblk” style=”margin-top:10px”><pre>{
+  <span class=”str”>”mcpServers”</span>: {
+    <span class=”str”>”pagefire”</span>: {
+      <span class=”str”>”type”</span>: <span class=”str”>”http”</span>,
+      <span class=”str”>”url”</span>: <span class=”str”>”https://mcp.${baseDomain}/mcp”</span>,
+      <span class=”str”>”headers”</span>: { <span class=”str”>”Authorization”</span>: <span class=”str”>”Bearer &lt;你的token&gt;”</span> }
     }
   }
 }</pre></div>
     </div></div>
-    <div class=”connect-step”><div class=”cn”>3</div><div><h4>重载并对话</h4><p>重启 AI 客户端后，直接说：”帮我把这份内容发布成网页”——无需写任何代码。</p></div></div>
-    <div style=”margin-top:18px;padding:16px 18px;border:1px solid var(--bdr);border-radius:11px;background:var(--bg2)”>
-      <div class=”kv”><span>端点</span><code>https://mcp.${baseDomain}/mcp</code></div>
-      <div class=”kv”><span>传输</span><code>Streamable HTTP</code></div>
-      <div class=”kv”><span>鉴权</span><code>Authorization: Bearer pf_xxx</code></div>
-      <div class=”kv”><span>协议版本</span><code>MCP 2025-03-26</code></div>
+    <div class=”cs” style=”border:none;padding-bottom:0”><div class=”cn”>3</div><div class=”cb”><b>对话发布</b><br>重启客户端后直接说：”帮我把这份内容发布成网页”，AI 自动调用工具完成发布。</div></div>
+
+    <div class=”conn-info”>
+      <div class=”ci-row”><span class=”ci-k”>端点</span><code class=”ic”>https://mcp.${baseDomain}/mcp</code></div>
+      <div class=”ci-row”><span class=”ci-k”>传输</span><code class=”ic”>Streamable HTTP · MCP 2025-03-26</code></div>
+      <div class=”ci-row”><span class=”ci-k”>鉴权</span><code class=”ic”>Authorization: Bearer pf_xxx</code></div>
     </div>
-    <div style=”margin-top:24px”>
-      <div class=”sec-sm” style=”margin-bottom:12px”>各客户端接入方式</div>
-      <div class=”cli-list”>
-        <div class=”cli-row”>
-          <div class=”cli-name”>Claude Desktop<br><span>/ Claude Code</span></div>
-          <div class=”cli-body”>在项目根目录创建 <code class=”ic”>.mcp.json</code>（加入 <code class=”ic”>.gitignore</code>），填入步骤 2 的配置后重启客户端。Claude Code CLI 也可用命令：<code class=”ic”>claude mcp add --transport http pagefire https://mcp.${baseDomain}/mcp -H “Authorization: Bearer &lt;token&gt;”</code></div>
-        </div>
-        <div class=”cli-row”>
-          <div class=”cli-name”>Cursor</div>
-          <div class=”cli-body”>Settings → MCP → <b>Add new global MCP server</b>，填入名称 <code class=”ic”>pagefire</code>、URL <code class=”ic”>https://mcp.${baseDomain}/mcp</code>、Header <code class=”ic”>Authorization: Bearer &lt;token&gt;</code>。Cursor 使用全局配置，不读取 <code class=”ic”>.mcp.json</code>。</div>
-        </div>
-        <div class=”cli-row”>
-          <div class=”cli-name”>OpenAI Codex</div>
-          <div class=”cli-body”>在 <code class=”ic”>codex.yaml</code>（或 <code class=”ic”>~/.codex/config.yaml</code>）的 <code class=”ic”>mcp_servers</code> 下添加条目，<code class=”ic”>type: http</code>，<code class=”ic”>url</code> 和 <code class=”ic”>headers.Authorization</code> 与上方一致。</div>
-        </div>
-        <div class=”cli-row” style=”border-bottom:none”>
-          <div class=”cli-name”>其他客户端</div>
-          <div class=”cli-body”>任何支持 <b>Streamable HTTP</b> transport 的 MCP 客户端均可接入，只需填入端点 URL 与 Bearer Token 两个信息。</div>
-        </div>
-      </div>
+
+    <div class=”sec-sm” style=”margin:24px 0 12px”>其他客户端</div>
+    <div class=”cli-list”>
+      <div class=”cli-row”><div class=”cli-name”>Cursor</div><div class=”cli-body”>Settings → MCP → Add new global MCP server，填入端点 URL 与 Authorization header。Cursor 不读取 .mcp.json，需在全局设置里配置。</div></div>
+      <div class=”cli-row”><div class=”cli-name”>OpenAI Codex</div><div class=”cli-body”>在 <code class=”ic”>codex.yaml</code> 的 <code class=”ic”>mcp_servers</code> 下添加：<code class=”ic”>type: http</code>、<code class=”ic”>url</code>、<code class=”ic”>headers.Authorization</code>。</div></div>
+      <div class=”cli-row” style=”border:none”><div class=”cli-name”>其他</div><div class=”cli-body”>任何支持 Streamable HTTP transport 的 MCP 客户端均可，填入端点 URL 与 Bearer Token 即可。</div></div>
     </div>
   </div>
 
