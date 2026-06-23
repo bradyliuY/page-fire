@@ -105,6 +105,14 @@ h2{font-size:clamp(23px,3.5vw,34px);font-weight:700;letter-spacing:-.8px;margin-
 .qb p{font-size:13.5px;color:var(--muted);margin-bottom:9px}
 .qb a{color:var(--fire2)}
 .qb code{display:block;background:#0c0c0e;border:1px solid var(--bdr);border-radius:9px;padding:13px 16px;font-size:12px;color:#a3e635;overflow-x:auto;white-space:pre}
+/* client tabs inside quickstart */
+.ctabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.ctab{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--muted);cursor:pointer;transition:.15s}
+.ctab.on{background:var(--fire-dim);border-color:rgba(249,115,22,.3);color:var(--fire2)}
+.cpane{display:none}.cpane.on{display:block}
+.cpane p{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.6}
+.cpane code{display:block;background:#0c0c0e;border:1px solid var(--bdr);border-radius:9px;padding:13px 16px;font-size:12px;color:#a3e635;overflow-x:auto;white-space:pre;margin-bottom:8px}
+.cpane .note{font-size:12px;color:var(--dim);margin-top:6px}
 
 /* cta */
 .cta-box{border:1px solid var(--bdr);border-radius:18px;padding:64px 40px;text-align:center;background:var(--bg2);position:relative;overflow:hidden}
@@ -281,8 +289,16 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     <div class="qs-item">
       <div class="qn">2</div>
       <div class="qb">
-        <p>在项目根目录创建 <span class="inline-c">.mcp.json</span>（加入 .gitignore，不要提交）</p>
-        <code>{
+        <p>按你使用的客户端配置 MCP 连接：</p>
+        <div class="ctabs">
+          <button class="ctab on" onclick="qpick('claude')">Claude Desktop / Code</button>
+          <button class="ctab" onclick="qpick('cursor')">Cursor</button>
+          <button class="ctab" onclick="qpick('codex')">OpenAI Codex</button>
+          <button class="ctab" onclick="qpick('other')">其他客户端</button>
+        </div>
+        <div class="cpane on" id="qp-claude">
+          <p>在项目根目录创建 <span class="inline-c">.mcp.json</span>，加入 <span class="inline-c">.gitignore</span> 后不会提交 token：</p>
+          <code>{
   "mcpServers": {
     "pagefire": {
       "type": "http",
@@ -291,12 +307,41 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     }
   }
 }</code>
+          <div class="note">Claude Code CLI 也可用命令添加：<span class="inline-c">claude mcp add --transport http pagefire https://mcp.${baseDomain}/mcp -H "Authorization: Bearer &lt;token&gt;"</span></div>
+        </div>
+        <div class="cpane" id="qp-cursor">
+          <p>打开 Cursor → Settings → MCP → <b>Add new global MCP server</b>，填入：</p>
+          <code>{
+  "pagefire": {
+    "url": "https://mcp.${baseDomain}/mcp",
+    "headers": { "Authorization": "Bearer &lt;你的token&gt;" }
+  }
+}</code>
+          <div class="note">Cursor 使用全局 MCP 配置，不读取项目目录的 .mcp.json。</div>
+        </div>
+        <div class="cpane" id="qp-codex">
+          <p>在 <span class="inline-c">codex.yaml</span>（或 <span class="inline-c">~/.codex/config.yaml</span>）中添加：</p>
+          <code>mcp_servers:
+  - name: pagefire
+    type: http
+    url: https://mcp.${baseDomain}/mcp
+    headers:
+      Authorization: "Bearer &lt;你的token&gt;"</code>
+          <div class="note">Codex CLI 支持 Streamable HTTP transport，重启后工具列表自动出现。</div>
+        </div>
+        <div class="cpane" id="qp-other">
+          <p>任何支持 <b>Streamable HTTP transport</b> 的 MCP 客户端均可接入，填入以下两个信息：</p>
+          <code>端点：https://mcp.${baseDomain}/mcp
+鉴权：Authorization: Bearer &lt;你的token&gt;
+协议：MCP 2025-03-26 (Streamable HTTP)</code>
+          <div class="note">在 <a href="/playground#connect">Playground → 接入</a> 可查看各平台的详细配置说明。</div>
+        </div>
       </div>
     </div>
     <div class="qs-item">
       <div class="qn">3</div>
       <div class="qb">
-        <p>重新加载 MCP 插件，在 Claude / Cursor 中直接对话发布：</p>
+        <p>重新加载客户端，直接对话发布——不用写任何代码：</p>
         <code>帮我把这份产品介绍发布成网页，永久保留。</code>
       </div>
     </div>
@@ -492,6 +537,12 @@ function copyToken() {
   })
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth() })
+function qpick(id) {
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('on'))
+  document.querySelectorAll('.cpane').forEach(p => p.classList.remove('on'))
+  event.currentTarget.classList.add('on')
+  document.getElementById('qp-' + id).classList.add('on')
+}
 </script>
 </body>
 </html>`
