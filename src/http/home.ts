@@ -168,7 +168,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
 
   <div class="stats">
     <div class="stat"><div class="sv"><span class="u">&lt;</span>3s</div><div class="sl">从调用到上线</div></div>
-    <div class="stat"><div class="sv">8</div><div class="sl">MCP 工具</div></div>
+    <div class="stat"><div class="sv">11</div><div class="sl">MCP 工具</div></div>
     <div class="stat"><div class="sv">0</div><div class="sl">额外部署步骤</div></div>
     <div class="stat"><div class="sv">SPA</div><div class="sl">客户端路由支持</div></div>
   </div>
@@ -190,19 +190,24 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
       <p>上传 ZIP 包，自动解压发布。支持 React / Vue 打包产物，开启 SPA 模式客户端路由不会 404。</p>
     </div>
     <div class="feat">
-      <div class="fi">🗂</div>
-      <h3><code>deploy_files</code> — 多文件</h3>
-      <p>逐文件上传，支持子目录结构。适合文档站、多页 HTML，页面间相对路径跳转天然正确。</p>
+      <div class="fi">📝</div>
+      <h3><code>deploy_markdown</code> — 一键渲染</h3>
+      <p>传入 Markdown 即生成精致排版网页，内置 light / dark / sepia 三主题，无需手写 HTML/CSS。</p>
+    </div>
+    <div class="feat">
+      <div class="fi">📖</div>
+      <h3><code>deploy_docs</code> — 文档站</h3>
+      <p>多篇 Markdown 自动生成带侧边导航的文档站，跨页链接自动改写，GitBook 风格开箱即用。</p>
+    </div>
+    <div class="feat">
+      <div class="fi">🔗</div>
+      <h3>链接不变更新</h3>
+      <p>给站点起个 <code>did</code> 名字，重发即原地覆盖、<strong>URL 永久不变</strong>，分享出去的链接始终有效。</p>
     </div>
     <div class="feat">
       <div class="fi">🔒</div>
-      <h3>密码保护访问</h3>
-      <p><code>set_access</code> 一键切换公开或密码模式，内部报告只给指定受众，无需重新发布内容。</p>
-    </div>
-    <div class="feat">
-      <div class="fi">📌</div>
-      <h3>TTL + Pin 生命周期</h3>
-      <p>默认 7 天自动过期，<code>pin: true</code> 永久保留。GC 命令批量清理过期部署，存储零积累。</p>
+      <h3>密码保护 · TTL · Pin</h3>
+      <p><code>set_access</code> 切换密码访问；默认 7 天过期，<code>pin</code> 永久保留，GC 自动清理。</p>
     </div>
     <div class="feat">
       <div class="fi">🏠</div>
