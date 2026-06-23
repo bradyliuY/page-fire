@@ -137,10 +137,16 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
   <a class="logo" href="/"><span class="flame">🔥</span>PageFire</a>
   <div class="nav-r">
     <a href="#features">功能</a>
+    <a href="#examples">示例</a>
     <a href="/playground">Playground</a>
     <a href="#quickstart">接入</a>
-    <a onclick="showAuth('login')" class="nav-login">登录</a>
-    <a onclick="showAuth('register')" class="nav-reg">注册</a>
+    <span id="nav-auth">
+      <a onclick="showAuth('login')" class="nav-login">登录</a>
+      <a onclick="showAuth('register')" class="nav-reg">注册</a>
+    </span>
+    <span id="nav-user" style="display:none;align-items:center;gap:6px">
+      <a href="/dashboard" class="nav-reg">进入控制台 →</a>
+    </span>
   </div>
 </div></nav>
 
@@ -214,6 +220,29 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
       <h3>数据自主可控</h3>
       <p>完全自托管，所有页面与数据都在你自己的服务器上，不依赖任何第三方平台，随时可迁移。</p>
     </div>
+  </div>
+</div></div>
+
+<div class="sec" id="examples" style="padding-top:0"><div class="w">
+  <div class="stag">实时示例</div>
+  <h2>看看真实效果</h2>
+  <p class="ssub">下面都是用 PageFire 发布的真实页面，点开即可访问。</p>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <a class="feat" href="https://demosite-demo.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
+      <div class="fi">⚡</div>
+      <h3>单页落地页 <span style="color:var(--dim);font-weight:400">deploy_page</span></h3>
+      <p>一段 HTML 秒发为独立 HTTPS 页面，适合 AI 生成的报告与落地页。<span style="color:var(--fire2)">打开 →</span></p>
+    </a>
+    <a class="feat" href="https://demoarticle-demo.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
+      <div class="fi">📝</div>
+      <h3>Markdown 文章 <span style="color:var(--dim);font-weight:400">deploy_markdown</span></h3>
+      <p>一篇 Markdown 渲染成精致排版网页（sepia 主题），代码、表格、任务列表齐全。<span style="color:var(--fire2)">打开 →</span></p>
+    </a>
+    <a class="feat" href="https://demodocs-demo.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
+      <div class="fi">📖</div>
+      <h3>多页文档站 <span style="color:var(--dim);font-weight:400">deploy_docs</span></h3>
+      <p>多篇 Markdown 自动生成带左侧导航的文档站，跨页跳转开箱即用。<span style="color:var(--fire2)">打开 →</span></p>
+    </a>
   </div>
 </div></div>
 
@@ -385,6 +414,16 @@ function pickScene(i){ sceneI = i; renderScene(i); clearInterval(sceneTimer); sc
 function autoScene(){ sceneI = (sceneI + 1) % SCENES.length; renderScene(sceneI) }
 sceneEl.innerHTML = SCENES[0]
 sceneTimer = setInterval(autoScene, 4500)
+
+// ── Session-aware nav: show dashboard link when logged in ─────────────────────
+;(async () => {
+  try {
+    const r = await fetch('/api/me', { credentials: 'same-origin' })
+    if (!r.ok) return
+    document.getElementById('nav-auth').style.display = 'none'
+    const nu = document.getElementById('nav-user'); nu.style.display = 'inline-flex'
+  } catch {}
+})()
 
 const modal = document.getElementById('modal')
 let curTab = 'register'

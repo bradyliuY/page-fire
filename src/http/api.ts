@@ -52,10 +52,10 @@ function json(res: ServerResponse, status: number, data: unknown, extraHeaders?:
   res.end(body)
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
+function readJson(req: IncomingMessage, maxBytes = 8192): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let body = ''
-    req.on('data', chunk => { body += chunk; if (body.length > 8192) reject(new Error('too large')) })
+    req.on('data', chunk => { body += chunk; if (body.length > maxBytes) reject(new Error('too large')) })
     req.on('end', () => { try { resolve(JSON.parse(body)) } catch { resolve({}) } })
     req.on('error', reject)
   })
@@ -263,7 +263,9 @@ export async function handleApiRequest(
   if (method === 'POST' && url === '/api/playground') {
     const user = currentUser(req, db)
     if (!user) { json(res, 401, { error: '未登录' }); return true }
-    const body = await readJson(req) as any
+    let body: any
+    try { body = await readJson(req, 24 * 1024 * 1024) }  // allow file uploads (zip/base64)
+    catch { json(res, 413, { error: '请求体过大（上限 24 MB）' }); return true }
     const keyId = String(body?.key_id ?? '')
     const tool = String(body?.tool ?? '')
     const toolArgs = body?.arguments ?? {}
