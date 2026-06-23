@@ -7,6 +7,7 @@ import type { Config } from '../config.js'
 import { deployPage } from './tools/deploy-page.js'
 import { deployZip } from './tools/deploy-zip.js'
 import { deployFilesTool } from './tools/deploy-files.js'
+import { deployMarkdown } from './tools/deploy-markdown.js'
 import { listDeploymentsTool } from './tools/list-deployments.js'
 import { getDeploymentTool } from './tools/get-deployment.js'
 import { pinDeploymentTool } from './tools/pin-deployment.js'
@@ -76,10 +77,11 @@ export async function startMcpServer(
     // ── deploy_page ──────────────────────────────────────────────────────────
     mcpServer.tool(
       'deploy_page',
-      'Publish a single HTML page and receive a public URL',
+      'Publish a single HTML page and receive a public URL. Pass `did` to publish to a named/stable URL or to update an existing page in place (URL stays the same).',
       {
         html: z.string().describe('Full HTML content to publish (UTF-8, max 10 MB)'),
         title: z.string().optional().describe('Human-readable title stored in the DB'),
+        did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates that deployment in place — the URL never changes. Omit for a random one-off URL.'),
         access: z
           .enum(['public', 'password'])
           .optional()
@@ -122,6 +124,7 @@ export async function startMcpServer(
       {
         zip_base64: z.string().describe('Base64-encoded ZIP archive (max 200 MB uncompressed, 500 files)'),
         title: z.string().optional().describe('Human-readable title stored in the DB'),
+        did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates that site in place — the URL never changes.'),
         access: z
           .enum(['public', 'password'])
           .optional()
@@ -176,6 +179,7 @@ export async function startMcpServer(
           .min(1)
           .describe('Array of files to deploy; must include index.html at root'),
         title: z.string().optional().describe('Human-readable title stored in the DB'),
+        did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates that site in place — the URL never changes.'),
         access: z
           .enum(['public', 'password'])
           .optional()
@@ -205,6 +209,31 @@ export async function startMcpServer(
           const tok = verifyBearer(authHeader, db)
           if (tok) checkRateLimit(tok.id, 20)
           return makeResult(await deployFilesTool(args, authHeader, db, config, ip))
+        } catch (err: any) {
+          return makeError(err)
+        }
+      },
+    )
+
+    // ── deploy_markdown ──────────────────────────────────────────────────────
+    mcpServer.tool(
+      'deploy_markdown',
+      'Render a Markdown document into a styled HTML page and publish it. Ideal for READMEs, articles, reports, and docs — no need to write HTML/CSS.',
+      {
+        markdown: z.string().describe('Markdown source (GFM supported: tables, task lists, code fences). Max 5 MB.'),
+        title: z.string().optional().describe('Page title (defaults to the first # heading).'),
+        theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Reading theme — "light" (default), "dark", or "sepia".'),
+        did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates the page in place — the URL never changes.'),
+        access: z.enum(['public', 'password']).optional().describe('Access control — "public" (default) or "password".'),
+        password: z.string().optional().describe('Passphrase required when access="password".'),
+        ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
+        pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
+      },
+      async (args) => {
+        try {
+          const tok = verifyBearer(authHeader, db)
+          if (tok) checkRateLimit(tok.id, 20)
+          return makeResult(await deployMarkdown(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
         }

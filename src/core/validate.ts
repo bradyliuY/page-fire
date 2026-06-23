@@ -50,6 +50,19 @@ const SPACE_ID_RESERVED = new Set([
   'app', 'web', 'docs', 'help', 'support', 'status', 'dashboard',
 ])
 
+// Custom deployment id (site alias). No hyphen so the router's `<did>-<space_id>`
+// split stays unambiguous. Random dids are [a-z0-9]{6}; custom ones share the charset.
+const DID_RE = /^[a-z0-9]{3,32}$/
+
+export function validateCustomDid(did: string): void {
+  if (!DID_RE.test(did)) {
+    throw new ValidationError(
+      'INVALID_DID',
+      'did 须 3–32 位，仅 [a-z0-9]（不含连字符）',
+    )
+  }
+}
+
 export function validateCustomSpaceId(id: string): void {
   if (!SPACE_ID_RE.test(id)) {
     throw new ValidationError(

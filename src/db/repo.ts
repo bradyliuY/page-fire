@@ -116,7 +116,7 @@ export function listDeployments(db: Database.Database, tokenId: string, includeE
   return db.prepare('SELECT * FROM deployments WHERE token_id = ? AND (pinned = 1 OR expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC').all(tokenId, now) as DeploymentRow[]
 }
 
-export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count'>>): void {
+export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count' | 'title' | 'spa'>>): void {
   const sets = Object.keys(updates).map(k => `${k} = ?`).join(', ')
   const values = [...Object.values(updates), Date.now(), did]
   db.prepare(`UPDATE deployments SET ${sets}, updated_at = ? WHERE did = ?`).run(...values)
