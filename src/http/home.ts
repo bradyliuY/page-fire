@@ -110,6 +110,9 @@ h2{font-size:clamp(23px,3.5vw,34px);font-weight:700;letter-spacing:-.8px;margin-
 .ctab{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--muted);cursor:pointer;transition:.15s}
 .ctab.on{background:var(--fire-dim);border-color:rgba(249,115,22,.3);color:var(--fire2)}
 .cpane{display:none}.cpane.on{display:block}
+.dtab{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--muted);cursor:pointer;transition:.15s}
+.dtab.on{background:var(--fire-dim);border-color:rgba(249,115,22,.3);color:var(--fire2)}
+.dpane{display:none}.dpane.on{display:block}
 .cpane p{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.6}
 .cpane code{display:block;background:#0c0c0e;border:1px solid var(--bdr);border-radius:9px;padding:13px 16px;font-size:12px;color:#a3e635;overflow-x:auto;white-space:pre;margin-bottom:8px}
 .cpane .note{font-size:12px;color:var(--dim);margin-top:6px}
@@ -341,8 +344,29 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     <div class="qs-item">
       <div class="qn">3</div>
       <div class="qb">
-        <p>重新加载客户端，直接对话发布——不用写任何代码：</p>
-        <code>帮我把这份产品介绍发布成网页，永久保留。</code>
+        <p>重新加载客户端，直接用一句话发布——不同客户端的对话入口如下：</p>
+        <div class="ctabs" id="dp-tabs">
+          <button class="dtab on" onclick="dpick('claude')">Claude Desktop / Code</button>
+          <button class="dtab" onclick="dpick('cursor')">Cursor</button>
+          <button class="dtab" onclick="dpick('codex')">OpenAI Codex</button>
+          <button class="dtab" onclick="dpick('other')">其他客户端</button>
+        </div>
+        <div class="dpane on" id="dp-claude">
+          <code>帮我把这份内容发布成公网网页，永久保留。</code>
+          <div class="note">在对话框直接输入，Claude 自动调用 PageFire 工具并返回 HTTPS 链接。</div>
+        </div>
+        <div class="dpane" id="dp-cursor">
+          <code>把这份内容发布成网页。</code>
+          <div class="note">在 Cursor 的 Agent 模式（<span class="inline-c">Cmd/Ctrl+I</span>）下输入，会自动调用已配置的 MCP 工具。</div>
+        </div>
+        <div class="dpane" id="dp-codex">
+          <code>把这份内容发布成网页。</code>
+          <div class="note">Codex CLI 识别到 PageFire 工具后，按需调用 <span class="inline-c">deploy_*</span> 完成发布。</div>
+        </div>
+        <div class="dpane" id="dp-other">
+          <code>把这份内容发布成网页。</code>
+          <div class="note">任何支持 MCP 工具调用的客户端，用自然语言描述即可，无需写代码。</div>
+        </div>
       </div>
     </div>
   </div>
@@ -542,6 +566,12 @@ function qpick(id) {
   document.querySelectorAll('.cpane').forEach(p => p.classList.remove('on'))
   event.currentTarget.classList.add('on')
   document.getElementById('qp-' + id).classList.add('on')
+}
+function dpick(id) {
+  document.querySelectorAll('.dtab').forEach(t => t.classList.remove('on'))
+  document.querySelectorAll('.dpane').forEach(p => p.classList.remove('on'))
+  event.currentTarget.classList.add('on')
+  document.getElementById('dp-' + id).classList.add('on')
 }
 </script>
 </body>
