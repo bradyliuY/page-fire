@@ -1,6 +1,6 @@
 import type { FileEntry } from './deploy.js'
 import {
-  THEMES, resolveTheme, escapeHtml, renderMarkdownBody, extractTitle,
+  THEMES, resolveTheme, escapeHtml, renderMarkdownBody, extractTitle, stripFrontmatter,
   type MarkdownTheme,
 } from './markdown.js'
 
@@ -30,8 +30,9 @@ export function renderDocsSite(
       throw { code: 'PATH_TRAVERSAL', message: `非法路径：${f.path}` }
     }
     const htmlPath = mdPath.replace(/\.md$/, '.html')
-    const label = extractTitle(f.markdown) || mdPath.replace(/\.md$/, '').split('/').pop() || mdPath
-    return { mdPath, htmlPath, label, markdown: f.markdown }
+    const stripped = stripFrontmatter(f.markdown)
+    const label = extractTitle(stripped) || mdPath.replace(/\.md$/, '').split('/').pop() || mdPath
+    return { mdPath, htmlPath, label, markdown: stripped }
   })
 
   if (!pages.some((p) => p.mdPath === 'index.md')) {

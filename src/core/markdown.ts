@@ -18,6 +18,13 @@ export function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
 }
 
+// Strip YAML/TOML frontmatter (---...--- or +++...+++) from the top of a Markdown file.
+// This makes deploy_markdown compatible with files like Claude Skill .md, Hugo posts, etc.
+export function stripFrontmatter(markdown: string): string {
+  const m = markdown.match(/^\s*(?:---|\+\+\+)\r?\n([\s\S]*?)\r?\n(?:---|\+\+\+)\r?\n?/)
+  return m ? markdown.slice(m[0].length) : markdown
+}
+
 // Render Markdown → HTML body, rewriting links to *.md → *.html (for multi-page docs).
 export function renderMarkdownBody(markdown: string, rewriteMdLinks = false): string {
   let html = marked.parse(markdown) as string
@@ -38,8 +45,9 @@ export function renderMarkdownPage(
   opts: { title?: string; theme?: MarkdownTheme } = {},
 ): string {
   const theme = resolveTheme(opts.theme)
-  const bodyHtml = renderMarkdownBody(markdown)
-  const title = opts.title?.trim() || extractTitle(markdown) || 'Document'
+  const stripped = stripFrontmatter(markdown)
+  const bodyHtml = renderMarkdownBody(stripped)
+  const title = opts.title?.trim() || extractTitle(stripped) || 'Document'
 
   return `<!doctype html>
 <html lang="zh-CN">

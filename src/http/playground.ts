@@ -87,6 +87,17 @@ textarea{font-family:'SF Mono',ui-monospace,monospace;font-size:12.5px;line-heig
 .upbtn{display:inline-flex;align-items:center;gap:7px;background:var(--sur2);border:1px solid var(--bdr);border-radius:9px;padding:9px 14px;font-size:13px;color:var(--txt);cursor:pointer;transition:.15s}
 .upbtn:hover{border-color:var(--bdr2)}
 .upnote{font-size:12px;color:var(--dim)}
+/* drag & drop zone */
+.dropzone{border:1.5px dashed var(--bdr);border-radius:11px;padding:22px 16px;text-align:center;font-size:13px;color:var(--dim);cursor:pointer;transition:.2s;margin-bottom:14px;position:relative}
+.dropzone.drag{border-color:var(--fire2);background:var(--fire-dim);color:var(--fire2)}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+/* connect platform cards */
+.sec-sm{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:14px}
+.platform-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.pcard{background:var(--bg2);border:1px solid var(--bdr);border-radius:11px;padding:16px 18px}
+.pcard-h{font-size:13.5px;font-weight:600;margin-bottom:8px}
+.pcard p{font-size:12.5px;color:var(--muted);line-height:1.6}
+.pcard code{font-size:11.5px;color:var(--fire2)}
 .run{background:#fafafa;color:#0a0a0b;font-weight:600;font-size:13.5px;padding:10px 20px;border:none;border-radius:9px;cursor:pointer;transition:.15s}
 .run:hover{background:#e4e4e7}
 .run:disabled{opacity:.5;cursor:default}
@@ -178,12 +189,37 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
   }
 }</pre></div>
     </div></div>
-    <div class="connect-step"><div class="cn">3</div><div><h4>重载并对话</h4><p>在 Claude Desktop / Cursor 重新加载 MCP，然后直接说：“帮我把这份内容发布成网页”。</p></div></div>
-    <div style="margin-top:18px;padding:16px 18px;border:1px solid var(--bdr);border-radius:11px;background:var(--bg2)">
-      <div class="kv"><span>端点</span><code>https://mcp.${baseDomain}/mcp</code></div>
-      <div class="kv"><span>传输</span><code>Streamable HTTP</code></div>
-      <div class="kv"><span>鉴权</span><code>Authorization: Bearer pf_xxx</code></div>
-      <div class="kv"><span>客户端</span><span style="color:var(--muted)">Claude Desktop · Cursor · 任何支持 MCP HTTP 的客户端</span></div>
+    <div class=”connect-step”><div class=”cn”>3</div><div><h4>重载并对话</h4><p>重启 AI 客户端后，直接说：”帮我把这份内容发布成网页”——无需写任何代码。</p></div></div>
+    <div style=”margin-top:18px;padding:16px 18px;border:1px solid var(--bdr);border-radius:11px;background:var(--bg2)”>
+      <div class=”kv”><span>端点</span><code>https://mcp.${baseDomain}/mcp</code></div>
+      <div class=”kv”><span>传输</span><code>Streamable HTTP</code></div>
+      <div class=”kv”><span>鉴权</span><code>Authorization: Bearer pf_xxx</code></div>
+      <div class=”kv”><span>协议版本</span><code>MCP 2025-03-26</code></div>
+    </div>
+    <div style=”margin-top:24px”>
+      <div class=”sec-sm”>各客户端接入说明</div>
+      <div class=”platform-grid”>
+        <div class=”pcard”>
+          <div class=”pcard-h”>Claude Desktop</div>
+          <p>在项目目录创建 <code>.mcp.json</code>，填入上述 JSON 配置，重启 Claude Desktop 即可。</p>
+        </div>
+        <div class=”pcard”>
+          <div class=”pcard-h”>Cursor</div>
+          <p>打开 Settings → MCP → Add Server，类型选 HTTP，填入端点与 Authorization header。</p>
+        </div>
+        <div class=”pcard”>
+          <div class=”pcard-h”>Claude Code <span style=”color:var(--muted);font-size:11px;font-weight:400”>CLI</span></div>
+          <p>在项目根目录创建 <code>.mcp.json</code>（或用 <code>claude mcp add</code>），Claude Code 启动时自动加载。推荐加 <code>-s project</code> 限制作用域。</p>
+        </div>
+        <div class=”pcard”>
+          <div class=”pcard-h”>OpenAI Codex</div>
+          <p>在 <code>codex.yaml</code> 的 <code>mcp_servers</code> 下添加 pagefire 条目，类型填 <code>http</code>，URL 与 headers 与上方一致。</p>
+        </div>
+        <div class=”pcard”>
+          <div class=”pcard-h”>其他客户端</div>
+          <p>任何支持 Streamable HTTP transport 的 MCP 客户端均可接入，传入端点 URL 与 Bearer Token 即可。</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -209,9 +245,12 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
               </select>
             </div>
           </div>
-          <div class="uprow" id="uprow">
-            <label class="upbtn">📎 <span id="up-label">上传文件</span><input type="file" id="file-in" style="display:none" onchange="onFile(this)"></label>
-            <span class="upnote" id="up-note">可选：上传文件自动填入参数</span>
+          <div id="uprow" style="display:none">
+            <div class="dropzone" id="dropzone" onclick="$('file-in').click()">
+              <input type="file" id="file-in" style="display:none" onchange="onFile(this)">
+              <span id="up-icon">📎</span> <span id="up-label">点击或拖拽文件到此处</span>
+              <div style="margin-top:4px;font-size:11px" id="up-note">可选：上传文件自动填入参数</div>
+            </div>
           </div>
           <div class="fld"><label>参数 (JSON)</label><textarea id="args" spellcheck="false"></textarea>
             <div class="hint">这就是 MCP <code>tools/call</code> 的 <code>arguments</code>，可自由编辑。</div>
@@ -269,9 +308,27 @@ function setArgs(){ $('args').value = JSON.stringify(EXAMPLES[$('tool-sel').valu
 function setArgsObj(o){ $('args').value = JSON.stringify(o, null, 2) }
 function syncUpload(){
   const t=$('tool-sel').value, u=UPLOAD[t]
-  if(u){ $('uprow').style.display='flex'; $('file-in').accept=u.accept; $('file-in').multiple=u.multiple; $('up-label').textContent=u.label; $('up-note').textContent='可选：上传文件自动填入参数' }
+  if(u){ $('uprow').style.display='block'; $('file-in').accept=u.accept; $('file-in').multiple=u.multiple; $('up-label').textContent=u.label; $('up-note').textContent='可选：上传文件自动填入参数' }
   else $('uprow').style.display='none'
 }
+
+// Drag & drop support
+;(()=>{
+  const dz=$('dropzone')
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')})
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag'))
+  dz.addEventListener('drop',e=>{
+    e.preventDefault(); dz.classList.remove('drag')
+    const files=e.dataTransfer?.files
+    if(!files?.length) return
+    const fi=$('file-in')
+    // DataTransfer trick to populate the file input
+    const dt=new DataTransfer()
+    ;[...files].forEach(f=>dt.items.add(f))
+    fi.files=dt.files
+    onFile(fi)
+  })
+})()
 
 let testerReady=false
 async function initTester(){

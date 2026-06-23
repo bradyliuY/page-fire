@@ -228,20 +228,20 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
   <h2>看看真实效果</h2>
   <p class="ssub">下面都是用 PageFire 发布的真实页面，点开即可访问。</p>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
-    <a class="feat" href="https://demosite-demo.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
+    <a class="feat" href="https://demosite-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
       <div class="fi">⚡</div>
-      <h3>单页落地页 <span style="color:var(--dim);font-weight:400">deploy_page</span></h3>
-      <p>一段 HTML 秒发为独立 HTTPS 页面，适合 AI 生成的报告与落地页。<span style="color:var(--fire2)">打开 →</span></p>
+      <h3>产品落地页 <span style="color:var(--dim);font-weight:400">deploy_page</span></h3>
+      <p>PageFire 自身的产品介绍页，由 AI 生成 HTML 后一键发布，3 秒上线。<span style="color:var(--fire2)">打开 →</span></p>
     </a>
-    <a class="feat" href="https://demoarticle-demo.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
+    <a class="feat" href="https://demoarticle-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
       <div class="fi">📝</div>
-      <h3>Markdown 文章 <span style="color:var(--dim);font-weight:400">deploy_markdown</span></h3>
-      <p>一篇 Markdown 渲染成精致排版网页（sepia 主题），代码、表格、任务列表齐全。<span style="color:var(--fire2)">打开 →</span></p>
+      <h3>技术文章 <span style="color:var(--dim);font-weight:400">deploy_markdown</span></h3>
+      <p>《MCP 协议详解》，Markdown 一键渲染成 sepia 主题精致排版，代码高亮、表格齐全。<span style="color:var(--fire2)">打开 →</span></p>
     </a>
-    <a class="feat" href="https://demodocs-demo.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
+    <a class="feat" href="https://demodocs-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
       <div class="fi">📖</div>
-      <h3>多页文档站 <span style="color:var(--dim);font-weight:400">deploy_docs</span></h3>
-      <p>多篇 Markdown 自动生成带左侧导航的文档站，跨页跳转开箱即用。<span style="color:var(--fire2)">打开 →</span></p>
+      <h3>用户文档站 <span style="color:var(--dim);font-weight:400">deploy_docs</span></h3>
+      <p>PageFire 的真实用户文档，多页 Markdown 自动生成带左侧导航的文档站。<span style="color:var(--fire2)">打开 →</span></p>
     </a>
   </div>
 </div></div>
