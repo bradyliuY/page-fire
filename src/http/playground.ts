@@ -99,13 +99,15 @@ textarea{font-family:'SF Mono',ui-monospace,monospace;font-size:12.5px;line-heig
 .dropzone{border:1.5px dashed var(--bdr);border-radius:11px;padding:22px 16px;text-align:center;font-size:13px;color:var(--dim);cursor:pointer;transition:.2s;margin-bottom:14px;position:relative}
 .dropzone.drag{border-color:var(--fire2);background:var(--fire-dim);color:var(--fire2)}
 .dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer}
-/* connect platform cards */
+/* connect platform list */
 .sec-sm{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:14px}
-.platform-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.pcard{background:var(--bg2);border:1px solid var(--bdr);border-radius:11px;padding:16px 18px}
-.pcard-h{font-size:13.5px;font-weight:600;margin-bottom:8px}
-.pcard p{font-size:12.5px;color:var(--muted);line-height:1.6}
-.pcard code{font-size:11.5px;color:var(--fire2)}
+.cli-list{border:1px solid var(--bdr);border-radius:12px;overflow:hidden}
+.cli-row{display:flex;align-items:flex-start;border-bottom:1px solid var(--bdr)}
+.cli-name{font-size:12.5px;font-weight:600;color:var(--txt);min-width:130px;padding:16px 14px 16px 18px;background:var(--bg2);border-right:1px solid var(--bdr);line-height:1.5;flex-shrink:0}
+.cli-name span{font-weight:400;color:var(--muted)}
+.cli-body{padding:14px 18px;font-size:13px;color:var(--muted);line-height:1.7;flex:1}
+.cli-body b{color:var(--txt)}
+.ic{font-family:'SF Mono',ui-monospace,monospace;font-size:11.5px;color:var(--fire2);background:rgba(249,115,22,.08);padding:1px 5px;border-radius:4px}
 .run{background:#fafafa;color:#0a0a0b;font-weight:600;font-size:13.5px;padding:10px 20px;border:none;border-radius:9px;cursor:pointer;transition:.15s}
 .run:hover{background:#e4e4e7}
 .run:disabled{opacity:.5;cursor:default}
@@ -205,27 +207,23 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
       <div class=”kv”><span>协议版本</span><code>MCP 2025-03-26</code></div>
     </div>
     <div style=”margin-top:24px”>
-      <div class=”sec-sm”>各客户端接入说明</div>
-      <div class=”platform-grid”>
-        <div class=”pcard”>
-          <div class=”pcard-h”>Claude Desktop</div>
-          <p>在项目目录创建 <code>.mcp.json</code>，填入上述 JSON 配置，重启 Claude Desktop 即可。</p>
+      <div class=”sec-sm” style=”margin-bottom:12px”>各客户端接入方式</div>
+      <div class=”cli-list”>
+        <div class=”cli-row”>
+          <div class=”cli-name”>Claude Desktop<br><span>/ Claude Code</span></div>
+          <div class=”cli-body”>在项目根目录创建 <code class=”ic”>.mcp.json</code>（加入 <code class=”ic”>.gitignore</code>），填入步骤 2 的配置后重启客户端。Claude Code CLI 也可用命令：<code class=”ic”>claude mcp add --transport http pagefire https://mcp.${baseDomain}/mcp -H “Authorization: Bearer &lt;token&gt;”</code></div>
         </div>
-        <div class=”pcard”>
-          <div class=”pcard-h”>Cursor</div>
-          <p>打开 Settings → MCP → Add Server，类型选 HTTP，填入端点与 Authorization header。</p>
+        <div class=”cli-row”>
+          <div class=”cli-name”>Cursor</div>
+          <div class=”cli-body”>Settings → MCP → <b>Add new global MCP server</b>，填入名称 <code class=”ic”>pagefire</code>、URL <code class=”ic”>https://mcp.${baseDomain}/mcp</code>、Header <code class=”ic”>Authorization: Bearer &lt;token&gt;</code>。Cursor 使用全局配置，不读取 <code class=”ic”>.mcp.json</code>。</div>
         </div>
-        <div class=”pcard”>
-          <div class=”pcard-h”>Claude Code <span style=”color:var(--muted);font-size:11px;font-weight:400”>CLI</span></div>
-          <p>在项目根目录创建 <code>.mcp.json</code>（或用 <code>claude mcp add</code>），Claude Code 启动时自动加载。推荐加 <code>-s project</code> 限制作用域。</p>
+        <div class=”cli-row”>
+          <div class=”cli-name”>OpenAI Codex</div>
+          <div class=”cli-body”>在 <code class=”ic”>codex.yaml</code>（或 <code class=”ic”>~/.codex/config.yaml</code>）的 <code class=”ic”>mcp_servers</code> 下添加条目，<code class=”ic”>type: http</code>，<code class=”ic”>url</code> 和 <code class=”ic”>headers.Authorization</code> 与上方一致。</div>
         </div>
-        <div class=”pcard”>
-          <div class=”pcard-h”>OpenAI Codex</div>
-          <p>在 <code>codex.yaml</code> 的 <code>mcp_servers</code> 下添加 pagefire 条目，类型填 <code>http</code>，URL 与 headers 与上方一致。</p>
-        </div>
-        <div class=”pcard”>
-          <div class=”pcard-h”>其他客户端</div>
-          <p>任何支持 Streamable HTTP transport 的 MCP 客户端均可接入，传入端点 URL 与 Bearer Token 即可。</p>
+        <div class=”cli-row” style=”border-bottom:none”>
+          <div class=”cli-name”>其他客户端</div>
+          <div class=”cli-body”>任何支持 <b>Streamable HTTP</b> transport 的 MCP 客户端均可接入，只需填入端点 URL 与 Bearer Token 两个信息。</div>
         </div>
       </div>
     </div>
