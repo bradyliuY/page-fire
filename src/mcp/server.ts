@@ -12,6 +12,7 @@ import { getDeploymentTool } from './tools/get-deployment.js'
 import { pinDeploymentTool } from './tools/pin-deployment.js'
 import { deleteDeploymentTool } from './tools/delete-deployment.js'
 import { setAccessTool } from './tools/set-access.js'
+import { verifyBearer } from '../auth.js'
 
 // Per-token sliding-window rate limiter (in-memory)
 const rateLimiter = new Map<string, number[]>()
@@ -28,8 +29,6 @@ function checkRateLimit(tokenId: string, limit: number): void {
   rateLimiter.set(tokenId, recent)
 }
 
-// checkRateLimit is available for future use by tools that need it
-void checkRateLimit
 
 function readBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve) => {
@@ -106,6 +105,8 @@ export async function startMcpServer(
       },
       async (args) => {
         try {
+          const tok = verifyBearer(authHeader, db)
+          if (tok) checkRateLimit(tok.id, 20)
           return makeResult(await deployPage(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
@@ -146,6 +147,8 @@ export async function startMcpServer(
       },
       async (args) => {
         try {
+          const tok = verifyBearer(authHeader, db)
+          if (tok) checkRateLimit(tok.id, 20)
           return makeResult(await deployZip(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
@@ -198,6 +201,8 @@ export async function startMcpServer(
       },
       async (args) => {
         try {
+          const tok = verifyBearer(authHeader, db)
+          if (tok) checkRateLimit(tok.id, 20)
           return makeResult(await deployFilesTool(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)

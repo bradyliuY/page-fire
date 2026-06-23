@@ -1,8 +1,11 @@
 import { resolve, extname, normalize } from 'path'
 
 export const ALLOWED_EXTENSIONS = new Set([
-  '.html', '.htm', '.css', '.js', '.png', '.jpg', '.jpeg',
-  '.gif', '.svg', '.webp', '.ico', '.woff2', '.json', '.txt', '.md', '.map',
+  '.html', '.htm', '.css', '.js', '.mjs',
+  '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.avif',
+  '.woff', '.woff2', '.ttf', '.eot',
+  '.json', '.txt', '.md', '.xml', '.pdf', '.map',
+  '.mp4', '.webm',
 ])
 
 export class ValidationError extends Error {

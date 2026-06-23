@@ -8,6 +8,9 @@ import { hashToken } from '../auth.js'
 import { renderHome } from './home.js'
 import { SECURITY_HEADERS } from './headers.js'
 
+let cachedHomeBuf: Buffer | null = null
+let cachedHomeDomain: string | null = null
+
 export function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -27,8 +30,11 @@ export function handleRequest(
 
   // Root domain → serve product homepage
   if (host === baseDomain) {
-    const html = renderHome(baseDomain)
-    const buf = Buffer.from(html, 'utf8')
+    if (cachedHomeDomain !== baseDomain) {
+      cachedHomeBuf = Buffer.from(renderHome(baseDomain), 'utf8')
+      cachedHomeDomain = baseDomain
+    }
+    const buf = cachedHomeBuf!
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.setHeader('Content-Length', buf.length)
@@ -98,7 +104,18 @@ export function handleRequest(
 
   // Resolve file path
   const deployDir = join(sitesDir, String(deployment.token_id), deployment.did)
-  const requestedPath = url === '/' || url === '' ? 'index.html' : url.split('?')[0]
+  const rawPath = url === '/' || url === '' ? 'index.html' : url.split('?')[0]
+  let requestedPath: string
+  try {
+    requestedPath = decodeURIComponent(rawPath)
+  } catch {
+    serve404(res)
+    return
+  }
+  if (requestedPath.includes('..') || requestedPath.includes('\0')) {
+    serve404(res)
+    return
+  }
   let filePath = join(deployDir, requestedPath)
 
   // Security: ensure resolved path is within deployDir

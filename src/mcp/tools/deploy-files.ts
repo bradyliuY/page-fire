@@ -32,6 +32,10 @@ export async function deployFilesTool(
         : Buffer.from(f.content, 'utf8'),
   }))
 
+  if (!bufFiles.some((f) => f.path === 'index.html' || f.path === './index.html')) {
+    throw { code: 'MISSING_INDEX', message: 'files must include index.html at the root' }
+  }
+
   const totalBytes = bufFiles.reduce((s, f) => s + f.content.length, 0)
   checkQuota(db, token.id, totalBytes)
 
