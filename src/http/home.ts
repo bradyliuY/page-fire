@@ -161,8 +161,8 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
 <main>
 <div class="sec hero w">
   <div class="badge"><span class="ping"></span>MCP 驱动 · 自托管 · 即发即得</div>
-  <h1>对 AI 说一句话，<br>网页就上线了</h1>
-  <p class="hero-sub">PageFire 让 Claude、Cursor 等 AI 把 HTML、Markdown、整站打包直接发布成公网 HTTPS 页面——几秒完成，链接可长期固定，不碰任何部署流程。</p>
+  <h1>AI 不只生成内容，<br>还能直接帮你上线</h1>
+  <p class="hero-sub">PageFire 给 Claude、Cursor 等 AI 一个"发布"工具——说一句话，HTML、Markdown、整站 ZIP 秒变公网 HTTPS 链接，无需服务器，无需部署流程。</p>
   <div class="btns">
     <a class="bp" onclick="showAuth('register')">免费开始 →</a>
     <a class="bg" href="/playground">在线试用 →</a>
