@@ -37,7 +37,7 @@ export async function deployFilesTool(
   const did = generateDid(db)
   const { fileCount, sizeBytes } = deployFiles(config.sites, token.id, did, bufFiles)
 
-  const domain = `${did}--${token.space_id}.${config.baseDomain}`
+  const domain = `${did}-${token.space_id}.${config.baseDomain}`
   const pinned = args.pin ?? false
   const expires_at = pinned ? null : Date.now() + (args.ttl_days ?? 7) * 24 * 60 * 60 * 1000
   const pass_hash =

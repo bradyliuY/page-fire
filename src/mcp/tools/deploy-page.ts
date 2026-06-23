@@ -38,7 +38,7 @@ export async function deployPage(
   checkQuota(db, token.id, htmlBuf.length)
 
   const did = generateDid(db)
-  const domain = `${did}--${token.space_id}.${config.baseDomain}`
+  const domain = `${did}-${token.space_id}.${config.baseDomain}`
 
   const { fileCount, sizeBytes } = deployFiles(config.sites, token.id, did, [
     { path: 'index.html', content: args.html },
@@ -69,7 +69,7 @@ export async function deployPage(
     action: 'deploy',
     file_count: fileCount,
     size_bytes: sizeBytes,
-    ip: ip ?? null,
+    ip: ip ?? undefined,
   })
 
   const scheme = config.baseDomain === 'localhost' ? 'http' : 'https'

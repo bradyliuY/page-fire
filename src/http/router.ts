@@ -22,7 +22,8 @@ export function handleRequest(
     return
   }
 
-  // Parse subdomain: <did>--<space_id>.baseDomain or <space_id>.baseDomain
+  // Parse subdomain: <did>-<space_id>.baseDomain or <space_id>.baseDomain
+  // Legacy format <did>--<space_id> is also supported for backward compatibility
   const suffix = `.${baseDomain}`
   if (!host.endsWith(suffix)) {
     serve404(res)
@@ -34,9 +35,15 @@ export function handleRequest(
   let spaceId: string
 
   if (sub.includes('--')) {
+    // Legacy: <did>--<space_id>
     const idx = sub.lastIndexOf('--')
     did = sub.slice(0, idx)
     spaceId = sub.slice(idx + 2)
+  } else if (sub.includes('-')) {
+    // Current: <did>-<space_id> (did=6 chars, space_id=8 chars, both [a-z0-9])
+    const idx = sub.indexOf('-')
+    did = sub.slice(0, idx)
+    spaceId = sub.slice(idx + 1)
   } else {
     spaceId = sub
   }

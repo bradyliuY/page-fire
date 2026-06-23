@@ -46,7 +46,7 @@ export async function deployZip(
     throw err
   }
 
-  const domain = `${did}--${token.space_id}.${config.baseDomain}`
+  const domain = `${did}-${token.space_id}.${config.baseDomain}`
   const pinned = args.pin ?? false
   const ttl = args.ttl_days ?? 7
   const expires_at = pinned ? null : Date.now() + ttl * 24 * 60 * 60 * 1000
