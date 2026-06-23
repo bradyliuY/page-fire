@@ -206,13 +206,13 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
     </div>
     <div class="feat">
       <div class="fi">🔒</div>
-      <h3>密码保护 · TTL · Pin</h3>
-      <p><code>set_access</code> 切换密码访问；默认 7 天过期，<code>pin</code> 永久保留，GC 自动清理。</p>
+      <h3>访问控制与有效期</h3>
+      <p>一键切换公开或密码访问；页面可设自动过期，也可永久保留，敏感内容只给指定的人看。</p>
     </div>
     <div class="feat">
-      <div class="fi">🏠</div>
-      <h3>真正自托管</h3>
-      <p>单 Node 进程 + SQLite WAL，复用现有 nginx。内存 &lt;150 MB，可与其它服务无摩擦共存。</p>
+      <div class="fi">🛡️</div>
+      <h3>数据自主可控</h3>
+      <p>完全自托管，所有页面与数据都在你自己的服务器上，不依赖任何第三方平台，随时可迁移。</p>
     </div>
   </div>
 </div></div>
@@ -311,15 +311,15 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
         style="width:100%;background:#0a0a0b;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
         onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='var(--bdr)'">
     </div>
-    <div id="invite-wrap" style="margin-bottom:14px;display:none">
-      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">邀请码${requireInvite ? ' <span style="color:#f87171">*</span>' : ' <span style="color:var(--dim)">(可选)</span>'}</label>
-      <input id="f-invite" placeholder="邀请码"
+    <div style="margin-bottom:14px">
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">密码</label>
+      <input id="f-password" type="password" autocomplete="current-password" placeholder="至少 6 位"
         style="width:100%;background:#0a0a0b;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
         onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='var(--bdr)'">
     </div>
-    <div style="margin-bottom:20px">
-      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">密码</label>
-      <input id="f-password" type="password" autocomplete="current-password" placeholder="至少 6 位"
+    <div id="invite-wrap" style="margin-bottom:20px;display:none">
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">邀请码${requireInvite ? ' <span style="color:#f87171">*</span>' : ' <span style="color:var(--dim)">(可选)</span>'}</label>
+      <input id="f-invite" placeholder="邀请码"
         style="width:100%;background:#0a0a0b;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
         onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='var(--bdr)'">
     </div>

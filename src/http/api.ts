@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http'
+import { request as httpRequest } from 'http'
 import type Database from 'better-sqlite3'
 import bcrypt from 'bcryptjs'
 import type { Config } from '../config.js'
@@ -226,6 +227,28 @@ export async function handleApiRequest(
     return true
   }
 
+  // ── Test API key (loopback to the real MCP endpoint) ──────────────────────────
+  if (method === 'POST' && url.startsWith('/api/keys/') && url.endsWith('/test')) {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const id = decodeURIComponent(url.slice('/api/keys/'.length, -'/test'.length))
+    const tok = getTokenByIdForUser(db, id, user.id)
+    if (!tok) { json(res, 404, { error: 'Key 不存在' }); return true }
+    if (tok.status !== 'active') { json(res, 400, { error: 'Key 已吊销' }); return true }
+    const row = db.prepare('SELECT token_enc FROM tokens WHERE id = ?').get(id) as { token_enc: string | null } | undefined
+    if (!row?.token_enc) { json(res, 400, { error: '无法读取该 Key（请重建）' }); return true }
+    let plain: string
+    try { plain = decryptToken(row.token_enc, config.tokenEncKey) }
+    catch { json(res, 500, { error: '密钥解密失败' }); return true }
+    try {
+      const r = await mcpLoopbackTest(config.mcpPort, config.httpHost, plain)
+      json(res, 200, { ok: true, deployment_count: r.count })
+    } catch (e: any) {
+      json(res, 502, { ok: false, error: e?.message ?? 'MCP 连接失败' })
+    }
+    return true
+  }
+
   // ── Revoke API key ──────────────────────────────────────────────────────────
   if (method === 'DELETE' && url.startsWith('/api/keys/')) {
     const user = currentUser(req, db)
@@ -240,6 +263,44 @@ export async function handleApiRequest(
   }
 
   return false
+}
+
+// Exercise the real MCP endpoint over loopback with the given token (calls list_deployments).
+// Confirms the full MCP auth + transport path works for this key.
+function mcpLoopbackTest(mcpPort: number, host: string, token: string): Promise<{ count: number }> {
+  const payload = JSON.stringify({
+    jsonrpc: '2.0', id: 1, method: 'tools/call',
+    params: { name: 'list_deployments', arguments: {} },
+  })
+  return new Promise((resolve, reject) => {
+    const req = httpRequest({
+      host: host === '0.0.0.0' ? '127.0.0.1' : host, port: mcpPort, path: '/mcp', method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream',
+        'Authorization': 'Bearer ' + token,
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (resp) => {
+      let body = ''
+      resp.on('data', (c) => { body += c })
+      resp.on('end', () => {
+        const m = body.match(/\{[\s\S]*\}/)
+        if (!m) return reject(new Error('MCP 无有效响应'))
+        try {
+          const parsed = JSON.parse(m[0])
+          const text = parsed?.result?.content?.[0]?.text
+          const data = text ? JSON.parse(text) : {}
+          if (data.error) return reject(new Error(data.error))
+          const count = Array.isArray(data.deployments) ? data.deployments.length : 0
+          resolve({ count })
+        } catch (e: any) { reject(new Error('解析 MCP 响应失败')) }
+      })
+    })
+    req.on('error', (e) => reject(e))
+    req.setTimeout(5000, () => { req.destroy(new Error('MCP 连接超时')) })
+    req.end(payload)
+  })
 }
 
 // Create a token (API key) for a user. Handles space_id allocation + token_enc storage.

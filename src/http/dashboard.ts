@@ -182,8 +182,10 @@ async function loadKeys() {
   }
   const rows = keys.map(k => {
     const on = k.status === 'active'
-    const revoked = !on ? '<span class="badge-rev">已吊销</span>'
-      : '<button class="icon-btn danger" title="吊销" onclick="revoke(\\'' + k.id + '\\',\\'' + (k.label || k.space_id).replace(/'/g,'') + '\\')">✕</button>'
+    const actions = !on ? '<span class="badge-rev">已吊销</span>'
+      : '<button class="icon-btn" title="测试连接" onclick="testKey(\\'' + k.id + '\\',this)">⚡</button>' +
+        '<button class="icon-btn danger" title="吊销" onclick="revoke(\\'' + k.id + '\\',\\'' + (k.label || k.space_id).replace(/'/g,'') + '\\')">✕</button>'
+    const revoked = actions
     return '<div class="krow">' +
       '<div class="kmain">' +
         '<div class="klabel"><span class="dot ' + (on?'on':'off') + '"></span>' + esc(k.label || k.space_id) + '</div>' +
@@ -238,6 +240,16 @@ async function revoke(id, name) {
   if (!confirm('确定吊销「' + name + '」？\\n该 Key 立即失效，其下所有已发布站点将无法访问。')) return
   const r = await api('/api/keys/' + id, { method:'DELETE' })
   if (r.ok) { toast('已吊销'); loadKeys() }
+}
+async function testKey(id, btn) {
+  const prev = btn.textContent; btn.textContent = '⏳'; btn.disabled = true
+  try {
+    const r = await api('/api/keys/' + id + '/test', { method:'POST' })
+    const d = await r.json()
+    if (r.ok && d.ok) toast('✓ MCP 连接正常 · ' + d.deployment_count + ' 个部署')
+    else toast('✗ ' + (d.error || '连接失败'))
+  } catch { toast('✗ 测试失败') }
+  btn.textContent = prev; btn.disabled = false
 }
 async function logout() { await api('/api/logout', { method:'POST' }); location.href = '/' }
 
