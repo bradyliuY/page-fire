@@ -2,7 +2,7 @@ import { marked } from 'marked'
 
 export type MarkdownTheme = 'light' | 'dark' | 'sepia'
 
-marked.setOptions({ gfm: true, breaks: false })
+marked.setOptions({ gfm: true, breaks: true })
 
 export const THEMES: Record<MarkdownTheme, string> = {
   light: `--bg:#ffffff;--fg:#1f2328;--muted:#59636e;--bdr:#d1d9e0;--code-bg:#f6f8fa;--code-fg:#1f2328;--quote:#59636e;--link:#0969da;--accent:#f97316;--table-alt:#f6f8fa`,

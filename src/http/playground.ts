@@ -239,9 +239,13 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
               <select id="tool-sel">
                 <option value="deploy_markdown">deploy_markdown — Markdown 渲染</option>
                 <option value="deploy_page">deploy_page — 单页 HTML</option>
-                <option value="deploy_docs">deploy_docs — 文档站</option>
-                <option value="deploy_zip">deploy_zip — 整站打包</option>
+                <option value="deploy_docs">deploy_docs — 文档站（多 .md）</option>
+                <option value="deploy_files">deploy_files — 多文件站点（HTML/CSS/JS）</option>
+                <option value="deploy_zip">deploy_zip — 整站打包（.zip）</option>
                 <option value="list_deployments">list_deployments — 列出部署</option>
+                <option value="get_deployment">get_deployment — 查询单个部署</option>
+                <option value="delete_deployment">delete_deployment — 删除部署</option>
+                <option value="set_access">set_access — 修改访问控制</option>
               </select>
             </div>
           </div>
@@ -288,19 +292,26 @@ function pick(p){
 
 const EXAMPLES = {
   deploy_markdown: { markdown: "# 你好，PageFire\\n\\n这是用 **deploy_markdown** 渲染的页面。\\n\\n- 支持表格、代码块\\n- 三种主题\\n", title: "测试页", theme: "dark" },
-  deploy_page: { html: "<h1>Hello PageFire</h1><p>这是 deploy_page 发布的页面。</p>", title: "测试页" },
-  deploy_docs: { title: "测试文档", theme: "light", files: [
+  deploy_page:     { html: "<h1>Hello PageFire</h1><p>这是 deploy_page 发布的页面。</p>", title: "测试页" },
+  deploy_docs:     { title: "测试文档", theme: "light", files: [
     { path: "index.md", markdown: "# 首页\\n\\n前往 [指南](./guide.md)。" },
     { path: "guide.md", markdown: "# 指南\\n\\n返回 [首页](./index.md)。" } ] },
-  deploy_zip: { title: "整站", spa: false },
+  deploy_files:    { title: "多文件站", files: [
+    { path: "index.html", content: "<html><body><h1>Hello</h1><link rel='stylesheet' href='style.css'></body></html>", encoding: "utf8" },
+    { path: "style.css",  content: "body{font-family:sans-serif;background:#f0f0f0}", encoding: "utf8" } ] },
+  deploy_zip:      { title: "整站", spa: false },
   list_deployments: {},
+  get_deployment:  { did: "填写站点别名" },
+  delete_deployment: { did: "填写站点别名" },
+  set_access:      { did: "填写站点别名", access: "public" },
 }
 // which tools accept an uploaded file, and the accept filter
 const UPLOAD = {
-  deploy_markdown: { accept: '.md,.markdown,.txt', multiple:false, label:'上传 .md' },
+  deploy_markdown: { accept: '.md,.markdown,.txt', multiple:false, label:'上传 .md / .txt' },
   deploy_page:     { accept: '.html,.htm',         multiple:false, label:'上传 .html' },
   deploy_zip:      { accept: '.zip',               multiple:false, label:'上传 .zip' },
   deploy_docs:     { accept: '.md,.markdown',      multiple:true,  label:'上传多个 .md' },
+  deploy_files:    { accept: '.html,.htm,.css,.js,.json,.svg,.txt,.md', multiple:true, label:'上传多个文件（HTML/CSS/JS…）' },
 }
 
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1900) }
@@ -357,6 +368,13 @@ async function onFile(input){
     else if(t==='deploy_page'){ const txt=await readText(files[0]); setArgsObj({ html:txt, title:files[0].name }) }
     else if(t==='deploy_markdown'){ const txt=await readText(files[0]); setArgsObj({ markdown:txt, title:files[0].name.replace(/\\.(md|markdown|txt)$/,''), theme:'dark' }) }
     else if(t==='deploy_docs'){ const arr=await Promise.all(files.map(async f=>({ path:f.name, markdown:await readText(f) }))); if(!arr.some(x=>x.path==='index.md')) toast('提示：文档站需含 index.md'); setArgsObj({ title:'文档站', theme:'light', files:arr }) }
+    else if(t==='deploy_files'){
+      const isBin = f => /\.(png|jpg|jpeg|gif|ico|woff2?|ttf|eot|pdf)$/i.test(f.name)
+      const arr=await Promise.all(files.map(async f=>isBin(f)
+        ? { path:f.name, content:await readB64(f), encoding:'base64' }
+        : { path:f.name, content:await readText(f), encoding:'utf8' }))
+      setArgsObj({ title:'多文件站', files:arr })
+    }
     $('up-note').textContent = '✓ 已载入 ' + files.length + ' 个文件'
   } catch { toast('文件读取失败') }
 }
