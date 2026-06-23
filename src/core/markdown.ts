@@ -4,22 +4,41 @@ export type MarkdownTheme = 'light' | 'dark' | 'sepia'
 
 marked.setOptions({ gfm: true, breaks: false })
 
-const THEMES: Record<MarkdownTheme, string> = {
+export const THEMES: Record<MarkdownTheme, string> = {
   light: `--bg:#ffffff;--fg:#1f2328;--muted:#59636e;--bdr:#d1d9e0;--code-bg:#f6f8fa;--code-fg:#1f2328;--quote:#59636e;--link:#0969da;--accent:#f97316;--table-alt:#f6f8fa`,
   dark:  `--bg:#0d1117;--fg:#e6edf3;--muted:#9198a1;--bdr:#30363d;--code-bg:#161b22;--code-fg:#e6edf3;--quote:#9198a1;--link:#4493f8;--accent:#fb923c;--table-alt:#161b22`,
   sepia: `--bg:#faf4e8;--fg:#433422;--muted:#7c6f5a;--bdr:#e0d4bc;--code-bg:#f1e7d2;--code-fg:#433422;--quote:#7c6f5a;--link:#a8581b;--accent:#c2410c;--table-alt:#f3ead6`,
 }
 
-function escapeHtml(s: string): string {
+export function resolveTheme(theme?: MarkdownTheme): MarkdownTheme {
+  return theme && THEMES[theme] ? theme : 'light'
+}
+
+export function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
+}
+
+// Render Markdown → HTML body, rewriting links to *.md → *.html (for multi-page docs).
+export function renderMarkdownBody(markdown: string, rewriteMdLinks = false): string {
+  let html = marked.parse(markdown) as string
+  if (rewriteMdLinks) {
+    html = html.replace(/(href=")([^"]+?)\.md(#[^"]*)?(")/g, '$1$2.html$3$4')
+  }
+  return html
+}
+
+// First ATX heading (# ...) as a title.
+export function extractTitle(md: string): string | null {
+  const m = md.match(/^\s{0,3}#\s+(.+?)\s*#*\s*$/m)
+  return m ? m[1].trim() : null
 }
 
 export function renderMarkdownPage(
   markdown: string,
   opts: { title?: string; theme?: MarkdownTheme } = {},
 ): string {
-  const theme = opts.theme && THEMES[opts.theme] ? opts.theme : 'light'
-  const bodyHtml = marked.parse(markdown) as string
+  const theme = resolveTheme(opts.theme)
+  const bodyHtml = renderMarkdownBody(markdown)
   const title = opts.title?.trim() || extractTitle(markdown) || 'Document'
 
   return `<!doctype html>
@@ -74,10 +93,4 @@ ${bodyHtml}
 <div class="md-footer">由 <a href="https://pagefire.openhkt.com">PageFire</a> 渲染发布 · Markdown</div>
 </body>
 </html>`
-}
-
-// First ATX heading (# ...) as a title fallback.
-function extractTitle(md: string): string | null {
-  const m = md.match(/^\s{0,3}#\s+(.+?)\s*#*\s*$/m)
-  return m ? m[1].trim() : null
 }

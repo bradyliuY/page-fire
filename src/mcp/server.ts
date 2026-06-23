@@ -8,6 +8,7 @@ import { deployPage } from './tools/deploy-page.js'
 import { deployZip } from './tools/deploy-zip.js'
 import { deployFilesTool } from './tools/deploy-files.js'
 import { deployMarkdown } from './tools/deploy-markdown.js'
+import { deployDocs } from './tools/deploy-docs.js'
 import { listDeploymentsTool } from './tools/list-deployments.js'
 import { getDeploymentTool } from './tools/get-deployment.js'
 import { pinDeploymentTool } from './tools/pin-deployment.js'
@@ -234,6 +235,34 @@ export async function startMcpServer(
           const tok = verifyBearer(authHeader, db)
           if (tok) checkRateLimit(tok.id, 20)
           return makeResult(await deployMarkdown(args, authHeader, db, config, ip))
+        } catch (err: any) {
+          return makeError(err)
+        }
+      },
+    )
+
+    // ── deploy_docs ──────────────────────────────────────────────────────────
+    mcpServer.tool(
+      'deploy_docs',
+      'Publish multiple Markdown files as a documentation site with a shared sidebar navigation. Inter-page .md links are auto-rewritten; must include index.md as the home page.',
+      {
+        files: z.array(z.object({
+          path: z.string().describe('Page path ending in .md (e.g. "index.md", "guide/setup.md"). Becomes the same path with .html.'),
+          markdown: z.string().describe('Markdown source for this page (GFM).'),
+        })).min(1).describe('Markdown pages; must include index.md at root. Max 200 pages, 10 MB total.'),
+        title: z.string().optional().describe('Site title shown in the sidebar header.'),
+        theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Reading theme — "light" (default), "dark", or "sepia".'),
+        did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates the docs site in place — the URL never changes.'),
+        access: z.enum(['public', 'password']).optional().describe('Access control — "public" (default) or "password".'),
+        password: z.string().optional().describe('Passphrase required when access="password".'),
+        ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
+        pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
+      },
+      async (args) => {
+        try {
+          const tok = verifyBearer(authHeader, db)
+          if (tok) checkRateLimit(tok.id, 20)
+          return makeResult(await deployDocs(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
         }
