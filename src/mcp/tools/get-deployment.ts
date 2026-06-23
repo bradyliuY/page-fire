@@ -19,6 +19,7 @@ export function getDeploymentTool(args: { did: string }, authHeader: string | un
     expires_at: d.expires_at ? new Date(d.expires_at).toISOString() : null,
     size_bytes: d.size_bytes,
     file_count: d.file_count,
+    spa: d.spa === 1,
     created_at: new Date(d.created_at).toISOString(),
   }
 }
