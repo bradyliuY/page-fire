@@ -185,32 +185,32 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
   </div>
 
   <!-- 接入 -->
-  <div class=”pane” id=”pane-connect”>
-    <div class=”cs”><div class=”cn”>1</div><div class=”cb”><b>获取 Token</b><br>在 <a href=”/dashboard”>控制台</a> 注册并创建 API Key（<code class=”ic”>pf_</code> 开头）。</div></div>
-    <div class=”cs”><div class=”cn”>2</div><div class=”cb” style=”min-width:0;flex:1”><b>配置连接</b><br>以 Claude Desktop / Claude Code 为例，在项目根目录创建 <code class=”ic”>.mcp.json</code>（加入 .gitignore）：
-      <div class=”codeblk” style=”margin-top:10px”><pre>{
-  <span class=”str”>”mcpServers”</span>: {
-    <span class=”str”>”pagefire”</span>: {
-      <span class=”str”>”type”</span>: <span class=”str”>”http”</span>,
-      <span class=”str”>”url”</span>: <span class=”str”>”https://mcp.${baseDomain}/mcp”</span>,
-      <span class=”str”>”headers”</span>: { <span class=”str”>”Authorization”</span>: <span class=”str”>”Bearer &lt;你的token&gt;”</span> }
+  <div class="pane" id="pane-connect">
+    <div class="cs"><div class="cn">1</div><div class="cb"><b>获取 Token</b><br>在 <a href="/dashboard">控制台</a> 注册并创建 API Key（<code class="ic">pf_</code> 开头）。</div></div>
+    <div class="cs"><div class="cn">2</div><div class="cb" style="min-width:0;flex:1"><b>配置连接</b><br>以 Claude Desktop / Claude Code 为例，在项目根目录创建 <code class="ic">.mcp.json</code>（加入 .gitignore）：
+      <div class="codeblk" style="margin-top:10px"><pre>{
+  <span class="str">"mcpServers"</span>: {
+    <span class="str">"pagefire"</span>: {
+      <span class="str">"type"</span>: <span class="str">"http"</span>,
+      <span class="str">"url"</span>: <span class="str">"https://mcp.${baseDomain}/mcp"</span>,
+      <span class="str">"headers"</span>: { <span class="str">"Authorization"</span>: <span class="str">"Bearer &lt;你的token&gt;"</span> }
     }
   }
 }</pre></div>
     </div></div>
-    <div class=”cs” style=”border:none;padding-bottom:0”><div class=”cn”>3</div><div class=”cb”><b>对话发布</b><br>重启客户端后直接说：”帮我把这份内容发布成网页”，AI 自动调用工具完成发布。</div></div>
+    <div class="cs" style="border:none;padding-bottom:0"><div class="cn">3</div><div class="cb"><b>对话发布</b><br>重启客户端后直接说："帮我把这份内容发布成网页"，AI 自动调用工具完成发布。</div></div>
 
-    <div class=”conn-info”>
-      <div class=”ci-row”><span class=”ci-k”>端点</span><code class=”ic”>https://mcp.${baseDomain}/mcp</code></div>
-      <div class=”ci-row”><span class=”ci-k”>传输</span><code class=”ic”>Streamable HTTP · MCP 2025-03-26</code></div>
-      <div class=”ci-row”><span class=”ci-k”>鉴权</span><code class=”ic”>Authorization: Bearer pf_xxx</code></div>
+    <div class="conn-info">
+      <div class="ci-row"><span class="ci-k">端点</span><code class="ic">https://mcp.${baseDomain}/mcp</code></div>
+      <div class="ci-row"><span class="ci-k">传输</span><code class="ic">Streamable HTTP · MCP 2025-03-26</code></div>
+      <div class="ci-row"><span class="ci-k">鉴权</span><code class="ic">Authorization: Bearer pf_xxx</code></div>
     </div>
 
-    <div class=”sec-sm” style=”margin:24px 0 12px”>其他客户端</div>
-    <div class=”cli-list”>
-      <div class=”cli-row”><div class=”cli-name”>Cursor</div><div class=”cli-body”>Settings → MCP → Add new global MCP server，填入端点 URL 与 Authorization header。Cursor 不读取 .mcp.json，需在全局设置里配置。</div></div>
-      <div class=”cli-row”><div class=”cli-name”>OpenAI Codex</div><div class=”cli-body”>在 <code class=”ic”>codex.yaml</code> 的 <code class=”ic”>mcp_servers</code> 下添加：<code class=”ic”>type: http</code>、<code class=”ic”>url</code>、<code class=”ic”>headers.Authorization</code>。</div></div>
-      <div class=”cli-row” style=”border:none”><div class=”cli-name”>其他</div><div class=”cli-body”>任何支持 Streamable HTTP transport 的 MCP 客户端均可，填入端点 URL 与 Bearer Token 即可。</div></div>
+    <div class="sec-sm" style="margin:24px 0 12px">其他客户端</div>
+    <div class="cli-list">
+      <div class="cli-row"><div class="cli-name">Cursor</div><div class="cli-body">Settings → MCP → Add new global MCP server，填入端点 URL 与 Authorization header。Cursor 不读取 .mcp.json，需在全局设置里配置。</div></div>
+      <div class="cli-row"><div class="cli-name">OpenAI Codex</div><div class="cli-body">在 <code class="ic">codex.yaml</code> 的 <code class="ic">mcp_servers</code> 下添加：<code class="ic">type: http</code>、<code class="ic">url</code>、<code class="ic">headers.Authorization</code>。</div></div>
+      <div class="cli-row" style="border:none"><div class="cli-name">其他</div><div class="cli-body">任何支持 Streamable HTTP transport 的 MCP 客户端均可，填入端点 URL 与 Bearer Token 即可。</div></div>
     </div>
   </div>
 
