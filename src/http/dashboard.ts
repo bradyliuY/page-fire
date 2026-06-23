@@ -185,7 +185,7 @@ async function loadKeys() {
     const on = k.status === 'active'
     const actions = !on ? '<span class="badge-rev">已吊销</span>'
       : '<button class="icon-btn" title="测试连接" onclick="testKey(\\'' + k.id + '\\',this)">⚡</button>' +
-        '<button class="icon-btn danger" title="吊销" onclick="revoke(\\'' + k.id + '\\',\\'' + (k.label || k.space_id).replace(/'/g,'') + '\\')">✕</button>'
+        '<button class="icon-btn danger" title="吊销" data-id="' + k.id + '" data-label="' + esc(k.label || k.space_id) + '" onclick="revoke(this)">✕</button>'
     const revoked = actions
     return '<div class="krow">' +
       '<div class="kmain">' +
@@ -237,7 +237,8 @@ async function createKey() {
 function closeReveal() { closeModal('ov-reveal'); loadKeys() }
 function copyTok() { navigator.clipboard.writeText($('r-token').textContent).then(() => toast('已复制到剪贴板')) }
 
-async function revoke(id, name) {
+async function revoke(btn) {
+  const id = btn.dataset.id, name = btn.dataset.label
   if (!confirm('确定吊销「' + name + '」？\\n该 Key 立即失效，其下所有已发布站点将无法访问。')) return
   const r = await api('/api/keys/' + id, { method:'DELETE' })
   if (r.ok) { toast('已吊销'); loadKeys() }
