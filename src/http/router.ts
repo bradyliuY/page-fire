@@ -5,6 +5,8 @@ import type Database from 'better-sqlite3'
 import { serve404, serve401, serveFile } from './serve.js'
 import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
 import { hashToken } from '../auth.js'
+import { renderHome } from './home.js'
+import { SECURITY_HEADERS } from './headers.js'
 
 export function handleRequest(
   req: IncomingMessage,
@@ -20,6 +22,18 @@ export function handleRequest(
   if (url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
     res.end('ok')
+    return
+  }
+
+  // Root domain → serve product homepage
+  if (host === baseDomain) {
+    const html = renderHome(baseDomain)
+    const buf = Buffer.from(html, 'utf8')
+    for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Content-Length', buf.length)
+    res.statusCode = 200
+    res.end(buf)
     return
   }
 
