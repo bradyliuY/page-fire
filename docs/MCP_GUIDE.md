@@ -305,6 +305,39 @@ React / Vue / Svelte 等框架打包后只有一个 `index.html`，路由由 JS 
 
 ---
 
+### `set_space_id` — 自定义域名标识
+
+将你的 space_id 改为自定义名称，让所有部署 URL 中的固定段变得可读。
+
+> ⚠️ **注意**：修改后所有已发布的 URL 立即失效，需要重新分享新地址。
+
+**参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `space_id` | string | ✅ | 自定义标识：4–20 位，仅 `[a-z0-9-]`，不能以 `-` 开头/结尾，不能含 `--` |
+
+**规则：**
+- ✅ 合法：`myteam`、`project-alpha`、`ai2026`
+- ❌ 非法：`my--team`（连续横线）、`-team`（横线开头）、`a`（太短）、`mcp`（保留字）
+- ❌ 占用：已被其他 token 使用的名称会返回 `SPACE_ID_TAKEN` 错误
+
+**URL 变化示例：**
+
+```
+修改前：https://f4vyog-3ixketu6.pagefire.openhkt.com/
+修改后：https://f4vyog-myteam.pagefire.openhkt.com/
+```
+
+**对话示例：**
+
+```
+把我的 space_id 改成 myteam。
+把域名标识改成 project-alpha，让 URL 更好认。
+```
+
+---
+
 ## 典型使用场景
 
 ### 场景一：AI 生成报告后即时发布

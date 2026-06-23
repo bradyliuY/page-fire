@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { config } from '../config.js'
 import { openDb } from '../db/migrate.js'
-import { createToken, listTokens, disableToken, rotateSpaceId, getTokenBySlug, listExpiredDeployments, deleteDeploymentRow, insertAuditLog } from '../db/repo.js'
+import { createToken, listTokens, disableToken, rotateSpaceId, getTokenBySlug, listExpiredDeployments, deleteDeploymentRow, insertAuditLog, setSpaceIdByTokenId } from '../db/repo.js'
 import { generateTokenSecret, hashToken } from '../auth.js'
 import { generateSpaceId } from '../core/ids.js'
 import { deleteDeploymentFiles } from '../core/deploy.js'
+import { validateCustomSpaceId, ValidationError } from '../core/validate.js'
 
 const db = openDb(config.db)
 const args = process.argv.slice(2)
@@ -28,7 +29,15 @@ if (cmd === 'token') {
     if (!flags.slug) { console.error('Usage: pagefire token create --slug <name> [--label <text>]'); process.exit(1) }
     const plain = generateTokenSecret()
     const hash = hashToken(plain)
-    const spaceId = generateSpaceId(db)
+    let spaceId: string
+    if (flags['space-id']) {
+      try { validateCustomSpaceId(flags['space-id']) } catch (e) {
+        console.error((e as ValidationError).message); process.exit(1)
+      }
+      spaceId = flags['space-id']
+    } else {
+      spaceId = generateSpaceId(db)
+    }
     const row = createToken(db, { slug: flags.slug, space_id: spaceId, token_hash: hash, label: flags.label ?? null, status: 'active', quota_deployments: 100, quota_bytes: 209715200 })
     insertAuditLog(db, { token_id: row.id, action: 'token_create' })
     console.log('Token created:')
@@ -64,8 +73,28 @@ if (cmd === 'token') {
     console.log(`Token '${flags.slug}' rotated. New space_id: ${newSpaceId}`)
     console.log('Warning: All existing deployment URLs for this token are now invalid.')
 
+  } else if (sub === 'set-space-id') {
+    const flags = parseFlags(rest)
+    if (!flags.slug || !flags['space-id']) {
+      console.error('Usage: pagefire token set-space-id --slug <name> --space-id <custom>')
+      process.exit(1)
+    }
+    const t = getTokenBySlug(db, flags.slug)
+    if (!t) { console.error(`Token not found: ${flags.slug}`); process.exit(1) }
+    try { validateCustomSpaceId(flags['space-id']) } catch (e) {
+      console.error((e as ValidationError).message); process.exit(1)
+    }
+    try {
+      setSpaceIdByTokenId(db, t.id, flags['space-id'])
+    } catch (e: any) {
+      console.error(e.message ?? String(e)); process.exit(1)
+    }
+    insertAuditLog(db, { token_id: t.id, action: 'set_space_id' })
+    console.log(`Token '${flags.slug}' space_id → ${flags['space-id']}`)
+    console.log('Warning: All existing deployment URLs for this token are now invalid.')
+
   } else {
-    console.error('Unknown token subcommand. Use: create, list, disable, rotate')
+    console.error('Unknown token subcommand. Use: create, list, disable, rotate, set-space-id')
     process.exit(1)
   }
 
@@ -87,10 +116,11 @@ if (cmd === 'token') {
 
 } else {
   console.log('Usage: pagefire <command>')
-  console.log('  token create --slug <name> [--label <text>]')
+  console.log('  token create --slug <name> [--label <text>] [--space-id <custom>]')
   console.log('  token list')
   console.log('  token disable --slug <name>')
   console.log('  token rotate --slug <name>')
+  console.log('  token set-space-id --slug <name> --space-id <custom>')
   console.log('  gc')
   process.exit(1)
 }

@@ -41,6 +41,12 @@ export function rotateSpaceId(db: Database.Database, slug: string, newSpaceId: s
   db.prepare('UPDATE tokens SET space_id = ? WHERE slug = ?').run(newSpaceId, slug)
 }
 
+export function setSpaceIdByTokenId(db: Database.Database, tokenId: string, newSpaceId: string): void {
+  const existing = db.prepare('SELECT id FROM tokens WHERE space_id = ? AND id != ?').get(newSpaceId, tokenId)
+  if (existing) throw { code: 'SPACE_ID_TAKEN', message: `space_id "${newSpaceId}" is already in use` }
+  db.prepare('UPDATE tokens SET space_id = ? WHERE id = ?').run(newSpaceId, tokenId)
+}
+
 // ── Deployment repo ──────────────────────────────────────────────────────────
 
 export interface DeploymentRow {

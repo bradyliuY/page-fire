@@ -42,3 +42,25 @@ export function validateFileSize(bytes: number, limit: number): void {
     throw new ValidationError('FILE_TOO_LARGE', `File size ${bytes} exceeds limit ${limit}`)
   }
 }
+
+const SPACE_ID_RE = /^[a-z0-9][a-z0-9-]{2,18}[a-z0-9]$/
+const SPACE_ID_RESERVED = new Set([
+  'www', 'api', 'mcp', 'admin', 'root', 'mail', 'ftp', 'smtp', 'imap',
+  'pop', 'ns1', 'ns2', 'cdn', 'git', 'static', 'assets', 'media',
+  'app', 'web', 'docs', 'help', 'support', 'status', 'dashboard',
+])
+
+export function validateCustomSpaceId(id: string): void {
+  if (!SPACE_ID_RE.test(id)) {
+    throw new ValidationError(
+      'INVALID_SPACE_ID',
+      'space_id must be 4–20 chars, only [a-z0-9-], cannot start/end with "-"',
+    )
+  }
+  if (id.includes('--')) {
+    throw new ValidationError('INVALID_SPACE_ID', 'space_id cannot contain consecutive hyphens "--"')
+  }
+  if (SPACE_ID_RESERVED.has(id)) {
+    throw new ValidationError('INVALID_SPACE_ID', `"${id}" is a reserved name`)
+  }
+}

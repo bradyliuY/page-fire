@@ -12,6 +12,7 @@ import { getDeploymentTool } from './tools/get-deployment.js'
 import { pinDeploymentTool } from './tools/pin-deployment.js'
 import { deleteDeploymentTool } from './tools/delete-deployment.js'
 import { setAccessTool } from './tools/set-access.js'
+import { setSpaceIdTool } from './tools/set-space-id.js'
 import { verifyBearer } from '../auth.js'
 
 // Per-token sliding-window rate limiter (in-memory)
@@ -291,6 +292,24 @@ export async function startMcpServer(
       async (args) => {
         try {
           return makeResult(setAccessTool(args, authHeader, db, ip))
+        } catch (err: any) {
+          return makeError(err)
+        }
+      },
+    )
+
+    // ── set_space_id ─────────────────────────────────────────────────────────
+    mcpServer.tool(
+      'set_space_id',
+      'Set a custom space_id for your token — changes the subdomain segment shared by all your deployment URLs',
+      {
+        space_id: z
+          .string()
+          .describe('Custom space_id: 4–20 chars, only [a-z0-9-], cannot start/end with "-" or contain "--". Example: "myteam", "project-x". Warning: changing this invalidates all existing deployment URLs.'),
+      },
+      async (args) => {
+        try {
+          return makeResult(setSpaceIdTool(args, authHeader, db, ip))
         } catch (err: any) {
           return makeError(err)
         }
