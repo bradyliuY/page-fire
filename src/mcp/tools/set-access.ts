@@ -32,7 +32,7 @@ export function setAccessTool(
     token_id: token.id,
     deployment_id: d.id,
     action: 'set_access',
-    ip: ip ?? null,
+    ip: ip ?? undefined,
   })
 
   return { did: args.did, access: args.access }
