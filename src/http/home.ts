@@ -300,7 +300,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
           <button class="ctab" onclick="qpick('other')">其他客户端</button>
         </div>
         <div class="cpane on" id="qp-claude">
-          <p>在项目根目录创建 <span class="inline-c">.mcp.json</span>，加入 <span class="inline-c">.gitignore</span> 后不会提交 token：</p>
+          <p><b>方式一 · HTTP 直连（推荐，零依赖）</b><br>在项目根目录创建 <span class="inline-c">.mcp.json</span>，加入 <span class="inline-c">.gitignore</span> 后不会提交 token：</p>
           <code>{
   "mcpServers": {
     "pagefire": {
@@ -311,6 +311,23 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
   }
 }</code>
           <div class="note">Claude Code CLI 也可用命令添加：<span class="inline-c">claude mcp add --transport http pagefire https://mcp.${baseDomain}/mcp -H "Authorization: Bearer &lt;token&gt;"</span></div>
+          <p style="margin-top:16px"><b>方式二 · stdio 桥接（连不上时的兜底）</b><br>若方式一报 <span class="inline-c">Failed to connect</span>，但浏览器 / Node 能访问该域名，多为客户端运行时的 TLS 被网络按指纹拦截。改用本机 Node 的 <a href="https://www.npmjs.com/package/mcp-remote" target="_blank" rel="noopener">mcp-remote</a> 以 stdio 桥接同一端点（需本机 Node ≥ 18 / npx）：</p>
+          <code>{
+  "mcpServers": {
+    "pagefire": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://mcp.${baseDomain}/mcp",
+        "--header", "Authorization:\${AUTH_HEADER}",
+        "--transport", "http-only"
+      ],
+      "env": { "AUTH_HEADER": "Bearer &lt;你的token&gt;" }
+    }
+  }
+}</code>
+          <div class="note">⚠️ token 须经 <span class="inline-c">env.AUTH_HEADER</span> 传入、header 写成 <span class="inline-c">Authorization:\${AUTH_HEADER}</span>（中间无空格）。若直接写 <span class="inline-c">"Authorization: Bearer ..."</span>，空格会在进程拼接时被拆断，导致握手成功但工具调用报 <span class="inline-c">UNAUTHORIZED</span>。</div>
         </div>
         <div class="cpane" id="qp-cursor">
           <p>打开 Cursor → Settings → MCP → <b>Add new global MCP server</b>，填入：</p>
@@ -337,7 +354,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
           <code>端点：https://mcp.${baseDomain}/mcp
 鉴权：Authorization: Bearer &lt;你的token&gt;
 协议：MCP 2025-03-26 (Streamable HTTP)</code>
-          <div class="note">在 <a href="/playground#connect">Playground → 接入</a> 可查看各平台的详细配置说明。</div>
+          <div class="note">若客户端原生连接报 <span class="inline-c">Failed to connect</span>（但浏览器 / Node 能访问域名），可用 <span class="inline-c">npx mcp-remote &lt;端点&gt; --header "Authorization:\${AUTH_HEADER}" --transport http-only</span> 以 stdio 桥接（token 经 <span class="inline-c">env.AUTH_HEADER</span> 传入，避免空格拆断）。详见 <a href="/playground#connect">Playground → 接入</a>。</div>
         </div>
       </div>
     </div>

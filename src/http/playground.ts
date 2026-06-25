@@ -197,6 +197,19 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
     }
   }
 }</pre></div>
+      <div style="margin-top:14px;font-size:13px;color:var(--muted,#9aa)">方式二 · <b>stdio 桥接</b>（连不上时的兜底）：若上面的 HTTP 直连报 <code class="ic">Failed to connect</code>，但浏览器 / Node 能访问该域名，多为客户端运行时 TLS 被网络按指纹拦截。改用本机 Node 的 <a href="https://www.npmjs.com/package/mcp-remote" target="_blank" rel="noopener">mcp-remote</a> 桥接同一端点：</div>
+      <div class="codeblk" style="margin-top:10px"><pre>{
+  <span class="str">"mcpServers"</span>: {
+    <span class="str">"pagefire"</span>: {
+      <span class="str">"type"</span>: <span class="str">"stdio"</span>,
+      <span class="str">"command"</span>: <span class="str">"npx"</span>,
+      <span class="str">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"mcp-remote"</span>, <span class="str">"https://mcp.${baseDomain}/mcp"</span>,
+               <span class="str">"--header"</span>, <span class="str">"Authorization:\${AUTH_HEADER}"</span>, <span class="str">"--transport"</span>, <span class="str">"http-only"</span>],
+      <span class="str">"env"</span>: { <span class="str">"AUTH_HEADER"</span>: <span class="str">"Bearer &lt;你的token&gt;"</span> }
+    }
+  }
+}</pre></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--dim,#777)">⚠️ token 须经 <code class="ic">env.AUTH_HEADER</code> 传入、header 写成 <code class="ic">Authorization:\${AUTH_HEADER}</code>（无空格）；写成 <code class="ic">"Authorization: Bearer ..."</code> 会因空格拆断导致工具调用 <code class="ic">UNAUTHORIZED</code>。</div>
     </div></div>
     <div class="cs" style="border:none;padding-bottom:0"><div class="cn">3</div><div class="cb"><b>对话发布</b><br>重启客户端后直接说："帮我把这份内容发布成网页"，AI 自动调用工具完成发布。</div></div>
 
