@@ -1,8 +1,15 @@
 {
   "name": "pagefire",
   "version": "0.1.0",
+  "description": "Self-hosted static publishing service — publish HTML/ZIP via MCP and get an instant HTTPS link",
   "private": true,
   "type": "module",
+  "homepage": "https://pagefire.openhkt.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bradyliuY/page-fire.git"
+  },
+  "keywords": ["mcp", "static-hosting", "self-hosted", "html", "publishing", "model-context-protocol"],
   "engines": {
     "node": ">=20"
   },

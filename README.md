@@ -1,5 +1,8 @@
 # PageFire
 
+[![CI](https://github.com/bradyliuY/page-fire/actions/workflows/ci.yml/badge.svg)](https://github.com/bradyliuY/page-fire/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 > 通过 MCP 一键把 HTML / 静态包发布成公网可访问网页的自托管静态发布服务。
 
 类 EdgeOne Pages，但**自托管、轻量、多租户、即发即得**。让 Claude / Cursor 等 MCP 客户端直接把生成的 HTML 发布成带 HTTPS 链接的独立子域名页面。
