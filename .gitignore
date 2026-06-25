@@ -31,5 +31,7 @@ Thumbs.db
 *_Skill_v*.md
 估值预期分析*.md
 
-# deploy 目录中的敏感配置（settings.local.json 如不小心放进去也排除）
+# deploy 目录中的敏感配置与 Luminar 内部文档（不属于 PageFire 公开仓库）
 docs/deploy/settings.local.json
+docs/deploy/DEPLOYMENT.md
+docs/deploy/DEPLOY_PLAN.md
