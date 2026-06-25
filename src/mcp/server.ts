@@ -244,7 +244,7 @@ export async function startMcpServer(
     // ── deploy_docs ──────────────────────────────────────────────────────────
     mcpServer.tool(
       'deploy_docs',
-      'Publish multiple Markdown files as a documentation site with a shared sidebar navigation. Inter-page .md links are auto-rewritten; must include index.md as the home page.',
+      'Publish multiple Markdown files as a documentation site with left sidebar navigation and right per-page TOC. Inter-page .md links are auto-rewritten. No index.md required — entry page is resolved automatically (index.md → README.md → first file).',
       {
         files: z.array(z.object({
           path: z.string().describe('Page path ending in .md (e.g. "index.md", "guide/setup.md"). Becomes the same path with .html.'),

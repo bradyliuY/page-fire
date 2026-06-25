@@ -91,7 +91,94 @@ React / Vue / Svelte 等框架打包后只有一个 `index.html`，路由由 JS 
 
 ---
 
-## 8 个 MCP 工具
+## 10 个 MCP 工具
+
+### `deploy_markdown` — 发布单篇 Markdown
+
+最简单的 Markdown 发布方式，传入原始 Markdown 字符串，自动渲染成精美页面。
+
+**参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `markdown` | string | ✅ | Markdown 内容（UTF-8，最大 5 MB） |
+| `title` | string | — | 标题，不填则取第一个 `#` 标题 |
+| `theme` | `"light"` \| `"dark"` \| `"sepia"` | — | 主题色，默认 `light` |
+| `did` | string | — | 自定义 ID，传已有 ID 则原地更新（URL 不变） |
+| `access` | `"public"` \| `"password"` | — | 访问控制，默认 `public` |
+| `password` | string | — | `access="password"` 时必填 |
+| `ttl_days` | integer 1–365 | — | 有效天数，默认 7 天 |
+| `pin` | boolean | — | `true` 则永不过期 |
+
+**渲染特性：**
+
+- 自动解析并去掉 YAML/TOML frontmatter（`---`/`+++` 块）
+- 支持 GFM（表格、任务列表、删除线等）
+- 宽屏（> 1100px）自动在右侧显示**页内目录**（从 `##` / `###` 提取，滚动时高亮当前章节）
+
+**对话示例：**
+
+```
+帮我把这篇技术文档发布成网页，用 sepia 主题，永久保留。
+把下面这个 README.md 发布出去，标题设为「项目文档」。
+```
+
+---
+
+### `deploy_docs` — 发布多篇 Markdown 文档站
+
+多篇 Markdown 文件一键发布为带导航的完整文档站。无需 `index.md`，入口页自动推断。
+
+**参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `files` | array | ✅ | 文件列表（最多 200 篇，总量 ≤ 10 MB） |
+| `files[].path` | string | ✅ | 相对路径，必须以 `.md` 结尾，如 `guide.md`、`api/ref.md` |
+| `files[].markdown` | string | ✅ | 该页的 Markdown 内容 |
+| `title` | string | — | 站点标题，显示在左侧导航顶部 |
+| `theme` | `"light"` \| `"dark"` \| `"sepia"` | — | 主题色，默认 `light` |
+| `did` | string | — | 自定义 ID，传已有 ID 则原地更新 |
+| `access` | `"public"` \| `"password"` | — | 默认 `public` |
+| `password` | string | — | 密码保护时填写 |
+| `ttl_days` | integer 1–365 | — | 默认 7 天 |
+| `pin` | boolean | — | 永久保留 |
+
+**入口页推断规则（不强制要求 `index.md`）：**
+
+```
+1. 存在 index.md   → 渲染为 index.html（直接作为入口）
+2. 存在 README.md  → 渲染为 readme.html，自动生成跳转用 index.html
+3. 都没有          → 取 files[0] 作为入口，自动生成跳转用 index.html
+```
+
+**页面布局（宽屏）：**
+
+```
+┌──────────────┬───────────────────────────┬──────────────┐
+│  左侧导航    │         正文区域           │  右侧目录    │
+│  (268px固定) │    max-width: 780px        │  (190px固定) │
+│              │                           │              │
+│ 📖 站点标题  │  # 当前页标题             │  目录        │
+│              │                           │  ## 章节一   │
+│ ▶ 首页       │  内容内容内容……           │  ## 章节二   │
+│   指南       │                           │   ### 小节   │
+│   API 参考   │                           │              │
+└──────────────┴───────────────────────────┴──────────────┘
+```
+
+- **左侧导航**：固定，列出所有页面，当前页高亮
+- **右侧目录**：固定，显示当前页 `##` / `###` 标题，滚动时实时高亮（仅在 ≥ 1280px 宽屏显示）
+- **移动端**（< 860px）：左侧导航收起为 `☰` 按钮，右侧目录隐藏
+
+**对话示例：**
+
+```
+把这个产品文档（guide.md + api.md + faq.md）发布成文档站，标题「我的产品文档」，永久保留。
+把下面三篇 Markdown 发布成文档站，用 dark 主题。
+```
+
+---
 
 ### `deploy_page` — 发布单 HTML 页面
 

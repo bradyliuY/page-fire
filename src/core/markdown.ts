@@ -10,6 +10,8 @@ export const THEMES: Record<MarkdownTheme, string> = {
   sepia: `--bg:#faf4e8;--fg:#433422;--muted:#7c6f5a;--bdr:#e0d4bc;--code-bg:#f1e7d2;--code-fg:#433422;--quote:#7c6f5a;--link:#a8581b;--accent:#c2410c;--table-alt:#f3ead6`,
 }
 
+export interface Heading { level: number; text: string; id: string }
+
 export function resolveTheme(theme?: MarkdownTheme): MarkdownTheme {
   return theme && THEMES[theme] ? theme : 'light'
 }
@@ -40,14 +42,105 @@ export function extractTitle(md: string): string | null {
   return m ? m[1].trim() : null
 }
 
+// Generate a URL-safe anchor slug from heading text.
+function slugify(text: string): string {
+  // Strip inline markdown syntax (bold, italic, code, links)
+  const plain = text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/[*_]{1,3}([^*_]*)[\*_]{1,3}/g, '$1')
+  return plain
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w一-鿿-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    || 'heading'
+}
+
+// Extract h2 and h3 headings from markdown source (preserves document order).
+export function extractHeadings(markdown: string): Heading[] {
+  const headings: Heading[] = []
+  const seen = new Map<string, number>()
+  for (const m of markdown.matchAll(/^(#{2,3})\s+(.+?)(?:\s+#+)?\s*$/gm)) {
+    const level = m[1].length
+    const text = m[2].trim()
+    let id = slugify(text)
+    const count = seen.get(id) ?? 0
+    seen.set(id, count + 1)
+    if (count > 0) id = `${id}-${count}`
+    headings.push({ level, text, id })
+  }
+  return headings
+}
+
+// Inject id attributes into h2/h3 tags in rendered HTML (matched by document order).
+export function injectHeadingIds(html: string, headings: Heading[]): string {
+  let idx = 0
+  return html.replace(/<(h[23])>/g, (_, tag) => {
+    const h = headings[idx]
+    if (!h) return `<${tag}>`
+    idx++
+    return `<${tag} id="${h.id}">`
+  })
+}
+
+// Build the right-side TOC HTML + CSS + JS for embedding in a page.
+// Returns empty string if fewer than 2 headings (no point showing a TOC).
+export function renderTocPanel(headings: Heading[], minBreakpoint = 1100): string {
+  if (headings.length < 2) return ''
+  const items = headings.map(h => {
+    const indent = h.level === 3 ? ' style="padding-left:14px"' : ''
+    return `<a href="#${h.id}"${indent}>${escapeHtml(h.text)}</a>`
+  }).join('\n')
+  return `<div class="toc-wrap">
+<div class="toc-label">目录</div>
+<nav class="toc" aria-label="页内目录">
+${items}
+</nav>
+</div>
+<style>
+.toc-wrap{position:fixed;top:56px;right:24px;width:190px;max-height:calc(100vh - 80px);
+  overflow-y:auto;display:none;scrollbar-width:none}
+.toc-wrap::-webkit-scrollbar{display:none}
+@media(min-width:${minBreakpoint}px){.toc-wrap{display:block}}
+.toc-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;padding-left:8px}
+.toc a{display:block;color:var(--muted);font-size:12.5px;text-decoration:none;
+  padding:4px 8px;border-radius:5px;line-height:1.45;transition:color .1s,background .1s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toc a:hover{color:var(--fg);background:var(--table-alt)}
+.toc a.toc-active{color:var(--accent);font-weight:600}
+</style>
+<script>
+(function(){
+  var links=[].slice.call(document.querySelectorAll('.toc a'))
+  if(!links.length)return
+  var io=new IntersectionObserver(function(entries){
+    for(var i=0;i<entries.length;i++){
+      if(entries[i].isIntersecting){
+        links.forEach(function(l){l.classList.remove('toc-active')})
+        var a=document.querySelector('.toc a[href="#'+entries[i].target.id+'"]')
+        if(a)a.classList.add('toc-active')
+      }
+    }
+  },{rootMargin:'-10% 0px -75% 0px'})
+  document.querySelectorAll('h2[id],h3[id]').forEach(function(h){io.observe(h)})
+})()
+</script>`
+}
+
 export function renderMarkdownPage(
   markdown: string,
   opts: { title?: string; theme?: MarkdownTheme } = {},
 ): string {
   const theme = resolveTheme(opts.theme)
   const stripped = stripFrontmatter(markdown)
-  const bodyHtml = renderMarkdownBody(stripped)
+  const headings = extractHeadings(stripped)
+  const rawBody = renderMarkdownBody(stripped)
+  const bodyHtml = injectHeadingIds(rawBody, headings)
   const title = opts.title?.trim() || extractTitle(stripped) || 'Document'
+  const toc = renderTocPanel(headings, 1100)
 
   return `<!doctype html>
 <html lang="zh-CN">
@@ -99,6 +192,7 @@ kbd{font-family:'SF Mono',monospace;font-size:.82em;background:var(--code-bg);
 ${bodyHtml}
 </article>
 <div class="md-footer">由 <a href="https://pagefire.openhkt.com">PageFire</a> 渲染发布 · Markdown</div>
+${toc}
 </body>
 </html>`
 }

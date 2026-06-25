@@ -1,6 +1,7 @@
 import type { FileEntry } from './deploy.js'
 import {
   THEMES, resolveTheme, escapeHtml, renderMarkdownBody, extractTitle, stripFrontmatter,
+  extractHeadings, injectHeadingIds, renderTocPanel,
   type MarkdownTheme,
 } from './markdown.js'
 
@@ -9,9 +10,13 @@ export interface DocInput { path: string; markdown: string }
 interface NavItem { href: string; label: string; mdPath: string }
 
 /**
- * Build a multi-page Markdown documentation site with a shared sidebar.
+ * Build a multi-page Markdown documentation site with left nav sidebar + right TOC.
  * Pure transform: Markdown inputs → static HTML FileEntry[] (no I/O),
  * so it plugs straight into the standard publish() path (did / pin / quota all apply).
+ *
+ * Entry point fallback (no index.md required):
+ *   index.md → README.md → first file in the input array
+ * If the entry is not named index.md, a redirect index.html is generated automatically.
  */
 export function renderDocsSite(
   inputs: DocInput[],
@@ -35,32 +40,51 @@ export function renderDocsSite(
     return { mdPath, htmlPath, label, markdown: stripped }
   })
 
-  if (!pages.some((p) => p.mdPath === 'index.md')) {
-    throw { code: 'MISSING_INDEX', message: '文档站必须包含 index.md 作为首页' }
-  }
+  // Determine entry: index.md → README.md → files[0]
+  const entryPath =
+    pages.find((p) => p.mdPath === 'index.md')?.mdPath ??
+    pages.find((p) => p.mdPath === 'README.md')?.mdPath ??
+    pages[0].mdPath
 
-  // Nav: index first, rest in input order. Root-absolute hrefs (deployment is at subdomain root).
+  // Nav: entry page first, rest in input order.
   const nav: NavItem[] = pages
     .slice()
-    .sort((a, b) => (a.mdPath === 'index.md' ? -1 : b.mdPath === 'index.md' ? 1 : 0))
+    .sort((a, b) => (a.mdPath === entryPath ? -1 : b.mdPath === entryPath ? 1 : 0))
     .map((p) => ({ href: '/' + p.htmlPath, label: p.label, mdPath: p.mdPath }))
 
-  return pages.map((p) => ({
+  const files: FileEntry[] = pages.map((p) => ({
     path: p.htmlPath,
-    content: renderPage(p.markdown, p.mdPath, p.label, siteTitle, theme, nav),
+    content: renderPage(p.markdown, p.mdPath, p.label, siteTitle, theme, nav, entryPath),
   }))
+
+  // If the entry is not index.md, generate a redirect index.html so the root URL works.
+  if (entryPath !== 'index.md') {
+    const entryHtml = entryPath.replace(/\.md$/, '.html')
+    files.push({
+      path: 'index.html',
+      content: `<!doctype html><html><head><meta charset="utf-8"><title>Redirecting…</title>`
+        + `<meta http-equiv="refresh" content="0;url=/${entryHtml}"></head>`
+        + `<body><script>location.replace('/${entryHtml}')</script></body></html>`,
+    })
+  }
+
+  return files
 }
 
 function renderPage(
   markdown: string, mdPath: string, pageLabel: string,
-  siteTitle: string, theme: MarkdownTheme, nav: NavItem[],
+  siteTitle: string, theme: MarkdownTheme, nav: NavItem[], entryPath: string,
 ): string {
-  const body = renderMarkdownBody(markdown, /* rewriteMdLinks */ true)
+  const headings = extractHeadings(markdown)
+  const rawBody = renderMarkdownBody(markdown, /* rewriteMdLinks */ true)
+  const body = injectHeadingIds(rawBody, headings)
+  const toc = renderTocPanel(headings, 1280)
+
   const navHtml = nav.map((n) => {
     const active = n.mdPath === mdPath ? ' class="active"' : ''
     return `<a href="${escapeHtml(n.href)}"${active}>${escapeHtml(n.label)}</a>`
   }).join('\n')
-  const docTitle = mdPath === 'index.md' ? siteTitle : `${pageLabel} · ${siteTitle}`
+  const docTitle = mdPath === entryPath ? siteTitle : `${pageLabel} · ${siteTitle}`
 
   return `<!doctype html>
 <html lang="zh-CN">
@@ -76,7 +100,7 @@ body{margin:0;background:var(--bg);color:var(--fg);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,'PingFang SC','Microsoft YaHei',sans-serif;
   font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
 a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
-/* sidebar */
+/* left nav sidebar */
 .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sbw);overflow-y:auto;
   border-right:1px solid var(--bdr);padding:26px 18px;background:var(--bg)}
 .site-title{font-size:15px;font-weight:680;letter-spacing:-.2px;margin:0 8px 18px;
@@ -144,6 +168,7 @@ ${body}
   </article>
   <div class="doc-footer">由 <a href="https://pagefire.openhkt.com">PageFire</a> 渲染发布 · Docs</div>
 </main>
+${toc}
 </body>
 </html>`
 }
