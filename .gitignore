@@ -31,10 +31,8 @@ Thumbs.db
 *_Skill_v*.md
 估值预期分析*.md
 
-# deploy 目录中的敏感配置与 Luminar 内部文档（不属于 PageFire 公开仓库）
-docs/deploy/settings.local.json
-docs/deploy/DEPLOYMENT.md
-docs/deploy/DEPLOY_PLAN.md
+# 部署文档 —— 含服务器信息，仅保留本地，不入库
+docs/deploy/
 
 # 开发工具内部配置（speckit / Claude Code）
 .specify/
