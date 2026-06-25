@@ -167,9 +167,9 @@ An operator (server owner) creates, lists, and revokes tokens via a CLI tool on 
 
 ## Assumptions
 
-- The server is an existing Alibaba Cloud Linux 8 instance (`8.163.52.153`) already running the Luminar production application with nginx (docker, host network) occupying ports 80 and 443.
+- The server is an existing Alibaba Cloud Linux 8 instance (`<your-server-ip>`) already running the Luminar production application with nginx (docker, host network) occupying ports 80 and 443.
 - PageFire shares that nginx as its sole public entry point; no second web server process will be introduced.
-- TLS for `*.pagefire.openhkting.com` is provisioned via acme.sh using Aliyun DNS-01 challenge; the wildcard A-record `*.pagefire → 8.163.52.153` is added by the operator in the Aliyun console.
+- TLS for `*.pagefire.openhkting.com` is provisioned via acme.sh using Aliyun DNS-01 challenge; the wildcard A-record `*.pagefire → <your-server-ip>` is added by the operator in the Aliyun console.
 - MCP clients (Claude Desktop, Cursor, etc.) connect remotely over HTTPS to `mcp.pagefire.openhkting.com`; stdio transport is not used.
 - Operator token provisioning is manual (CLI on the server); self-service registration is out of scope for MVP.
 - All deployments are single-tenant from the user's perspective (one token per MCP client config); multi-tenant isolation is enforced server-side.

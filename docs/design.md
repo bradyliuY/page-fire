@@ -35,7 +35,7 @@
 | Token 发放 | CLI 手动生成 |
 | 托管 | 纯静态,服务器侧不执行任何用户代码 |
 | Web Server | **复用现有 nginx**(与 Luminar 共用 80/443),PageFire 自带轻量 HTTP 静态服务,nginx 反代到它 |
-| 部署位置 | 与 Luminar 同一台阿里云服务器(`8.163.52.153`,1.8GB),纯静态 + 单 Node 进程,内存占用低 |
+| 部署位置 | 与 Luminar 同一台阿里云服务器(`<your-server-ip>`,1.8GB),纯静态 + 单 Node 进程,内存占用低 |
 | 通配 TLS | certbot/acme.sh **DNS-01**(阿里云 DNS 插件)签发 `*.pagefire.openhkting.com`,nginx 终止 TLS |
 
 ---
@@ -119,7 +119,7 @@ https://<did>--<space_id>.pagefire.openhkting.com/
 
 ```
 通配证书:  *.pagefire.openhkting.com   (DNS-01 签发,一张全覆盖,nginx 终止 TLS)
-泛解析:    *.pagefire.openhkting.com → 服务器公网 IP 8.163.52.153(阿里云一条 A 记录)
+泛解析:    *.pagefire.openhkting.com → 服务器公网 IP <your-server-ip>(阿里云一条 A 记录)
 
 token 主页:        v8x2qd.pagefire.openhkting.com           (space_id)
 deployment:        k3p9xa--v8x2qd.pagefire.openhkting.com   (did--space_id)
@@ -127,7 +127,7 @@ deployment:        k3p9xa--v8x2qd.pagefire.openhkting.com   (did--space_id)
 ```
 
 **阿里云控制台需要配的两件事(详见 `docs/deploy/PAGEFIRE_DEPLOY.md` §1):**
-1. **泛解析 A 记录**:在 `openhkting.com` 的解析里加一条 —— 主机记录 `*.pagefire`、记录类型 `A`、值 `8.163.52.153`。这样所有 `<任意>.pagefire.openhkting.com` 都指向服务器。
+1. **泛解析 A 记录**:在 `openhkting.com` 的解析里加一条 —— 主机记录 `*.pagefire`、记录类型 `A`、值 `<your-server-ip>`。这样所有 `<任意>.pagefire.openhkting.com` 都指向服务器。
 2. **DNS-01 自动签发的凭证**:为通配证书 `*.pagefire.openhkting.com` 准备一个阿里云 RAM 子账号的 AccessKey(仅授 DNS 解析读写权限),供 acme.sh/certbot 自动加 TXT 记录验证、自动续期。
 
 - 通配证书只覆盖一层标签,所以 space_id 主页与 deployment **都压在这一层**(`xxx.pagefire.openhkting.com`),不用四级。
@@ -277,7 +277,7 @@ pagefire gc                                  # 清理过期 deployment(平时由
 - **Web 层**:复用现有 **nginx**(docker, host network)。新增一个 server 块:`server_name *.pagefire.openhkting.com`,443 终止通配 TLS,`proxy_pass http://127.0.0.1:4000`,透传 `Host` 头。Luminar 的 `jewelry.openhkt.com` server 块保持不动。
 - **动态路由**:PageFire HTTP 静态服务收到请求后,读 `Host` 头解析子域名 `<did>--<space_id>`,用 SQLite `space_id→token_id`、`did→deployment` 反查真实目录(`/var/pagefire/sites/<token_id>/<did>/`)并 serve,注入安全头。空间/部署不存在或已过期 → 404。
 - **TLS**:`acme.sh`(或 certbot)用 **阿里云 DNS-01** 自动签发 `*.pagefire.openhkting.com` 通配证书(需阿里云 RAM AccessKey),装到 nginx 证书目录,自动续期后 `docker restart` nginx。
-- **DNS**:阿里云控制台为 `openhkting.com` 加一条 `*.pagefire A 8.163.52.153`。
+- **DNS**:阿里云控制台为 `openhkting.com` 加一条 `*.pagefire A <your-server-ip>`。
 - **服务**:PageFire 单进程由 **PM2** 托管(与 Luminar 的 backend/storefront 同一 PM2),`pm2 save` 持久化;数据目录权限收紧、非 root。
 - **定时任务**:cron 周期执行 `pagefire gc` 清理过期发布。
 - **备份**:定期备份 SQLite + `sites/`。

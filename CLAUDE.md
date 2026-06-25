@@ -18,7 +18,7 @@ specs/001-pagefire-mcp-publisher/plan.md
 
 - `docs/design.md` —— **权威设计文档**。架构、安全模型、SQLite 数据模型、MCP 工具接口、代码结构(§11)、设计补遗(§12)、路线图。改动架构前先改这里。
 - `docs/deploy/PAGEFIRE_DEPLOY.md` —— PageFire 的部署手册(与 Luminar 同机共存版),含域名/证书/nginx/PM2 全部可执行步骤。
-- `docs/deploy/DEPLOYMENT.md`、`DEPLOY_PLAN.md`、`server-init.sh`、`hkt.pem`、`ssh.txt` —— **属于另一个项目 Luminar(珠宝电商)**,PageFire 与它共用同一台服务器(`8.163.52.153`)。读它们是为了理解共存约束,不要当成 PageFire 自己的部署资料。
+- `docs/deploy/`（本地保留,不入库） —— PageFire 的完整部署手册,含域名/证书/nginx/PM2 步骤,以及与现有应用同机共存的约束说明。
 
 ## 必须守住的架构约束(违反会破坏安全模型或撞车线上服务)
 
@@ -38,7 +38,7 @@ specs/001-pagefire-mcp-publisher/plan.md
 
 ## DNS / 证书(阿里云)
 
-根域名 `openhkting.com` 托管在阿里云 DNS。需要:一条泛解析 `*.pagefire A 8.163.52.153`;通配证书 `*.pagefire.openhkting.com` 用 **acme.sh + 阿里云 DNS-01**(`dns_ali`,需 RAM 子账号 AccessKey)自动签发与续期,证书装到 Luminar nginx 已挂载的 `/opt/luminar/certbot/conf/pagefire/`。`mcp.pagefire.openhkting.com` 被同一泛解析与通配证书覆盖,无需单独配置。
+根域名托管在阿里云 DNS。需要:一条泛解析 `*.pagefire A <your-server-ip>`;通配证书 `*.pagefire.<yourdomain>` 用 **acme.sh + 阿里云 DNS-01**(`dns_ali`,需 RAM 子账号 AccessKey)自动签发与续期。`mcp.pagefire.<yourdomain>` 被同一泛解析与通配证书覆盖,无需单独配置。
 
 ## 构建与运行命令
 
