@@ -11,7 +11,7 @@ PageFire 通过 [MCP（Model Context Protocol）](https://modelcontextprotocol.i
 联系管理员获取一个 `pf_` 开头的 Bearer Token：
 
 ```
-pf_037812b340f767c4a6997820185733bbb00bb35063459795
+pf_your_token_here
 ```
 
 ### 2. 配置 MCP 客户端
