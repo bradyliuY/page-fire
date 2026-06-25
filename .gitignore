@@ -35,3 +35,7 @@ Thumbs.db
 docs/deploy/settings.local.json
 docs/deploy/DEPLOYMENT.md
 docs/deploy/DEPLOY_PLAN.md
+
+# 开发工具内部配置（speckit / Claude Code）
+.specify/
+.claude/
