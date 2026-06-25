@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+specs/001-pagefire-mcp-publisher/plan.md
 <!-- SPECKIT END -->
 
 ## 项目状态
@@ -38,3 +39,24 @@ shell commands, and other important information, read the current plan
 ## DNS / 证书(阿里云)
 
 根域名 `openhkting.com` 托管在阿里云 DNS。需要:一条泛解析 `*.pagefire A 8.163.52.153`;通配证书 `*.pagefire.openhkting.com` 用 **acme.sh + 阿里云 DNS-01**(`dns_ali`,需 RAM 子账号 AccessKey)自动签发与续期,证书装到 Luminar nginx 已挂载的 `/opt/luminar/certbot/conf/pagefire/`。`mcp.pagefire.openhkting.com` 被同一泛解析与通配证书覆盖,无需单独配置。
+
+## 构建与运行命令
+
+```bash
+pnpm install          # 安装依赖
+pnpm build            # tsc → dist/
+pnpm start            # node dist/index.js (同时启动 MCP:4100 + HTTP:4000)
+pnpm dev              # tsx watch 开发模式
+pnpm test             # vitest run (全部测试)
+pnpm test:unit        # vitest run test/unit
+pnpm test:integration # vitest run test/integration
+```
+
+CLI (需先 pnpm build):
+```bash
+node dist/cli/index.js token create --slug <name> [--label <text>]
+node dist/cli/index.js token list
+node dist/cli/index.js token disable --slug <name>
+node dist/cli/index.js token rotate --slug <name>
+node dist/cli/index.js gc
+```

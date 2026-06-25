@@ -228,17 +228,22 @@ CREATE TABLE deploy_logs (
 
 | 工具 | 说明 | 主要参数 |
 |------|------|----------|
-| `deploy_page` | 发布单页 HTML | `html`, `title?`, `access?`, `password?`, `ttl_days?`, `pin?` |
-| `deploy_zip` | 发布 zip 包(多文件) | `zip_base64`, `title?`, `access?`, `password?`, `ttl_days?`, `pin?` |
-| `deploy_files` | 发布多文件(显式文件列表) | `files:[{path, content/base64}]`, `entry?`, 其余同上 |
+| `deploy_page` | 发布单页 HTML | `html`, `title?`, `did?`, `access?`, `password?`, `ttl_days?`, `pin?`, `spa?` |
+| `deploy_zip` | 发布 zip 包(多文件) | `zip_base64`, `title?`, `did?`, 其余同上 |
+| `deploy_files` | 发布多文件(显式文件列表) | `files:[{path, content/base64}]`, `did?`, 其余同上 |
+| `deploy_markdown` | Markdown 渲染成精致网页 | `markdown`, `title?`, `theme?`(light/dark/sepia), `did?`, 其余同上 |
+| `deploy_docs` | 多篇 Markdown → 带侧栏的文档站 | `files:[{path:.md, markdown}]`, `title?`, `theme?`, `did?`, 其余同上 |
 | `list_deployments` | 列出当前 token 的发布 | `include_expired?` |
 | `get_deployment` | 查详情 + URL | `did` |
 | `pin_deployment` | 置为永久(不过期) | `did` |
 | `delete_deployment` | 立即删除 | `did` |
 | `set_access` | 改公开/口令 | `did`, `access`, `password?` |
+| `set_space_id` | 自定义 token 的 space_id(子域名段) | `space_id` |
 
 - **不传 `pin` 的发布默认临时**(`ttl_days` 默认 7);返回最终 URL。
-- 返回值统一含 `url`,如 `https://k3p9xa--v8x2qd.pagefire.openhkting.com/`。
+- 返回值统一含 `url`,如 `https://k3p9xa-v8x2qd.pagefire.openhkting.com/`,以及 `did`、`updated`(是否原地更新)。
+- **`did` 参数(链接不变)**:可选站点别名(`[a-z0-9]{3,32}`,无连字符)。复用自己拥有的 `did` → 原地覆盖、**URL 完全不变**;未占用 → 以该名建站(`<did>-<space_id>`);被他人占用 → `DID_TAKEN`;不传 → 随机。`deploy_page/zip/files/markdown/docs` 五个发布工具统一支持,更新时保留原 pin/ttl/access(除非显式覆盖),配额按净增量计。
+- **统一发布管线**:所有发布工具最终走 `core/publish.ts`(`resolveTarget` + `finalizeDeployment`);`deploy_markdown`/`deploy_docs` 是纯转换(Markdown → 静态 HTML),发布时渲染,服务端不执行用户代码。
 - token 经 MCP server 启动配置或请求头传入,服务端校验后定位租户。
 
 ### MCP 传输方式(★ 远程接入,修正原"stdio / 127.0.0.1"的不可行)

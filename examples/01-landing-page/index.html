@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mira — AI 会议纪要助手</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#ffffff;--bg2:#f8f8f7;--bdr:#e8e8e4;--text:#1a1917;--muted:#706f6c;--dim:#a8a8a4;--accent:#16a34a;--accent2:#15803d}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;line-height:1.6}
+a{color:inherit;text-decoration:none}
+
+nav{display:flex;align-items:center;justify-content:space-between;max-width:1000px;margin:0 auto;padding:20px 28px;border-bottom:1px solid var(--bdr)}
+.logo{font-size:17px;font-weight:700;letter-spacing:-0.5px;color:var(--text)}
+.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:28px;font-size:14px;color:var(--muted)}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{background:var(--text);color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600}
+.nav-cta:hover{background:#333}
+
+.hero{max-width:680px;margin:80px auto 0;padding:0 28px;text-align:center}
+.badge{display:inline-flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:var(--accent2);padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:500;margin-bottom:28px}
+h1{font-size:clamp(32px,5.5vw,56px);font-weight:800;letter-spacing:-2px;line-height:1.08;margin-bottom:22px;color:var(--text)}
+.sub{color:var(--muted);font-size:17px;max-width:480px;margin:0 auto 36px;line-height:1.7}
+.cta-group{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{background:var(--text);color:#fff;padding:13px 28px;border-radius:10px;font-size:15px;font-weight:600}
+.btn-primary:hover{background:#333}
+.btn-sec{border:1px solid var(--bdr);color:var(--muted);padding:12px 26px;border-radius:10px;font-size:15px}
+.btn-sec:hover{border-color:#bbb;color:var(--text)}
+
+.proof{display:flex;align-items:center;justify-content:center;gap:24px;margin:48px 0 0;font-size:13px;color:var(--dim)}
+.proof span{display:flex;align-items:center;gap:6px}
+.proof::before,.proof::after{content:"";flex:1;max-width:80px;height:1px;background:var(--bdr)}
+
+.demo-card{max-width:760px;margin:64px auto;padding:0 28px}
+.demo-wrap{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;overflow:hidden}
+.demo-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--bdr)}
+.demo-bar .dot{width:10px;height:10px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.demo-url{flex:1;background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:4px 12px;font-size:12px;color:var(--dim);text-align:center}
+.demo-body{padding:28px 32px}
+.dm-msg{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;font-size:13.5px;color:#166534;margin-bottom:20px}
+.dm-msg::before{content:"💬  "}
+.dm-summary{background:#fff;border:1px solid var(--bdr);border-radius:10px;padding:18px 20px}
+.dm-summary h4{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text)}
+.dm-summary ul{font-size:13px;color:var(--muted);line-height:1.8;padding-left:16px}
+.dm-actions{display:flex;gap:8px;margin-top:16px}
+.dm-btn{font-size:12px;padding:6px 14px;border-radius:6px;font-weight:500}
+.dm-btn.pri{background:var(--accent);color:#fff}
+.dm-btn.sec{background:#f0f0ee;color:var(--muted)}
+
+.features{max-width:960px;margin:80px auto;padding:0 28px}
+.sec-tag{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:10px}
+.sec-title{font-size:30px;font-weight:700;letter-spacing:-1px;margin-bottom:10px}
+.sec-sub{color:var(--muted);font-size:15px;margin-bottom:44px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.feat{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:26px}
+.feat-icon{font-size:22px;margin-bottom:14px}
+.feat h3{font-size:14.5px;font-weight:600;margin-bottom:8px}
+.feat p{font-size:13.5px;color:var(--muted);line-height:1.65}
+
+.how{max-width:960px;margin:80px auto;padding:0 28px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;position:relative}
+.steps::before{content:"";position:absolute;top:20px;left:calc(16.7% + 20px);right:calc(16.7% + 20px);height:1px;background:var(--bdr)}
+.step{padding:0 16px;text-align:center}
+.step-n{width:40px;height:40px;border-radius:50%;background:var(--bg2);border:1px solid var(--bdr);color:var(--text);font-size:14px;font-weight:700;display:grid;place-items:center;margin:0 auto 16px;position:relative;z-index:1}
+.step h4{font-size:14px;font-weight:600;margin-bottom:6px}
+.step p{font-size:13px;color:var(--muted);line-height:1.6}
+
+.testimonials{max-width:960px;margin:80px auto;padding:0 28px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.tcard{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:24px}
+.tcard p{font-size:13.5px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.tcard-author{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;color:#fff}
+.tcard-info strong{font-size:13px;display:block}
+.tcard-info span{font-size:12px;color:var(--dim)}
+
+.cta-sec{background:var(--bg2);border-top:1px solid var(--bdr);margin-top:80px;padding:64px 28px;text-align:center}
+.cta-sec h2{font-size:30px;font-weight:700;letter-spacing:-1px;margin-bottom:12px}
+.cta-sec p{color:var(--muted);font-size:15px;margin-bottom:32px}
+
+footer{border-top:1px solid var(--bdr);padding:28px;text-align:center;font-size:13px;color:var(--dim)}
+footer a{color:var(--dim);margin:0 12px}
+footer a:hover{color:var(--text)}
+
+@media(max-width:640px){
+  nav .nav-links{display:none}
+  .steps::before{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Mi<span>ra</span></div>
+  <div class="nav-links">
+    <a href="#features">功能</a>
+    <a href="#how">使用流程</a>
+    <a href="#testimonials">用户评价</a>
+  </div>
+  <a class="nav-cta" href="#">免费试用</a>
+</nav>
+
+<div class="hero">
+  <div class="badge">✦ 已帮助 3,000+ 团队节省会议时间</div>
+  <h1>开会结束，<br>纪要已发到群里</h1>
+  <p class="sub">Mira 接入会议录音后自动生成结构化纪要，提取决策与待办，一键发送给所有参与者。</p>
+  <div class="cta-group">
+    <a class="btn-primary" href="#">免费开始 14 天</a>
+    <a class="btn-sec" href="#">查看演示视频</a>
+  </div>
+  <div class="proof">
+    <span>⚡ 接入仅需 5 分钟</span>
+    <span>🔒 数据本地处理</span>
+    <span>📝 支持中英双语</span>
+  </div>
+</div>
+
+<div class="demo-card">
+  <div class="demo-wrap">
+    <div class="demo-bar">
+      <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+      <div class="demo-url">mira.ai · 周三产品评审 · 2026-06-18</div>
+    </div>
+    <div class="demo-body">
+      <div class="dm-msg">会议已结束，Mira 已生成本次纪要并发送至飞书群组「产品周会」</div>
+      <div class="dm-summary">
+        <h4>📋 产品评审周会 · 53 分钟</h4>
+        <ul>
+          <li>确定 v2.3 发布时间为 6 月 28 日，功能冻结 6 月 23 日</li>
+          <li>搜索功能改为下期，本期聚焦稳定性</li>
+          <li>待办：@张伟 同步设计稿，@李敏 更新测试用例（截止 6 月 20 日）</li>
+          <li>下次会议：6 月 25 日（周三）10:00</li>
+        </ul>
+        <div class="dm-actions">
+          <a class="dm-btn pri" href="#">查看完整纪要</a>
+          <a class="dm-btn sec" href="#">导出为文档</a>
+          <a class="dm-btn sec" href="#">同步到 Jira</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="features" id="features">
+  <div class="sec-tag">核心功能</div>
+  <div class="sec-title">让会议真正产生结果</div>
+  <p class="sec-sub">从录音到行动项，Mira 完成中间所有繁琐的步骤。</p>
+  <div class="grid3">
+    <div class="feat"><div class="feat-icon">🎙️</div><h3>自动录音转写</h3><p>接入腾讯会议、Zoom、飞书会议，会议结束后 2 分钟内完成转写，中英混合准确率 98%。</p></div>
+    <div class="feat"><div class="feat-icon">🧠</div><h3>AI 结构化摘要</h3><p>自动提取会议背景、讨论重点、决策结论、待办事项，按标准格式输出，无需手动整理。</p></div>
+    <div class="feat"><div class="feat-icon">✅</div><h3>待办自动指派</h3><p>识别「@张伟 负责」「下周五前完成」等表述，自动创建带截止日期的任务，同步到项目管理工具。</p></div>
+    <div class="feat"><div class="feat-icon">🔗</div><h3>无缝集成</h3><p>支持飞书、钉钉、企业微信推送，Jira / Linear / Notion 任务同步，Slack 频道通知。</p></div>
+    <div class="feat"><div class="feat-icon">🔒</div><h3>数据安全</h3><p>音频在本地转写后立即销毁，仅保留文本摘要。支持私有化部署，数据不出企业内网。</p></div>
+    <div class="feat"><div class="feat-icon">📊</div><h3>会议洞察</h3><p>统计各团队会议时长、决策效率、待办完成率，帮助管理者识别会议文化中的低效点。</p></div>
+  </div>
+</div>
+
+<div class="how" id="how">
+  <div class="sec-tag">使用流程</div>
+  <div class="sec-title">三步，告别会议纪要</div>
+  <p class="sec-sub" style="margin-bottom:44px">第一次配置只需 5 分钟，之后完全自动。</p>
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><h4>接入会议平台</h4><p>授权腾讯会议或 Zoom，Mira 自动加入你的会议。</p></div>
+    <div class="step"><div class="step-n">2</div><h4>正常开会</h4><p>无需任何操作，Mira 在后台静默录音和实时转写。</p></div>
+    <div class="step"><div class="step-n">3</div><h4>纪要自动到达</h4><p>会议结束后 2 分钟，纪要发送至飞书群、邮件或 Slack。</p></div>
+  </div>
+</div>
+
+<div class="testimonials" id="testimonials">
+  <div class="sec-tag">用户评价</div>
+  <div class="sec-title">3,000+ 团队的选择</div>
+  <p class="sec-sub" style="margin-bottom:36px">来自不同行业、规模团队的真实反馈。</p>
+  <div class="tgrid">
+    <div class="tcard">
+      <p>「以前每次周会后都要花 30 分钟整理纪要，现在会议结束纪要已经在群里了，待办也自动到了 Jira，省了我们整个 PM 团队每周至少 3 小时。」</p>
+      <div class="tcard-author">
+        <div class="avatar" style="background:#6366f1">陈</div>
+        <div class="tcard-info"><strong>陈晓雯</strong><span>产品总监 · 某 B2B SaaS 公司</span></div>
+      </div>
+    </div>
+    <div class="tcard">
+      <p>「我们是纯远程团队，跨时区开会后从来没人知道决定了什么。Mira 让每个人在自己的时区醒来就能看到结构清晰的纪要，减少了大量重复沟通。」</p>
+      <div class="tcard-author">
+        <div class="avatar" style="background:#059669">W</div>
+        <div class="tcard-info"><strong>Wei L.</strong><span>Engineering Lead · 某出海团队</span></div>
+      </div>
+    </div>
+    <div class="tcard">
+      <p>「最惊喜的是它能识别谁在说话、谁负责什么。之前待办总是落在空气里，现在每个人都能看到自己名下的任务。会议文化变了。」</p>
+      <div class="tcard-author">
+        <div class="avatar" style="background:#dc2626">刘</div>
+        <div class="tcard-info"><strong>刘建国</strong><span>CTO · 早期创业公司</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-sec">
+  <h2>今天就告别手写纪要</h2>
+  <p>免费试用 14 天，无需信用卡，随时取消。</p>
+  <a class="btn-primary" href="#" style="display:inline-block;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;background:#1a1917;color:#fff">免费开始 →</a>
+</div>
+
+<footer>
+  <a href="#">产品功能</a>
+  <a href="#">定价</a>
+  <a href="#">隐私政策</a>
+  <a href="#">联系我们</a>
+  <br><br>
+  <span>© 2026 Mira AI · 本页由 <a href="https://pagefire.openhkt.com" style="color:inherit">PageFire</a> 发布</span>
+</footer>
+
+</body>
+</html>

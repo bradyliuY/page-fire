@@ -1,0 +1,158 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🔥 PageFire" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: 🔥
+        - text: PageFire
+      - generic [ref=e6]:
+        - link "功能" [ref=e7] [cursor=pointer]:
+          - /url: "#features"
+        - link "接入" [ref=e8] [cursor=pointer]:
+          - /url: "#quickstart"
+        - link "登录" [ref=e9] [cursor=pointer]:
+          - /url: "#"
+        - link "注册" [ref=e10] [cursor=pointer]:
+          - /url: "#"
+  - main [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: MCP 驱动 · 自托管 · 开源
+      - heading "让 AI 直接发布 静态网页" [level=1] [ref=e15]:
+        - generic [ref=e16]:
+          - text: 让 AI 直接发布
+          - text: 静态网页
+      - paragraph [ref=e17]: 通过 MCP 协议，AI 把 HTML / ZIP 发布成公网 HTTPS 页面，3 秒内完成。自托管、多租户，无需任何 CI/CD 流水线。
+      - generic [ref=e18]:
+        - link "GitHub 查看源码 →" [ref=e19] [cursor=pointer]:
+          - /url: https://github.com/bradyliuY/page-fire
+        - link "5 分钟接入" [ref=e20] [cursor=pointer]:
+          - /url: "#quickstart"
+      - generic [ref=e21]:
+        - generic [ref=e26]: Claude Desktop — MCP 工具调用示例
+        - generic [ref=e28]: "// 你对 AI 说一句话 \"把这份产品介绍发布成公网网页，永久保留\" // PageFire MCP 自动执行 deploy_page({ html: \"<h1>Hello World</h1>...\", pin: true }) // ✓ 2 秒后返回可访问地址 { url: \"https://f4vyog-3ixketu6.pagefire.openhkt.com/\" }"
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: <3s
+          - generic [ref=e32]: 从调用到上线
+        - generic [ref=e33]:
+          - generic [ref=e34]: "8"
+          - generic [ref=e35]: MCP 工具
+        - generic [ref=e36]:
+          - generic [ref=e37]: "0"
+          - generic [ref=e38]: 额外部署步骤
+        - generic [ref=e39]:
+          - generic [ref=e40]: SPA
+          - generic [ref=e41]: 客户端路由支持
+    - generic [ref=e43]:
+      - generic [ref=e44]: 核心能力
+      - heading "为 AI 工作流设计的发布层" [level=2] [ref=e45]
+      - paragraph [ref=e46]: 不是传统部署工具，而是让 AI 直接控制发布的基础设施层。
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - generic [ref=e49]: ⚡
+          - heading "deploy_page — 单页发布" [level=3] [ref=e50]:
+            - code [ref=e51]: deploy_page
+            - text: — 单页发布
+          - paragraph [ref=e52]: 传入 HTML 字符串，秒内获得独立 HTTPS 子域名。最适合 AI 生成的报告、演示、落地页。
+        - generic [ref=e53]:
+          - generic [ref=e54]: 📦
+          - heading "deploy_zip — 完整站点" [level=3] [ref=e55]:
+            - code [ref=e56]: deploy_zip
+            - text: — 完整站点
+          - paragraph [ref=e57]: 上传 ZIP 包，自动解压发布。支持 React / Vue 打包产物，开启 SPA 模式客户端路由不会 404。
+        - generic [ref=e58]:
+          - generic [ref=e59]: 🗂
+          - heading "deploy_files — 多文件" [level=3] [ref=e60]:
+            - code [ref=e61]: deploy_files
+            - text: — 多文件
+          - paragraph [ref=e62]: 逐文件上传，支持子目录结构。适合文档站、多页 HTML，页面间相对路径跳转天然正确。
+        - generic [ref=e63]:
+          - generic [ref=e64]: 🔒
+          - heading "密码保护访问" [level=3] [ref=e65]
+          - paragraph [ref=e66]:
+            - code [ref=e67]: set_access
+            - text: 一键切换公开或密码模式，内部报告只给指定受众，无需重新发布内容。
+        - generic [ref=e68]:
+          - generic [ref=e69]: 📌
+          - heading "TTL + Pin 生命周期" [level=3] [ref=e70]
+          - paragraph [ref=e71]:
+            - text: 默认 7 天自动过期，
+            - code [ref=e72]: "pin: true"
+            - text: 永久保留。GC 命令批量清理过期部署，存储零积累。
+        - generic [ref=e73]:
+          - generic [ref=e74]: 🏠
+          - heading "真正自托管" [level=3] [ref=e75]
+          - paragraph [ref=e76]: 单 Node 进程 + SQLite WAL，复用现有 nginx。内存 <150 MB，可与其它服务无摩擦共存。
+    - generic [ref=e78]:
+      - generic [ref=e79]: 工作流程
+      - heading "三步，零配置" [level=2] [ref=e80]
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - generic [ref=e83]: 01 · 配置
+          - heading "加入 MCP 服务器" [level=4] [ref=e84]
+          - paragraph [ref=e85]:
+            - text: 在
+            - code [ref=e86]: .mcp.json
+            - text: 填入服务地址和 Bearer Token，加入 AI 客户端（Claude / Cursor）。
+        - generic [ref=e87]:
+          - generic [ref=e88]: 02 · 对话
+          - heading "告诉 AI 发布什么" [level=4] [ref=e89]
+          - paragraph [ref=e90]:
+            - text: 用自然语言描述，AI 自动调用
+            - code [ref=e91]: deploy_page
+            - text: 或
+            - code [ref=e92]: deploy_zip
+            - text: 工具完成发布。
+        - generic [ref=e93]:
+          - generic [ref=e94]: 03 · 访问
+          - heading "获得公网 URL" [level=4] [ref=e95]
+          - paragraph [ref=e96]: HTTPS 子域名即时可用，无需登录，直接分享给任何人访问。支持密码保护。
+    - generic [ref=e98]:
+      - generic [ref=e99]: 快速接入
+      - heading "5 分钟接入" [level=2] [ref=e100]
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - generic [ref=e103]: "1"
+          - paragraph [ref=e105]:
+            - link "注册账户" [ref=e106] [cursor=pointer]:
+              - /url: "#"
+            - text: 获取 Bearer Token（pf_ 开头的密钥）
+        - generic [ref=e107]:
+          - generic [ref=e108]: "2"
+          - generic [ref=e109]:
+            - paragraph [ref=e110]: 在项目根目录创建 .mcp.json（加入 .gitignore，不要提交）
+            - code [ref=e111]: "{ \"mcpServers\": { \"pagefire\": { \"type\": \"http\", \"url\": \"https://mcp.pagefire.openhkt.com/mcp\", \"headers\": { \"Authorization\": \"Bearer <你的token>\" } } } }"
+        - generic [ref=e112]:
+          - generic [ref=e113]: "3"
+          - generic [ref=e114]:
+            - paragraph [ref=e115]: 重新加载 MCP 插件，在 Claude / Cursor 中直接对话发布：
+            - code [ref=e116]: 帮我把这份产品介绍发布成网页，永久保留。
+    - generic [ref=e119]:
+      - heading "开始使用 PageFire" [level=2] [ref=e120]
+      - paragraph [ref=e121]: 自托管部署，数据完全自主可控。从克隆仓库到第一个页面上线，不超过 15 分钟。
+      - generic [ref=e122]:
+        - link "GitHub 查看源码 →" [ref=e123] [cursor=pointer]:
+          - /url: https://github.com/bradyliuY/page-fire
+        - link "查看接入文档" [ref=e124] [cursor=pointer]:
+          - /url: "#quickstart"
+  - contentinfo [ref=e125]:
+    - generic [ref=e126]:
+      - generic [ref=e127]: © 2026 PageFire · Self-hosted MCP static publisher · MIT License
+      - generic [ref=e128]:
+        - link "GitHub" [ref=e129] [cursor=pointer]:
+          - /url: https://github.com/bradyliuY/page-fire
+        - link "MCP 端点" [ref=e130] [cursor=pointer]:
+          - /url: https://mcp.pagefire.openhkt.com/mcp
+  - generic [ref=e132]:
+    - button "×" [ref=e133] [cursor=pointer]
+    - generic [ref=e134]:
+      - button "注册" [ref=e135] [cursor=pointer]
+      - button "登录" [ref=e136] [cursor=pointer]
+    - generic [ref=e137]:
+      - generic [ref=e138]:
+        - generic [ref=e139]: 用户名
+        - textbox "3–20 位，仅 a-z 0-9 _ -" [ref=e140]
+      - generic [ref=e141]:
+        - generic [ref=e142]: 密码
+        - textbox "至少 6 位" [ref=e143]
+      - button "注册账户" [ref=e144] [cursor=pointer]
