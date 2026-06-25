@@ -249,7 +249,7 @@ export async function startMcpServer(
         files: z.array(z.object({
           path: z.string().describe('Page path ending in .md (e.g. "index.md", "guide/setup.md"). Becomes the same path with .html.'),
           markdown: z.string().describe('Markdown source for this page (GFM).'),
-        })).min(1).describe('Markdown pages; must include index.md at root. Max 200 pages, 10 MB total.'),
+        })).min(1).describe('Markdown pages. No index.md required — entry is resolved automatically (index.md → README.md → first file). Max 200 pages, 10 MB total.'),
         title: z.string().optional().describe('Site title shown in the sidebar header.'),
         theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Reading theme — "light" (default), "dark", or "sepia".'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates the docs site in place — the URL never changes.'),
