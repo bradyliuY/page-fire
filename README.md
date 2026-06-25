@@ -74,9 +74,40 @@ node dist/cli/index.js token list
 
 ---
 
+## 使用方式
+
+PageFire 有两种用法，共用同一套 API Key，可任意搭配：
+
+- **Web 控制台** —— 浏览器零配置，注册即用，适合手动发布与管理。
+- **MCP 客户端** —— 在 Claude / Cursor 等对话中一句话发布，适合 AI 工作流。
+
+---
+
+## Web 控制台（浏览器）
+
+部署完成后，直接访问根域名 `https://pagefire.yourdomain.com` 即可看到内置的 Web 控制台，全程无需命令行：
+
+| 页面 | 路径 | 作用 |
+|------|------|------|
+| **首页** | `/` | 产品介绍 + 注册 / 登录入口 |
+| **控制台** | `/dashboard` | 管理 API Key：新建（每账号最多 10 个）、吊销、一键测试连接，查看 space_id 与部署数 |
+| **Playground** | `/playground` | 浏览器内直接调用 MCP 工具发布页面，支持拖拽上传文件，即调即看 |
+
+**自助开通流程（约 5 分钟）：**
+
+1. 打开首页 → **注册账户**（用户名 3–20 位 + 密码 ≥ 6 位；若实例开启了邀请制，还需邀请码）。
+2. 注册后自动进入**控制台**并生成第一个 API Key（`pf_` 开头）与独立 `space_id`。
+3. 在 **Playground** 里直接发布试用，或把 API Key 复制到 MCP 客户端（见下文）。
+
+> 账号用 `用户名 + 密码`（bcrypt 加密）登录，会话为 30 天 HttpOnly Cookie。API Key 在控制台以掩码形式展示，可随时吊销重建。
+
+---
+
 ## 接入 MCP 客户端
 
-在项目根目录（或用户目录）创建 `.mcp.json`（**不要提交到 Git**）：
+把控制台拿到的 API Key 填入 MCP 客户端。在项目根目录（或用户目录）创建 `.mcp.json`（**不要提交到 Git**）。支持两种接法：
+
+### 方式一：HTTP 直连（推荐，零依赖）
 
 ```json
 {
@@ -92,7 +123,31 @@ node dist/cli/index.js token list
 }
 ```
 
-配置完成后重启 MCP 客户端，即可直接对话发布页面：
+### 方式二：stdio 桥接（连不上时的兜底）
+
+如果方式一报 **Failed to connect** —— 但浏览器能打开该域名、`curl`/Node 也能访问 —— 多半是**客户端运行时的 TLS 被网络中间盒按指纹拦截**（典型场景：某些客户端内置 Bun/特殊 TLS 栈，或处于带 DPI 的企业/校园网）。改用本机 Node 的 [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) 桥接同一个端点即可绕过（需本机已装 Node ≥ 18 / npx）：
+
+```json
+{
+  "mcpServers": {
+    "pagefire": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://mcp.pagefire.yourdomain.com/mcp",
+        "--header", "Authorization:${AUTH_HEADER}",
+        "--transport", "http-only"
+      ],
+      "env": { "AUTH_HEADER": "Bearer pf_your_token_here" }
+    }
+  }
+}
+```
+
+> ⚠️ token 必须通过 `env.AUTH_HEADER` 传入、`--header` 写成 `Authorization:${AUTH_HEADER}`（中间**无空格**）。若直接写 `--header "Authorization: Bearer pf_xxx"`，头里的空格会在进程拼接时被拆断，导致**握手成功但工具调用报 `UNAUTHORIZED`**。
+
+两种方式指向同一服务、token 通用，任选其一即可。配置完成后重启 MCP 客户端，即可直接对话发布页面：
 
 ```
 帮我把这段产品介绍发布成网页，永久保留。

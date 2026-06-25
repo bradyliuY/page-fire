@@ -2,13 +2,32 @@
 
 PageFire 通过 [MCP（Model Context Protocol）](https://modelcontextprotocol.io) 让 AI 直接把 HTML / 文件 / ZIP 包发布成公网可访问的 HTTPS 页面。
 
+> **两种用法，共用同一把 Key**：
+> - **Web 控制台**（浏览器，零配置）—— 见下方 [Web 控制台](#web-控制台)。
+> - **MCP 客户端**（Claude / Cursor 对话式）—— 见下方 [快速接入](#快速接入)。
+
+---
+
+## Web 控制台
+
+直接访问根域名 `https://pagefire.openhkt.com`，内置一套完整 Web 界面：
+
+| 页面 | 路径 | 作用 |
+|------|------|------|
+| 首页 | `/` | 产品介绍 + 注册 / 登录 |
+| 控制台 | `/dashboard` | 管理 API Key：新建 / 吊销 / 测试连接，查看 `space_id` 与部署数 |
+| Playground | `/playground` | 浏览器内直接调用 MCP 工具发布，支持拖拽上传文件 |
+
+**5 分钟自助开通**：首页**注册账户**（用户名 3–20 位 + 密码 ≥ 6 位，实例若开启邀请制则需邀请码）→ 自动进入控制台并生成首个 `pf_` API Key 与 `space_id` → 在 Playground 试发布，或把 Key 复制到 MCP 客户端。
+
 ---
 
 ## 快速接入
 
 ### 1. 获取 Bearer Token
 
-联系管理员获取一个 `pf_` 开头的 Bearer Token：
+- **推荐**：访问 `https://pagefire.openhkt.com` 注册账户，在**控制台**自助创建（`pf_` 开头）。
+- 或：自托管管理员用 CLI 签发（`node dist/cli/index.js token create --slug <name>`）。
 
 ```
 pf_your_token_here
@@ -16,7 +35,9 @@ pf_your_token_here
 
 ### 2. 配置 MCP 客户端
 
-在项目根目录创建 `.mcp.json`（**不要提交到 Git**）：
+在项目根目录创建 `.mcp.json`（**不要提交到 Git**）。支持两种接法，任选其一：
+
+**方式一：HTTP 直连（推荐，零依赖）**
 
 ```json
 {
@@ -31,6 +52,30 @@ pf_your_token_here
   }
 }
 ```
+
+**方式二：stdio 桥接（连不上时的兜底）**
+
+若方式一报 **Failed to connect**，但浏览器 / Node / curl 都能访问该域名，多半是客户端运行时的 TLS 被网络中间盒按指纹拦截（详见下方常见问题）。改用本机 Node 的 [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) 桥接同一个端点即可绕过（需本机已装 Node ≥ 18 / npx）：
+
+```json
+{
+  "mcpServers": {
+    "pagefire": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://mcp.pagefire.openhkt.com/mcp",
+        "--header", "Authorization:${AUTH_HEADER}",
+        "--transport", "http-only"
+      ],
+      "env": { "AUTH_HEADER": "Bearer <你的token>" }
+    }
+  }
+}
+```
+
+> ⚠️ token 必须通过 `env.AUTH_HEADER` 传入、`--header` 写成 `Authorization:${AUTH_HEADER}`（中间**无空格**）。若直接写 `--header "Authorization: Bearer <你的token>"`，头里的空格会在进程拼接时被拆断，导致**握手成功但工具调用报 `UNAUTHORIZED`**。
 
 配置完成后重新加载 MCP 插件，即可在 Claude / Cursor 等客户端中直接对话发布页面。
 
@@ -522,3 +567,15 @@ https://<did>-<space_id>.pagefire.openhkt.com/docs/guide.html
 
 **Q: 上传的文件在服务器上执行吗？**
 不会。服务器只静态伺服文件，用户上传的 HTML / JS 只在访客浏览器中运行，服务器侧永远不执行用户代码。
+
+**Q: MCP 报 “Failed to connect”，但浏览器能打开域名、`curl`/Node 也能访问，怎么回事？**
+这通常**不是服务器问题**，而是 **MCP 客户端运行时的 TLS 握手被网络中间盒（DPI）按指纹拦截**。
+
+排查要点：
+- 浏览器（BoringSSL 指纹）、Node（OpenSSL 指纹）能连 → 说明服务器、证书、域名、token 全部正常。
+- 个别 MCP 客户端内置的 TLS 栈（如某些版本打包进 Bun，或 Windows 原生 `schannel`）指纹较冷门，会被 DPI 直接 RST（表现为秒级 `ECONNRESET`）。
+- 同一个客户端**升级后突然连不上**，常见原因就是新版本换了运行时 / TLS 栈，指纹随之改变。
+
+解决：用上面 **「方式二：stdio 桥接」**。`mcp-remote` 跑在本机 Node（OpenSSL 指纹）上代发 HTTPS 请求，正好绕开这类按指纹拦截，且无需改服务端、无需 SSH 隧道。
+
+> 若要面向大量、网络环境各异的用户分发，更稳的做法是在 MCP 端点前再套一层 CDN（如 Cloudflare）：客户端握手对象变为 CDN 边缘（浏览器式指纹 + anycast IP），可规模化穿透 DPI，再由 CDN 回源到自托管服务器。
