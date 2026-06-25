@@ -19,3 +19,17 @@ dev-data/
 .DS_Store
 Thumbs.db
 .playwright-mcp/
+
+# 本地截图 / 设计草稿（开发过程中产生，不属于仓库内容）
+*.png
+*.jpg
+*.jpeg
+!docs/**/*.png
+!docs/**/*.jpg
+
+# 私人分析文档（不入库）
+*_Skill_v*.md
+估值预期分析*.md
+
+# deploy 目录中的敏感配置（settings.local.json 如不小心放进去也排除）
+docs/deploy/settings.local.json
