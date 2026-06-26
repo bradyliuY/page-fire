@@ -79,14 +79,14 @@ pf_your_token_here
 
 **方式三：npm 连接器包（最简，需先发布到 npm）**
 
-发布 `@openhkt/pagefire-mcp`（仓库 `packages/mcp-client/`）后，配置最简洁，token 仅走环境变量：
+发布 `pagefire-mcp`（仓库 `packages/mcp-client/`）后，配置最简洁，token 仅走环境变量：
 
 ```json
 {
   "mcpServers": {
     "pagefire": {
       "command": "npx",
-      "args": ["-y", "@openhkt/pagefire-mcp"],
+      "args": ["-y", "pagefire-mcp"],
       "env": { "PAGEFIRE_TOKEN": "<你的token>" }
     }
   }

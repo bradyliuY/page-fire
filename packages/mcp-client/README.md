@@ -1,4 +1,4 @@
-# @openhkt/pagefire-mcp
+# pagefire-mcp
 
 把你的 MCP 客户端(Claude / Cursor 等)接入托管版 **PageFire** 的 stdio 连接器。
 

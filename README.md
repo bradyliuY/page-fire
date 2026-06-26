@@ -149,14 +149,14 @@ PageFire 有两种用法，共用同一套 API Key，可任意搭配：
 
 ### 方式三：npm 连接器包（最简，需先发布到 npm）
 
-把 [`@openhkt/pagefire-mcp`](packages/mcp-client) 发布到 npm 后，配置可简化为最干净的形态——token 只走环境变量，无 URL、无 header 拆断坑：
+把 [`pagefire-mcp`](packages/mcp-client) 发布到 npm 后，配置可简化为最干净的形态——token 只走环境变量，无 URL、无 header 拆断坑：
 
 ```json
 {
   "mcpServers": {
     "pagefire": {
       "command": "npx",
-      "args": ["-y", "@openhkt/pagefire-mcp"],
+      "args": ["-y", "pagefire-mcp"],
       "env": { "PAGEFIRE_TOKEN": "pf_your_token_here" }
     }
   }
