@@ -139,7 +139,7 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 </head>
 <body>
 <nav><div class="nav-i">
-  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:30px;width:auto;display:block"></a>
+  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
   <div class="nav-r">
     <a class="btn-ghost" href="/playground" style="text-decoration:none">Playground</a>
     <span class="uname" id="uname"></span>

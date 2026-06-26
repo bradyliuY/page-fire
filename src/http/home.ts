@@ -150,7 +150,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
 <div class="glow"></div>
 
 <nav><div class="w nav-i">
-  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:30px;width:auto;display:block"></a>
+  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
   <div class="nav-r">
     <a href="#features">功能</a>
     <a href="#examples">示例</a>
