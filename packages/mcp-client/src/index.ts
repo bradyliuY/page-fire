@@ -30,7 +30,7 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, relative, sep, extname } from 'node:path'
 
 const DEFAULT_URL = 'https://mcp.pagefire.openhkt.com/mcp'
-const VERSION = '0.2.0'
+const VERSION = '0.2.1'
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const SKIP_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.cache'])
 // Extensions sent as utf8 text; everything else is base64-encoded.
@@ -224,10 +224,28 @@ local.onmessage = async (msg: any) => {
   } catch (e) { log('local.onmessage error:', String(e)) }
 }
 
+// Discoverability: point the server's inline (content-string) deploy tools at the local-file
+// tools, so a model that reaches for deploy_files/deploy_page learns it should NOT read large
+// files into its context — it should pass a path to deploy_dir/deploy_file instead.
+const STATIC_HINT =
+  ' ⚡ 若内容是本地磁盘上的文件/目录,请改用 deploy_dir(整个目录)或 deploy_file(单个文件):' +
+  '连接器直接读盘、带外上传,无需把文件内容读进对话,不受单次传参或上下文大小限制。'
+const DOCS_HINT =
+  ' ⚡ 若 Markdown 在本地磁盘上,请改用 deploy_docs_dir(读取目录下所有 .md),无需内联内容。'
+const HINTS: Record<string, string> = {
+  deploy_page: STATIC_HINT, deploy_files: STATIC_HINT, deploy_zip: STATIC_HINT,
+  deploy_markdown: DOCS_HINT, deploy_docs: DOCS_HINT,
+}
+
 remote.onmessage = (msg: any) => {
-  // Augment the server's tools/list response with our local deploy tools.
+  // Augment the server's tools/list response: add our local tools + a pointer hint on the inline ones.
   if (msg?.id != null && pendingToolsList.has(msg.id) && msg.result && Array.isArray(msg.result.tools)) {
     pendingToolsList.delete(msg.id)
+    for (const t of msg.result.tools) {
+      if (HINTS[t?.name] && typeof t.description === 'string' && !t.description.includes('deploy_dir')) {
+        t.description += HINTS[t.name]
+      }
+    }
     msg.result.tools = [...msg.result.tools, ...LOCAL_TOOLS]
   }
   local.send(msg).catch((e) => log('local.send error:', String(e)))
