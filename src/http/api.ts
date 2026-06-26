@@ -11,9 +11,10 @@ import {
   getInviteByCode, useInvite,
   createSession, getSessionUser, deleteSession,
   listTokensByUser, getTokenByIdForUser, revokeTokenById, countActiveTokensByUser,
-  listDeploymentsByUser,
+  listDeploymentsByUser, getDeploymentForUser, deleteDeploymentRow, updateDeployment,
   type UserRow,
 } from '../db/repo.js'
+import { deleteDeploymentFiles } from '../core/deploy.js'
 import { validateCustomSpaceId, ValidationError } from '../core/validate.js'
 import { SECURITY_HEADERS } from './headers.js'
 
@@ -245,6 +246,37 @@ export async function handleApiRequest(
       })
     }
     json(res, 200, { groups: [...groups.values()], total: rows.length })
+    return true
+  }
+
+  // ── Pin / unpin one of the user's deployments ─────────────────────────────────
+  if (method === 'POST' && url.startsWith('/api/deployments/') && url.endsWith('/pin')) {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const did = decodeURIComponent(url.slice('/api/deployments/'.length, -'/pin'.length))
+    const d = getDeploymentForUser(db, did, user.id)
+    if (!d) { json(res, 404, { error: '部署不存在或无权访问' }); return true }
+    const body = await readJson(req) as any
+    const pinned = !!body?.pinned
+    updateDeployment(db, did, pinned
+      ? { pinned: 1, expires_at: null }
+      : { pinned: 0, expires_at: Date.now() + 7 * 24 * 3600 * 1000 })
+    insertAuditLog(db, { token_id: d.token_id, deployment_id: d.id, action: pinned ? 'pin' : 'unpin', ip })
+    json(res, 200, { ok: true, pinned })
+    return true
+  }
+
+  // ── Delete one of the user's deployments ──────────────────────────────────────
+  if (method === 'DELETE' && url.startsWith('/api/deployments/')) {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const did = decodeURIComponent(url.slice('/api/deployments/'.length))
+    const d = getDeploymentForUser(db, did, user.id)
+    if (!d) { json(res, 404, { error: '部署不存在或无权访问' }); return true }
+    deleteDeploymentFiles(config.sites, d.token_id, d.did)
+    deleteDeploymentRow(db, did)
+    insertAuditLog(db, { token_id: d.token_id, deployment_id: d.id, action: 'delete', ip })
+    json(res, 200, { ok: true })
     return true
   }
 

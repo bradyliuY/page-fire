@@ -21,7 +21,7 @@ a{color:inherit;text-decoration:none}
 code{font-family:'SF Mono',ui-monospace,'Fira Code',Consolas,monospace}
 
 nav{border-bottom:1px solid var(--bdr);background:rgba(10,10,11,.8);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50}
-.nav-i{max-width:960px;margin:0 auto;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between}
+.nav-i{max-width:1080px;margin:0 auto;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between}
 .logo{display:flex;align-items:center;gap:9px;font-weight:650;font-size:15.5px;letter-spacing:-.2px}
 .flame{width:26px;height:26px;border-radius:7px;background:var(--fire-dim);border:1px solid rgba(249,115,22,.25);display:grid;place-items:center;font-size:13px}
 .nav-r{display:flex;align-items:center;gap:14px}
@@ -29,13 +29,34 @@ nav{border-bottom:1px solid var(--bdr);background:rgba(10,10,11,.8);backdrop-fil
 .btn-ghost{font-size:13px;color:var(--muted);padding:6px 12px;border-radius:8px;border:1px solid var(--bdr);cursor:pointer;background:none;transition:.15s}
 .btn-ghost:hover{color:var(--txt);border-color:var(--bdr2);background:var(--sur)}
 
-.wrap{max-width:960px;margin:0 auto;padding:44px 24px 80px}
+/* sidebar layout */
+.layout{max-width:1080px;margin:0 auto;padding:36px 24px 80px;display:flex;gap:34px}
+.side{width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;position:sticky;top:92px;align-self:flex-start}
+.snav{text-align:left;background:none;border:none;color:var(--muted);font-size:13.5px;font-family:inherit;padding:9px 13px;border-radius:9px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:9px}
+.snav:hover{color:var(--txt);background:var(--sur)}
+.snav.active{color:var(--fire2);background:var(--fire-dim);font-weight:600}
+.snav .si{font-size:14px;width:18px;text-align:center}
+.snav-link{margin-top:10px;padding:9px 13px;font-size:13px;color:var(--dim);display:flex;align-items:center;gap:9px}
+.snav-link:hover{color:var(--fire2)}
+.content{flex:1;min-width:0}
+.pane{display:none}
+.pane.active{display:block}
+
 .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:8px;flex-wrap:wrap}
-h1{font-size:24px;font-weight:680;letter-spacing:-.5px}
-.sub{color:var(--dim);font-size:13.5px;margin-bottom:28px}
+h1{font-size:23px;font-weight:680;letter-spacing:-.5px}
+.sub{color:var(--dim);font-size:13.5px;margin-bottom:26px}
 .btn-primary{background:#fafafa;color:#0a0a0b;font-weight:600;font-size:13.5px;padding:9px 16px;border-radius:9px;border:none;cursor:pointer;transition:.15s;white-space:nowrap}
 .btn-primary:hover{background:#e4e4e7;transform:translateY(-1px)}
 .btn-primary:disabled{opacity:.5;cursor:default;transform:none}
+
+/* overview */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px}
+.stat{border:1px solid var(--bdr);border-radius:14px;background:var(--bg2);padding:20px 22px}
+.stat-v{font-size:27px;font-weight:680;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.stat-l{font-size:12.5px;color:var(--dim);margin-top:3px}
+.card{border:1px solid var(--bdr);border-radius:14px;background:var(--bg2);padding:20px 22px;font-size:13px;color:var(--muted);line-height:1.8}
+.card h3{font-size:14px;color:var(--txt);font-weight:620;margin-bottom:8px}
+.card code{background:#0a0a0b;border:1px solid var(--bdr);border-radius:6px;padding:2px 7px;color:var(--fire2);font-size:12px}
 
 /* key list */
 .keys{border:1px solid var(--bdr);border-radius:14px;overflow:hidden;background:var(--bg2)}
@@ -61,12 +82,11 @@ h1{font-size:24px;font-weight:680;letter-spacing:-.5px}
 .badge-rev{font-size:11px;color:var(--dim);border:1px solid var(--bdr);padding:2px 8px;border-radius:6px}
 
 /* empty */
-.empty{text-align:center;padding:70px 24px;color:var(--dim)}
+.empty{text-align:center;padding:60px 24px;color:var(--dim)}
 .empty .e-ico{font-size:30px;margin-bottom:14px;opacity:.5}
 .empty p{font-size:14px;margin-bottom:22px}
 
 /* deployments grouped by key */
-.dsec{margin-top:50px}
 .group{border:1px solid var(--bdr);border-radius:14px;overflow:hidden;background:var(--bg2);margin-bottom:16px}
 .ghead{display:flex;align-items:center;gap:10px;padding:12px 20px;background:var(--sur);border-bottom:1px solid var(--bdr);font-size:13px}
 .gname{font-weight:600}
@@ -85,7 +105,7 @@ h1{font-size:24px;font-weight:680;letter-spacing:-.5px}
 .bdg{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid var(--bdr);color:var(--dim);font-weight:500;white-space:nowrap}
 .bdg.lock{color:var(--fire2);border-color:rgba(249,115,22,.3);background:var(--fire-dim)}
 .bdg.pin{color:var(--green);border-color:rgba(74,222,128,.3)}
-@media(max-width:560px){.dmeta{display:none}}
+.dact{display:flex;gap:6px;flex-shrink:0}
 
 /* modal */
 .ov{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:16px}
@@ -102,8 +122,6 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 .hint{font-size:11.5px;color:var(--dim);margin-top:5px}
 .err{display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:9px 12px;font-size:13px;color:#fca5a5;margin-bottom:14px}
 .modal .btn-primary{width:100%;padding:11px}
-
-/* token reveal */
 .reveal{text-align:center}
 .reveal .r-ico{width:46px;height:46px;border-radius:12px;background:var(--fire-dim);border:1px solid rgba(249,115,22,.25);display:grid;place-items:center;font-size:22px;margin:0 auto 16px}
 .reveal h2{margin-bottom:4px}
@@ -114,7 +132,8 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 .warn-once{font-size:12px;color:var(--fire2);background:var(--fire-dim);border-radius:8px;padding:8px 12px;margin-bottom:18px}
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#fafafa;color:#0a0a0b;font-size:13px;font-weight:600;padding:10px 18px;border-radius:10px;opacity:0;transition:.25s;z-index:200;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(max-width:560px){.kmeta{display:none}.wrap{padding:28px 16px 60px}}
+@media(max-width:720px){.layout{flex-direction:column;gap:18px;padding:24px 16px 60px}.side{width:auto;flex-direction:row;position:static;overflow-x:auto;gap:4px}.snav-link{display:none}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.kmeta,.dmeta{display:none}}
 </style>
 </head>
 <body>
@@ -127,24 +146,53 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
   </div>
 </div></nav>
 
-<div class="wrap">
-  <div class="head">
-    <div>
-      <h1>API Keys</h1>
-      <div class="sub">每个 Key 拥有独立子域名空间，AI 通过它发布站点。密钥仅在创建时显示一次。</div>
-    </div>
-    <button class="btn-primary" onclick="openCreate()">+ 新建 API Key</button>
-  </div>
+<div class="layout">
+  <aside class="side">
+    <button class="snav active" data-pane="overview" onclick="switchPane('overview')"><span class="si">▦</span>概览</button>
+    <button class="snav" data-pane="keys" onclick="switchPane('keys')"><span class="si">🔑</span>API Keys</button>
+    <button class="snav" data-pane="deploy" onclick="switchPane('deploy')"><span class="si">📦</span>部署应用</button>
+    <a class="snav-link" href="/playground"><span class="si">⚡</span>Playground ↗</a>
+  </aside>
 
-  <div id="list"></div>
+  <main class="content">
+    <!-- 概览 -->
+    <section class="pane active" id="pane-overview">
+      <div class="head"><div>
+        <h1>概览</h1>
+        <div class="sub">你好，<span id="ov-user">—</span>。这里是你的发布概况。</div>
+      </div></div>
+      <div class="stats">
+        <div class="stat"><div class="stat-v" id="ov-keys">—</div><div class="stat-l">API Keys</div></div>
+        <div class="stat"><div class="stat-v" id="ov-deps">—</div><div class="stat-l">已发布站点</div></div>
+        <div class="stat"><div class="stat-v" id="ov-size">—</div><div class="stat-l">存储用量</div></div>
+      </div>
+      <div class="card">
+        <h3>怎么发布</h3>
+        在 Claude / Cursor 等 MCP 客户端配置 <code>npx pagefire-mcp@latest</code>（用上方 API Key 作 <code>PAGEFIRE_TOKEN</code>），一句话即可发布网页；用 <code>deploy_dir</code> 可直接发布整个本地目录。详见 <a href="/playground#connect" style="color:var(--fire2)">Playground → 接入</a>。
+      </div>
+    </section>
 
-  <div class="dsec">
-    <div class="head"><div>
-      <h1 style="font-size:20px">我的部署</h1>
-      <div class="sub" style="margin-bottom:0">所有已发布的站点，按所属 API Key 分组。</div>
-    </div></div>
-    <div id="deploy-list" style="margin-top:16px"></div>
-  </div>
+    <!-- API Keys -->
+    <section class="pane" id="pane-keys">
+      <div class="head">
+        <div>
+          <h1>API Keys</h1>
+          <div class="sub">每个 Key 拥有独立子域名空间，AI 通过它发布站点。密钥仅在创建时显示一次。</div>
+        </div>
+        <button class="btn-primary" onclick="openCreate()">+ 新建 API Key</button>
+      </div>
+      <div id="list"></div>
+    </section>
+
+    <!-- 部署应用 -->
+    <section class="pane" id="pane-deploy">
+      <div class="head"><div>
+        <h1>部署应用</h1>
+        <div class="sub">所有已发布的站点，按所属 API Key 分组，可直接管理。</div>
+      </div></div>
+      <div id="deploy-list"></div>
+    </section>
+  </main>
 </div>
 
 <!-- create modal -->
@@ -187,6 +235,7 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 <script>
 const $ = id => document.getElementById(id)
 const baseDomain = ${JSON.stringify(baseDomain)}
+const state = { keys: [], groups: [] }
 
 async function api(path, opts) {
   const r = await fetch(path, { credentials: 'same-origin', ...opts })
@@ -195,18 +244,37 @@ async function api(path, opts) {
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1600) }
 function fmtDate(ts) { const d = new Date(ts); return d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') }
+function fmtSize(b){ if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB' }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
+
+function switchPane(name) {
+  document.querySelectorAll('.snav').forEach(b => b.classList.toggle('active', b.dataset.pane === name))
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + name))
+}
 
 async function init() {
   try {
     const me = await (await api('/api/me')).json()
     $('uname').textContent = me.username
+    $('ov-user').textContent = me.username
   } catch { return }
   loadKeys()
   loadDeployments()
 }
 
+function renderOverview() {
+  const activeKeys = state.keys.filter(k => k.status === 'active').length
+  let deps = 0, size = 0
+  for (const g of state.groups) for (const d of g.deployments) { deps++; size += d.size_bytes }
+  $('ov-keys').textContent = activeKeys
+  $('ov-deps').textContent = deps
+  $('ov-size').textContent = fmtSize(size)
+}
+
 async function loadKeys() {
   const { keys } = await (await api('/api/keys')).json()
+  state.keys = keys
+  renderOverview()
   const list = $('list')
   if (!keys.length) {
     list.innerHTML = '<div class="keys"><div class="empty"><div class="e-ico">🔑</div><p>还没有 API Key</p><button class="btn-primary" onclick="openCreate()">+ 创建第一个 Key</button></div></div>'
@@ -217,7 +285,6 @@ async function loadKeys() {
     const actions = !on ? '<span class="badge-rev">已吊销</span>'
       : '<button class="icon-btn" title="测试连接" onclick="testKey(\\'' + k.id + '\\',this)">⚡</button>' +
         '<button class="icon-btn danger" title="吊销" data-id="' + k.id + '" data-label="' + esc(k.label || k.space_id) + '" onclick="revoke(this)">✕</button>'
-    const revoked = actions
     return '<div class="krow">' +
       '<div class="kmain">' +
         '<div class="klabel"><span class="dot ' + (on?'on':'off') + '"></span>' + esc(k.label || k.space_id) + '</div>' +
@@ -228,24 +295,23 @@ async function loadKeys() {
         '<div class="kmcol"><div class="kmv">' + k.deployment_count + '</div><div class="kml">部署</div></div>' +
         '<div class="kmcol"><div class="ktoken">' + k.token_masked + '</div><div class="kml">' + fmtDate(k.created_at) + '</div></div>' +
       '</div>' +
-      '<div class="kact">' + revoked + '</div>' +
+      '<div class="kact">' + actions + '</div>' +
     '</div>'
   }).join('')
   list.innerHTML = '<div class="keys">' + rows + '</div>'
 }
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
-function fmtSize(b){ if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB' }
 
 async function loadDeployments() {
   let data
   try { data = await (await api('/api/deployments')).json() } catch { return }
+  state.groups = data.groups || []
+  renderOverview()
   const el = $('deploy-list')
-  const groups = data.groups || []
-  if (!groups.length) {
+  if (!state.groups.length) {
     el.innerHTML = '<div class="group"><div class="empty"><div class="e-ico">📦</div><p>还没有发布任何站点</p></div></div>'
     return
   }
-  el.innerHTML = groups.map(g => {
+  el.innerHTML = state.groups.map(g => {
     const rows = g.deployments.map(d => {
       const badges =
         (d.access === 'password' ? '<span class="bdg lock">🔒 密码</span>' : '') +
@@ -261,6 +327,11 @@ async function loadDeployments() {
           '<div><div class="dmv">' + fmtSize(d.size_bytes) + '</div><div class="dml">' + d.file_count + ' 文件</div></div>' +
           '<div><div class="dmv">' + fmtDate(d.created_at) + '</div><div class="dml">' + life + '</div></div>' +
         '</div>' +
+        '<div class="dact">' +
+          '<button class="icon-btn" title="复制链接" data-url="' + d.url + '" onclick="copyUrl(this)">⧉</button>' +
+          '<button class="icon-btn" title="' + (d.pinned ? '取消永久' : '设为永久') + '" data-did="' + d.did + '" data-pin="' + (d.pinned ? '0' : '1') + '" onclick="togglePin(this)">📌</button>' +
+          '<button class="icon-btn danger" title="删除" data-did="' + d.did + '" data-name="' + esc(d.title || d.did) + '" onclick="delDeploy(this)">✕</button>' +
+        '</div>' +
       '</div>'
     }).join('')
     return '<div class="group">' +
@@ -271,6 +342,21 @@ async function loadDeployments() {
       '</div>' + rows +
     '</div>'
   }).join('')
+}
+
+function copyUrl(btn){ navigator.clipboard.writeText(btn.dataset.url).then(()=>toast('链接已复制')) }
+async function togglePin(btn){
+  const did = btn.dataset.did, pin = btn.dataset.pin === '1'
+  btn.disabled = true
+  const r = await api('/api/deployments/' + encodeURIComponent(did) + '/pin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pinned: pin }) })
+  if (r.ok) { toast(pin ? '已设为永久' : '已取消永久'); loadKeys(); loadDeployments() }
+  else { toast('操作失败'); btn.disabled = false }
+}
+async function delDeploy(btn){
+  const did = btn.dataset.did, name = btn.dataset.name
+  if (!confirm('确定删除「' + name + '」？\\n该站点及其文件将被永久删除，不可恢复。')) return
+  const r = await api('/api/deployments/' + encodeURIComponent(did), { method:'DELETE' })
+  if (r.ok) { toast('已删除'); loadKeys(); loadDeployments() }
 }
 
 function openCreate() {
@@ -324,7 +410,7 @@ async function testKey(id, btn) {
 }
 async function logout() { await api('/api/logout', { method:'POST' }); location.href = '/' }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal('ov-create'); } })
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal('ov-create'); closeModal('ov-reveal') } })
 init()
 </script>
 </body>

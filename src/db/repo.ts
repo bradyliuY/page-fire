@@ -134,6 +134,14 @@ export function listDeploymentsByUser(db: Database.Database, userId: string, inc
   `).all(...params) as UserDeploymentRow[]
 }
 
+/** A single deployment, returned only if it belongs to one of the user's tokens. */
+export function getDeploymentForUser(db: Database.Database, did: string, userId: string): DeploymentRow | undefined {
+  return db.prepare(`
+    SELECT d.* FROM deployments d JOIN tokens t ON d.token_id = t.id
+    WHERE d.did = ? AND t.user_id = ?
+  `).get(did, userId) as DeploymentRow | undefined
+}
+
 export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count' | 'title' | 'spa'>>): void {
   const sets = Object.keys(updates).map(k => `${k} = ?`).join(', ')
   const values = [...Object.values(updates), Date.now(), did]
