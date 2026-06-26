@@ -197,6 +197,7 @@ export async function startMcpServer(
           .optional()
           .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
       },
+      { title: '发布 HTML 页面', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
@@ -240,6 +241,7 @@ export async function startMcpServer(
           .optional()
           .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
       },
+      { title: '发布 ZIP 包', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
@@ -295,6 +297,7 @@ export async function startMcpServer(
           .optional()
           .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
       },
+      { title: '发布多文件站点', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
@@ -320,6 +323,7 @@ export async function startMcpServer(
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
       },
+      { title: '发布 Markdown', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
@@ -348,6 +352,7 @@ export async function startMcpServer(
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
       },
+      { title: '发布文档站', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
@@ -366,6 +371,7 @@ export async function startMcpServer(
       {
         include_expired: z.boolean().optional().describe('Include expired deployments in the list (default false)'),
       },
+      { title: '列出部署', readOnlyHint: true, openWorldHint: false },
       async (args) => {
         try {
           return makeResult(listDeploymentsTool(args, authHeader, db, config))
@@ -382,6 +388,7 @@ export async function startMcpServer(
       {
         did: z.string().describe('Deployment ID to look up'),
       },
+      { title: '查看部署详情', readOnlyHint: true, openWorldHint: false },
       async (args) => {
         try {
           return makeResult(getDeploymentTool(args, authHeader, db, config))
@@ -398,6 +405,7 @@ export async function startMcpServer(
       {
         did: z.string().describe('Deployment ID to pin'),
       },
+      { title: '永久保留部署', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       async (args) => {
         try {
           return makeResult(pinDeploymentTool(args, authHeader, db, ip))
@@ -414,6 +422,7 @@ export async function startMcpServer(
       {
         did: z.string().describe('Deployment ID to delete'),
       },
+      { title: '删除部署', readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       async (args) => {
         try {
           return makeResult(deleteDeploymentTool(args, authHeader, db, config, ip))
@@ -437,6 +446,7 @@ export async function startMcpServer(
           .optional()
           .describe('Passphrase required when access="password"'),
       },
+      { title: '修改访问控制', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       async (args) => {
         try {
           return makeResult(setAccessTool(args, authHeader, db, ip))
@@ -455,6 +465,7 @@ export async function startMcpServer(
           .string()
           .describe('Custom space_id: 4–20 chars, only [a-z0-9-], cannot start/end with "-" or contain "--". Example: "myteam", "project-x". Warning: changing this invalidates all existing deployment URLs.'),
       },
+      { title: '修改 space_id', readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       async (args) => {
         try {
           return makeResult(setSpaceIdTool(args, authHeader, db, ip))
