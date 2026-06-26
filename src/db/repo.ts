@@ -116,6 +116,24 @@ export function listDeployments(db: Database.Database, tokenId: string, includeE
   return db.prepare('SELECT * FROM deployments WHERE token_id = ? AND (pinned = 1 OR expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC').all(tokenId, now) as DeploymentRow[]
 }
 
+export interface UserDeploymentRow extends DeploymentRow {
+  token_label: string | null
+  space_id: string
+}
+
+/** All of a user's deployments across every API key, joined with the owning token. */
+export function listDeploymentsByUser(db: Database.Database, userId: string, includeExpired = false): UserDeploymentRow[] {
+  const now = Date.now()
+  const expiry = includeExpired ? '' : 'AND (d.pinned = 1 OR d.expires_at IS NULL OR d.expires_at > ?)'
+  const params = includeExpired ? [userId] : [userId, now]
+  return db.prepare(`
+    SELECT d.*, t.label AS token_label, t.space_id AS space_id
+    FROM deployments d JOIN tokens t ON d.token_id = t.id
+    WHERE t.user_id = ? ${expiry}
+    ORDER BY t.created_at ASC, d.created_at DESC
+  `).all(...params) as UserDeploymentRow[]
+}
+
 export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count' | 'title' | 'spa'>>): void {
   const sets = Object.keys(updates).map(k => `${k} = ?`).join(', ')
   const values = [...Object.values(updates), Date.now(), did]

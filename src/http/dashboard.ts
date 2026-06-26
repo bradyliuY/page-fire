@@ -65,6 +65,28 @@ h1{font-size:24px;font-weight:680;letter-spacing:-.5px}
 .empty .e-ico{font-size:30px;margin-bottom:14px;opacity:.5}
 .empty p{font-size:14px;margin-bottom:22px}
 
+/* deployments grouped by key */
+.dsec{margin-top:50px}
+.group{border:1px solid var(--bdr);border-radius:14px;overflow:hidden;background:var(--bg2);margin-bottom:16px}
+.ghead{display:flex;align-items:center;gap:10px;padding:12px 20px;background:var(--sur);border-bottom:1px solid var(--bdr);font-size:13px}
+.gname{font-weight:600}
+.gspace{font-family:'SF Mono',ui-monospace,monospace;color:var(--dim);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcount{margin-left:auto;color:var(--dim);font-size:12px;white-space:nowrap}
+.drow{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--bdr);transition:.15s}
+.drow:last-child{border-bottom:none}
+.drow:hover{background:var(--sur)}
+.dmain{flex:1;min-width:0}
+.dtitle{font-weight:550;font-size:13.5px;margin-bottom:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.durl{font-size:12px;color:var(--muted);font-family:'SF Mono',ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
+.durl:hover{color:var(--fire2)}
+.dmeta{display:flex;gap:16px;align-items:center;flex-shrink:0;text-align:right}
+.dmv{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.dml{font-size:10.5px;color:var(--dim);margin-top:1px}
+.bdg{font-size:10.5px;padding:1px 7px;border-radius:5px;border:1px solid var(--bdr);color:var(--dim);font-weight:500;white-space:nowrap}
+.bdg.lock{color:var(--fire2);border-color:rgba(249,115,22,.3);background:var(--fire-dim)}
+.bdg.pin{color:var(--green);border-color:rgba(74,222,128,.3)}
+@media(max-width:560px){.dmeta{display:none}}
+
 /* modal */
 .ov{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:16px}
 .ov.show{display:flex}
@@ -115,6 +137,14 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
   </div>
 
   <div id="list"></div>
+
+  <div class="dsec">
+    <div class="head"><div>
+      <h1 style="font-size:20px">我的部署</h1>
+      <div class="sub" style="margin-bottom:0">所有已发布的站点，按所属 API Key 分组。</div>
+    </div></div>
+    <div id="deploy-list" style="margin-top:16px"></div>
+  </div>
 </div>
 
 <!-- create modal -->
@@ -172,6 +202,7 @@ async function init() {
     $('uname').textContent = me.username
   } catch { return }
   loadKeys()
+  loadDeployments()
 }
 
 async function loadKeys() {
@@ -203,6 +234,44 @@ async function loadKeys() {
   list.innerHTML = '<div class="keys">' + rows + '</div>'
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
+function fmtSize(b){ if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB' }
+
+async function loadDeployments() {
+  let data
+  try { data = await (await api('/api/deployments')).json() } catch { return }
+  const el = $('deploy-list')
+  const groups = data.groups || []
+  if (!groups.length) {
+    el.innerHTML = '<div class="group"><div class="empty"><div class="e-ico">📦</div><p>还没有发布任何站点</p></div></div>'
+    return
+  }
+  el.innerHTML = groups.map(g => {
+    const rows = g.deployments.map(d => {
+      const badges =
+        (d.access === 'password' ? '<span class="bdg lock">🔒 密码</span>' : '') +
+        (d.pinned ? '<span class="bdg pin">📌 永久</span>' : '') +
+        (d.spa ? '<span class="bdg">SPA</span>' : '')
+      const life = d.pinned ? '永久' : (d.expires_at ? '到 ' + fmtDate(d.expires_at) : '—')
+      return '<div class="drow">' +
+        '<div class="dmain">' +
+          '<div class="dtitle">' + esc(d.title || d.did) + ' ' + badges + '</div>' +
+          '<a class="durl" href="' + d.url + '" target="_blank" rel="noopener">' + esc(d.url.replace('https://','').replace(/\\/$/,'')) + '</a>' +
+        '</div>' +
+        '<div class="dmeta">' +
+          '<div><div class="dmv">' + fmtSize(d.size_bytes) + '</div><div class="dml">' + d.file_count + ' 文件</div></div>' +
+          '<div><div class="dmv">' + fmtDate(d.created_at) + '</div><div class="dml">' + life + '</div></div>' +
+        '</div>' +
+      '</div>'
+    }).join('')
+    return '<div class="group">' +
+      '<div class="ghead">' +
+        '<span class="gname">' + esc(g.label || g.space_id) + '</span>' +
+        '<span class="gspace">' + esc(g.space_id) + '.' + baseDomain + '</span>' +
+        '<span class="gcount">' + g.deployments.length + ' 个部署</span>' +
+      '</div>' + rows +
+    '</div>'
+  }).join('')
+}
 
 function openCreate() {
   $('c-err').style.display = 'none'
@@ -241,7 +310,7 @@ async function revoke(btn) {
   const id = btn.dataset.id, name = btn.dataset.label
   if (!confirm('确定吊销「' + name + '」？\\n该 Key 立即失效，其下所有已发布站点将无法访问。')) return
   const r = await api('/api/keys/' + id, { method:'DELETE' })
-  if (r.ok) { toast('已吊销'); loadKeys() }
+  if (r.ok) { toast('已吊销'); loadKeys(); loadDeployments() }
 }
 async function testKey(id, btn) {
   const prev = btn.textContent; btn.textContent = '⏳'; btn.disabled = true

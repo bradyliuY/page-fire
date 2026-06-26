@@ -11,6 +11,7 @@ import {
   getInviteByCode, useInvite,
   createSession, getSessionUser, deleteSession,
   listTokensByUser, getTokenByIdForUser, revokeTokenById, countActiveTokensByUser,
+  listDeploymentsByUser,
   type UserRow,
 } from '../db/repo.js'
 import { validateCustomSpaceId, ValidationError } from '../core/validate.js'
@@ -207,6 +208,43 @@ export async function handleApiRequest(
       base_url: `https://${k.space_id}.${config.baseDomain}`,
     }))
     json(res, 200, { keys })
+    return true
+  }
+
+  // ── List the user's deployments, grouped by API key ───────────────────────────
+  if (method === 'GET' && url === '/api/deployments') {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const scheme = config.baseDomain === 'localhost' ? 'http' : 'https'
+    const rows = listDeploymentsByUser(db, user.id)
+    const groups = new Map<string, any>()
+    for (const d of rows) {
+      let g = groups.get(d.token_id)
+      if (!g) {
+        g = {
+          token_id: d.token_id,
+          label: d.token_label,
+          space_id: d.space_id,
+          base_url: `${scheme}://${d.space_id}.${config.baseDomain}`,
+          deployments: [],
+        }
+        groups.set(d.token_id, g)
+      }
+      g.deployments.push({
+        did: d.did,
+        url: `${scheme}://${d.domain}/`,
+        domain: d.domain,
+        title: d.title,
+        access: d.access,
+        pinned: d.pinned === 1,
+        spa: d.spa === 1,
+        size_bytes: d.size_bytes,
+        file_count: d.file_count,
+        expires_at: d.expires_at ? new Date(d.expires_at).toISOString() : null,
+        created_at: new Date(d.created_at).toISOString(),
+      })
+    }
+    json(res, 200, { groups: [...groups.values()], total: rows.length })
     return true
   }
 
