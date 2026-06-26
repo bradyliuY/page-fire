@@ -38,6 +38,12 @@
 >
 > 托管版直接用：**[pagefire.openhkt.com](https://pagefire.openhkt.com)**（注册即得 API Key）&nbsp;·&nbsp; 或自托管在自己服务器上。
 
+<p align="center">
+  <a href="https://pagefire.openhkt.com">
+    <img src=".github/assets/screenshot.png" width="860" alt="PageFire 首页截图">
+  </a>
+</p>
+
 ---
 
 ## 核心特性
