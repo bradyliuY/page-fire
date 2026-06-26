@@ -215,7 +215,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
   <span class="str">"mcpServers"</span>: {
     <span class="str">"pagefire"</span>: {
       <span class="str">"command"</span>: <span class="str">"npx"</span>,
-      <span class="str">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"pagefire-mcp"</span>],
+      <span class="str">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"pagefire-mcp@latest"</span>],
       <span class="str">"env"</span>: { <span class="str">"PAGEFIRE_TOKEN"</span>: <span class="str">"pf_&lt;你的token&gt;"</span> }
     }
   }

@@ -86,7 +86,7 @@ pf_your_token_here
   "mcpServers": {
     "pagefire": {
       "command": "npx",
-      "args": ["-y", "pagefire-mcp"],
+      "args": ["-y", "pagefire-mcp@latest"],
       "env": { "PAGEFIRE_TOKEN": "<你的token>" }
     }
   }

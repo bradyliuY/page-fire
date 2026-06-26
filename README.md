@@ -156,7 +156,7 @@ PageFire 有两种用法，共用同一套 API Key，可任意搭配：
   "mcpServers": {
     "pagefire": {
       "command": "npx",
-      "args": ["-y", "pagefire-mcp"],
+      "args": ["-y", "pagefire-mcp@latest"],
       "env": { "PAGEFIRE_TOKEN": "pf_your_token_here" }
     }
   }

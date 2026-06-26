@@ -333,7 +333,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
   "mcpServers": {
     "pagefire": {
       "command": "npx",
-      "args": ["-y", "pagefire-mcp"],
+      "args": ["-y", "pagefire-mcp@latest"],
       "env": { "PAGEFIRE_TOKEN": "pf_&lt;你的token&gt;" }
     }
   }
