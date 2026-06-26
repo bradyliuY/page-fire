@@ -210,6 +210,16 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
   }
 }</pre></div>
       <div style="margin-top:8px;font-size:12px;color:var(--dim,#777)">⚠️ token 须经 <code class="ic">env.AUTH_HEADER</code> 传入、header 写成 <code class="ic">Authorization:\${AUTH_HEADER}</code>（无空格）；写成 <code class="ic">"Authorization: Bearer ..."</code> 会因空格拆断导致工具调用 <code class="ic">UNAUTHORIZED</code>。</div>
+      <div style="margin-top:14px;font-size:13px;color:var(--muted,#9aa)">方式三 · <b>npm 连接器包</b>（最简，推荐）：已发布 <a href="https://www.npmjs.com/package/pagefire-mcp" target="_blank" rel="noopener">pagefire-mcp</a>，token 只走环境变量、无 URL、无 header 坑：</div>
+      <div class="codeblk" style="margin-top:10px"><pre>{
+  <span class="str">"mcpServers"</span>: {
+    <span class="str">"pagefire"</span>: {
+      <span class="str">"command"</span>: <span class="str">"npx"</span>,
+      <span class="str">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"pagefire-mcp"</span>],
+      <span class="str">"env"</span>: { <span class="str">"PAGEFIRE_TOKEN"</span>: <span class="str">"pf_&lt;你的token&gt;"</span> }
+    }
+  }
+}</pre></div>
     </div></div>
     <div class="cs" style="border:none;padding-bottom:0"><div class="cn">3</div><div class="cb"><b>对话发布</b><br>重启客户端后直接说："帮我把这份内容发布成网页"，AI 自动调用工具完成发布。</div></div>
 

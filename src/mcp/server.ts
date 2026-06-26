@@ -44,7 +44,19 @@ function readBody(req: IncomingMessage): Promise<unknown> {
 }
 
 function makeResult(data: unknown) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] }
+  const result: {
+    content: { type: 'text'; text: string }[]
+    structuredContent?: Record<string, unknown>
+  } = {
+    content: [{ type: 'text' as const, text: JSON.stringify(data) }],
+  }
+  // Also expose the payload as MCP structured output so clients that support it get
+  // typed data instead of re-parsing the text. No outputSchema is declared, so the
+  // SDK passes this through without validation.
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    result.structuredContent = data as Record<string, unknown>
+  }
+  return result
 }
 
 function makeError(err: any) {
