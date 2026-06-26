@@ -3,6 +3,15 @@ import { openDb } from './db/migrate.js'
 import { startMcpServer } from './mcp/server.js'
 import { startHttpServer } from './http/server.js'
 
+// Safety net: a single bad request (e.g. a stream error) must never take down the whole
+// server. Node 20 terminates on unhandled rejections by default — log and keep serving instead.
+process.on('unhandledRejection', (reason) => {
+  console.error('[pagefire] Unhandled rejection (ignored):', reason)
+})
+process.on('uncaughtException', (err) => {
+  console.error('[pagefire] Uncaught exception (ignored):', err)
+})
+
 async function main() {
   const db = openDb(config.db)
 

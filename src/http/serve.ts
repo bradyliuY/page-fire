@@ -57,13 +57,21 @@ export function serveFile(res: ServerResponse, filePath: string, forceDownload =
 
   const mime = MIME[ext] ?? 'application/octet-stream'
   const stat = statSync(filePath)
+  if (stat.isDirectory()) { serve404(res); return }   // never stream a directory → would throw EISDIR
 
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
   res.setHeader('Content-Type', mime)
   res.setHeader('Content-Length', stat.size)
   if (forceDownload) res.setHeader('Content-Disposition', 'attachment')
   res.statusCode = 200
-  createReadStream(filePath).pipe(res)
+  const stream = createReadStream(filePath)
+  // A stream 'error' with no listener is fatal (uncaughtException → process crash). Handle it.
+  stream.on('error', (err) => {
+    console.error('[serve] stream error:', err)
+    if (!res.headersSent) { res.statusCode = 404; res.end('Not Found') }
+    else res.destroy()
+  })
+  stream.pipe(res)
 }
 
 export function serve404(res: ServerResponse): void {

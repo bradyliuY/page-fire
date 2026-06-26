@@ -4,6 +4,39 @@ export type MarkdownTheme = 'light' | 'dark' | 'sepia'
 
 marked.setOptions({ gfm: true, breaks: true })
 
+// Mermaid diagram detection: by fence lang (```mermaid / ```graph) or by content keyword
+// (an untyped fence whose body starts with a diagram type). Such blocks render as live diagrams.
+const MERMAID_RE = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(-v2)?|erDiagram|gantt|pie|mindmap|journey|gitGraph|quadrantChart|timeline|requirementDiagram|sankey|xychart|block-beta)\b/
+
+marked.use({
+  renderer: {
+    code(token: { text: string; lang?: string }): string {
+      const text = token.text ?? ''
+      const langWord = String(token.lang ?? '').trim().toLowerCase().split(/\s+/)[0]
+      const isMermaid =
+        langWord === 'mermaid' || MERMAID_RE.test(langWord) || (!langWord && MERMAID_RE.test(text.trim()))
+      if (isMermaid) return `<pre class="mermaid">${escapeHtml(text)}</pre>\n`
+      const cls = langWord ? ` class="language-${escapeHtml(langWord)}"` : ''
+      const langAttr = langWord ? ` data-lang="${escapeHtml(langWord)}"` : ''
+      return `<pre${langAttr}><code${cls}>${escapeHtml(text)}</code></pre>\n`
+    },
+  },
+})
+
+/** True if rendered HTML contains a mermaid block (→ inject the lib). */
+export function hasMermaid(html: string): boolean {
+  return html.includes('class="mermaid"')
+}
+
+/** Self-hosted mermaid loader: only emitted on pages that actually have a diagram.
+ *  Loads from /__pf__/mermaid.min.js (same-origin, served by router) so no CDN needed.
+ *  Falls back to jsdelivr CDN redirect if the local file hasn't been downloaded yet. */
+export function mermaidScript(theme: MarkdownTheme): string {
+  const t = theme === 'dark' ? 'dark' : theme === 'sepia' ? 'neutral' : 'default'
+  return `<script src="/__pf__/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: ${JSON.stringify(t)} });</script>`
+}
+
 export const THEMES: Record<MarkdownTheme, string> = {
   light: `--bg:#ffffff;--fg:#1f2328;--muted:#59636e;--bdr:#d1d9e0;--code-bg:#f6f8fa;--code-fg:#1f2328;--quote:#59636e;--link:#0969da;--accent:#f97316;--table-alt:#f6f8fa`,
   dark:  `--bg:#0d1117;--fg:#e6edf3;--muted:#9198a1;--bdr:#30363d;--code-bg:#161b22;--code-fg:#e6edf3;--quote:#9198a1;--link:#4493f8;--accent:#fb923c;--table-alt:#161b22`,
@@ -27,13 +60,59 @@ export function stripFrontmatter(markdown: string): string {
   return m ? markdown.slice(m[0].length) : markdown
 }
 
+// GitHub/Obsidian-style callout/admonition blocks
+const CALLOUT_TYPES: Record<string, { label: string; icon: string; cls: string }> = {
+  NOTE:      { label: 'Note',      icon: 'ℹ',  cls: 'note' },
+  INFO:      { label: 'Info',      icon: 'ℹ',  cls: 'note' },
+  TIP:       { label: 'Tip',       icon: '💡', cls: 'tip' },
+  HINT:      { label: 'Hint',      icon: '💡', cls: 'tip' },
+  IMPORTANT: { label: 'Important', icon: '★',  cls: 'important' },
+  ABSTRACT:  { label: 'Abstract',  icon: '◆',  cls: 'abstract' },
+  SUMMARY:   { label: 'Summary',   icon: '◆',  cls: 'abstract' },
+  TLDR:      { label: 'TL;DR',     icon: '◆',  cls: 'abstract' },
+  EXAMPLE:   { label: 'Example',   icon: '▷',  cls: 'example' },
+  QUOTE:     { label: 'Quote',     icon: '"',   cls: 'quote' },
+  CITE:      { label: 'Cite',      icon: '"',   cls: 'quote' },
+  SUCCESS:   { label: 'Success',   icon: '✓',  cls: 'success' },
+  CHECK:     { label: 'Check',     icon: '✓',  cls: 'success' },
+  DONE:      { label: 'Done',      icon: '✓',  cls: 'success' },
+  WARNING:   { label: 'Warning',   icon: '⚠',  cls: 'warning' },
+  CAUTION:   { label: 'Caution',   icon: '🔥', cls: 'caution' },
+  DANGER:    { label: 'Danger',    icon: '⚡',  cls: 'caution' },
+  BUG:       { label: 'Bug',       icon: '🐛', cls: 'caution' },
+  QUESTION:  { label: 'Question',  icon: '?',   cls: 'question' },
+  HELP:      { label: 'Help',      icon: '?',   cls: 'question' },
+  FAQ:       { label: 'FAQ',       icon: '?',   cls: 'question' },
+}
+
+function convertCallouts(html: string): string {
+  const types = Object.keys(CALLOUT_TYPES).join('|')
+  // Case 1: [!TYPE]<br>content (same paragraph – breaks:true)
+  html = html.replace(
+    new RegExp(`<blockquote>\\s*<p>\\[!(${types})\\]<br>\\n?([\\s\\S]*?)<\\/blockquote>`, 'gi'),
+    (_, type, body) => {
+      const ct = CALLOUT_TYPES[type.toUpperCase()]; if (!ct) return _
+      return `<div class="callout callout-${ct.cls}"><div class="callout-title">${ct.icon} ${ct.label}</div><p>${body.trim()}</div>`
+    },
+  )
+  // Case 2: [!TYPE] is its own paragraph (blank line after type)
+  html = html.replace(
+    new RegExp(`<blockquote>\\s*<p>\\[!(${types})\\]<\\/p>\\n?([\\s\\S]*?)<\\/blockquote>`, 'gi'),
+    (_, type, body) => {
+      const ct = CALLOUT_TYPES[type.toUpperCase()]; if (!ct) return _
+      return `<div class="callout callout-${ct.cls}"><div class="callout-title">${ct.icon} ${ct.label}</div>${body.trim()}</div>`
+    },
+  )
+  return html
+}
+
 // Render Markdown → HTML body, rewriting links to *.md → *.html (for multi-page docs).
 export function renderMarkdownBody(markdown: string, rewriteMdLinks = false): string {
   let html = marked.parse(markdown) as string
   if (rewriteMdLinks) {
     html = html.replace(/(href=")([^"]+?)\.md(#[^"]*)?(")/g, '$1$2.html$3$4')
   }
-  return html
+  return convertCallouts(html)
 }
 
 // First ATX heading (# ...) as a title.
@@ -183,6 +262,8 @@ blockquote{margin:0 0 1.1em;padding:.2em 1.1em;color:var(--quote);border-left:3p
 blockquote>*:last-child{margin-bottom:0}
 hr{border:none;border-top:1px solid var(--bdr);margin:2.4em 0}
 img{max-width:100%;height:auto;border-radius:8px}
+.mermaid{margin:0 0 1.2em;text-align:center;overflow-x:auto}
+.mermaid svg{max-width:100%;height:auto}
 code{font-family:'SF Mono',ui-monospace,'Fira Code',Consolas,monospace;font-size:.88em;
   background:var(--code-bg);color:var(--code-fg);padding:.18em .4em;border-radius:5px}
 pre{background:var(--code-bg);border:1px solid var(--bdr);border-radius:10px;
@@ -192,7 +273,34 @@ table{border-collapse:collapse;width:100%;margin:0 0 1.2em;display:block;overflo
 th,td{border:1px solid var(--bdr);padding:8px 13px;text-align:left}
 th{font-weight:650;background:var(--table-alt)}
 tr:nth-child(2n) td{background:var(--table-alt)}
-input[type=checkbox]{margin-right:.5em}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:14px;height:14px;
+  border:1.5px solid var(--bdr);border-radius:3px;vertical-align:middle;margin-right:6px;
+  position:relative;top:-1px;flex-shrink:0;background:var(--bg);transition:background .1s,border-color .1s}
+input[type=checkbox]:checked{background:var(--link);border-color:var(--link)}
+input[type=checkbox]:checked::after{content:'✓';position:absolute;color:#fff;font-size:9px;left:1px;top:-2px;font-weight:bold}
+mark{background:#fff3b3;color:inherit;border-radius:3px;padding:.1em .2em}
+del{color:var(--muted);text-decoration:line-through}
+ins{text-decoration:underline;text-underline-offset:3px}
+details{margin:0 0 1.2em;border:1px solid var(--bdr);border-radius:8px;overflow:hidden}
+summary{padding:10px 14px;cursor:pointer;font-weight:600;user-select:none;background:var(--table-alt)}
+details[open] summary{border-bottom:1px solid var(--bdr)}
+details>*:not(summary){padding:0 14px}details>p{margin-top:.8em}
+abbr[title]{text-decoration:underline dotted;cursor:help}
+pre[data-lang]::before{content:attr(data-lang);display:block;text-align:right;font-size:11px;
+  color:var(--muted);margin-bottom:8px;font-family:inherit;font-weight:600;letter-spacing:.03em}
+.callout{margin:0 0 1.2em;padding:10px 14px;border-radius:8px;border-left:4px solid}
+.callout-title{margin:0 0 4px;font-weight:650;font-size:.88em;display:flex;align-items:center;gap:5px}
+.callout p:last-child,.callout>*:last-child{margin-bottom:0}
+.callout-note{background:rgba(9,105,218,.08);border-color:#0969da}
+.callout-tip{background:rgba(26,127,55,.08);border-color:#1a7f37}
+.callout-success{background:rgba(26,127,55,.08);border-color:#1a7f37}
+.callout-important{background:rgba(130,80,223,.08);border-color:#8250df}
+.callout-abstract{background:rgba(0,150,199,.08);border-color:#0096c7}
+.callout-example{background:rgba(130,80,223,.08);border-color:#8250df}
+.callout-quote{background:rgba(100,100,100,.07);border-color:#888}
+.callout-question{background:rgba(249,115,22,.08);border-color:#f97316}
+.callout-warning{background:rgba(154,103,0,.1);border-color:#9a6700}
+.callout-caution{background:rgba(207,34,46,.08);border-color:#cf222e}
 kbd{font-family:'SF Mono',monospace;font-size:.82em;background:var(--code-bg);
   border:1px solid var(--bdr);border-bottom-width:2px;border-radius:5px;padding:.1em .5em}
 .md-footer{max-width:var(--maxw);margin:0 auto;padding:0 24px 48px;color:var(--muted);
@@ -207,6 +315,7 @@ ${bodyHtml}
 </article>
 <div class="md-footer">由 <a href="https://pagefire.openhkt.com">PageFire</a> 渲染发布 · Markdown</div>
 ${toc}
+${hasMermaid(bodyHtml) ? mermaidScript(theme) : ''}
 </body>
 </html>`
 }

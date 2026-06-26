@@ -1,7 +1,7 @@
 import type { FileEntry } from './deploy.js'
 import {
   THEMES, resolveTheme, escapeHtml, renderMarkdownBody, extractTitle, stripFrontmatter,
-  extractHeadings, injectHeadingIds, renderTocPanel,
+  extractHeadings, injectHeadingIds, renderTocPanel, hasMermaid, mermaidScript,
   type MarkdownTheme,
 } from './markdown.js'
 
@@ -126,6 +126,8 @@ blockquote{margin:0 0 1.1em;padding:.2em 1.1em;color:var(--quote);border-left:3p
 blockquote>*:last-child{margin-bottom:0}
 hr{border:none;border-top:1px solid var(--bdr);margin:2.4em 0}
 img{max-width:100%;height:auto;border-radius:8px}
+.mermaid{margin:0 0 1.2em;text-align:center;overflow-x:auto}
+.mermaid svg{max-width:100%;height:auto}
 code{font-family:'SF Mono',ui-monospace,'Fira Code',Consolas,monospace;font-size:.88em;
   background:var(--code-bg);color:var(--code-fg);padding:.18em .4em;border-radius:5px}
 pre{background:var(--code-bg);border:1px solid var(--bdr);border-radius:10px;
@@ -135,7 +137,34 @@ table{border-collapse:collapse;width:100%;margin:0 0 1.2em;display:block;overflo
 th,td{border:1px solid var(--bdr);padding:8px 13px;text-align:left}
 th{font-weight:650;background:var(--table-alt)}
 tr:nth-child(2n) td{background:var(--table-alt)}
-input[type=checkbox]{margin-right:.5em}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:14px;height:14px;
+  border:1.5px solid var(--bdr);border-radius:3px;vertical-align:middle;margin-right:6px;
+  position:relative;top:-1px;flex-shrink:0;background:var(--bg);transition:background .1s,border-color .1s}
+input[type=checkbox]:checked{background:var(--link);border-color:var(--link)}
+input[type=checkbox]:checked::after{content:'✓';position:absolute;color:#fff;font-size:9px;left:1px;top:-2px;font-weight:bold}
+mark{background:#fff3b3;color:inherit;border-radius:3px;padding:.1em .2em}
+del{color:var(--muted);text-decoration:line-through}
+ins{text-decoration:underline;text-underline-offset:3px}
+details{margin:0 0 1.2em;border:1px solid var(--bdr);border-radius:8px;overflow:hidden}
+summary{padding:10px 14px;cursor:pointer;font-weight:600;user-select:none;background:var(--table-alt)}
+details[open] summary{border-bottom:1px solid var(--bdr)}
+details>*:not(summary){padding:0 14px}details>p{margin-top:.8em}
+abbr[title]{text-decoration:underline dotted;cursor:help}
+pre[data-lang]::before{content:attr(data-lang);display:block;text-align:right;font-size:11px;
+  color:var(--muted);margin-bottom:8px;font-family:inherit;font-weight:600;letter-spacing:.03em}
+.callout{margin:0 0 1.2em;padding:10px 14px;border-radius:8px;border-left:4px solid}
+.callout-title{margin:0 0 4px;font-weight:650;font-size:.88em;display:flex;align-items:center;gap:5px}
+.callout p:last-child,.callout>*:last-child{margin-bottom:0}
+.callout-note{background:rgba(9,105,218,.08);border-color:#0969da}
+.callout-tip{background:rgba(26,127,55,.08);border-color:#1a7f37}
+.callout-success{background:rgba(26,127,55,.08);border-color:#1a7f37}
+.callout-important{background:rgba(130,80,223,.08);border-color:#8250df}
+.callout-abstract{background:rgba(0,150,199,.08);border-color:#0096c7}
+.callout-example{background:rgba(130,80,223,.08);border-color:#8250df}
+.callout-quote{background:rgba(100,100,100,.07);border-color:#888}
+.callout-question{background:rgba(249,115,22,.08);border-color:#f97316}
+.callout-warning{background:rgba(154,103,0,.1);border-color:#9a6700}
+.callout-caution{background:rgba(207,34,46,.08);border-color:#cf222e}
 .doc-footer{margin-top:48px;padding-top:22px;border-top:1px solid var(--bdr);
   color:var(--muted);font-size:12.5px}
 .doc-footer a{color:var(--accent)}
@@ -185,6 +214,7 @@ ${body}
   <div class="doc-footer">由 <a href="https://pagefire.openhkt.com">PageFire</a> 渲染发布 · Docs</div>
 </main>
 ${toc}
+${hasMermaid(body) ? mermaidScript(theme) : ''}
 </body>
 </html>`
 }

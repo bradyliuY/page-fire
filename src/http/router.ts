@@ -1,5 +1,6 @@
 import { join, resolve } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type Database from 'better-sqlite3'
 import { serve404, serve401, serveFile } from './serve.js'
@@ -10,6 +11,10 @@ import { renderDashboard } from './dashboard.js'
 import { renderPlayground } from './playground.js'
 import { SECURITY_HEADERS } from './headers.js'
 import { LOGO_PNG, FAVICON_PNG } from './assets.js'
+
+// Self-hosted mermaid: served from same origin so no CDN dependency / CSP needed.
+const MERMAID_ASSET = fileURLToPath(new URL('../assets/mermaid.min.js', import.meta.url))
+let mermaidBuf: Buffer | null = null
 
 let cachedHomeBuf: Buffer | null = null
 let cachedHomeKey: string | null = null
@@ -28,6 +33,27 @@ export function handleRequest(
 ): void {
   const host = (req.headers['host'] ?? '').split(':')[0]
   const url = req.url ?? '/'
+  const path = url.split('?')[0]
+
+  // Self-hosted mermaid – served from any subdomain so pages can load it same-origin.
+  // Falls back to a CDN redirect if the local file hasn't been downloaded yet.
+  if (path === '/__pf__/mermaid.min.js') {
+    if (!mermaidBuf) {
+      try { mermaidBuf = readFileSync(MERMAID_ASSET) } catch { /* not yet downloaded */ }
+    }
+    if (mermaidBuf) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+      res.setHeader('Cache-Control', 'public, max-age=604800')
+      res.setHeader('Content-Length', mermaidBuf.length)
+      res.statusCode = 200
+      res.end(mermaidBuf)
+    } else {
+      res.statusCode = 302
+      res.setHeader('Location', 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js')
+      res.end()
+    }
+    return
+  }
 
   // Health check (internal only)
   if (url === '/healthz') {

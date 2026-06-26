@@ -28,11 +28,18 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, relative, sep, extname } from 'node:path'
+import ignore from 'ignore'
 
 const DEFAULT_URL = 'https://mcp.pagefire.openhkt.com/mcp'
-const VERSION = '0.2.1'
+const VERSION = '0.3.0'
 const MAX_FILE_BYTES = 10 * 1024 * 1024
-const SKIP_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.cache'])
+// Always-excluded by default (junk + secrets safety net). User adds more via .pagefireignore
+// or the tool's `exclude` arg. Mirrors Vercel/Netlify's "defaults + .vercelignore" layering.
+const DEFAULT_IGNORES = [
+  'node_modules/', '.git/', '.svn/', '.hg/', '.cache/',
+  '.DS_Store', 'Thumbs.db', '.pagefireignore',
+  '.env', '.env.*', '*.pem', '*.key',
+]
 // Extensions sent as utf8 text; everything else is base64-encoded.
 const TEXT_EXT = new Set(['.html', '.htm', '.css', '.js', '.mjs', '.json', '.txt', '.md', '.xml', '.svg'])
 
@@ -92,6 +99,7 @@ const LOCAL_TOOLS = [
       properties: {
         dir: { type: 'string', description: '本地目录的绝对或相对路径，递归上传其中所有文件。' },
         spa: { type: 'boolean', description: 'SPA 模式：未知路径回退 index.html（默认 false）' },
+        exclude: { type: 'array', items: { type: 'string' }, description: '要排除的 glob(gitignore 语法),如 ["*.map","drafts/**","secret.txt"];也可在目录根放 .pagefireignore 文件。node_modules/.git/.env/*.pem 等默认已排除。' },
         ...LIFECYCLE_PROPS,
       },
       required: ['dir'],
@@ -105,6 +113,7 @@ const LOCAL_TOOLS = [
       properties: {
         dir: { type: 'string', description: '本地目录路径，递归读取其中所有 .md 文件。' },
         theme: { type: 'string', enum: ['light', 'dark', 'sepia'], description: '阅读主题，默认 light' },
+        exclude: { type: 'array', items: { type: 'string' }, description: '要排除的 glob(gitignore 语法),也可在目录根放 .pagefireignore。' },
         ...LIFECYCLE_PROPS,
       },
       required: ['dir'],
@@ -127,24 +136,37 @@ const LOCAL_TOOLS = [
 const LOCAL_TOOL_NAMES = new Set(LOCAL_TOOLS.map((t) => t.name))
 
 // ── Disk helpers ──────────────────────────────────────────────────────────────
-async function walk(dir: string): Promise<string[]> {
+// Build a gitignore-style matcher: built-in defaults + the dir's .pagefireignore + the tool's
+// `exclude` arg. Uses the `ignore` package (the de-facto gitignore matcher).
+type IgMatcher = { add(patterns: string | string[]): IgMatcher; ignores(path: string): boolean }
+async function buildIgnore(dir: string, excludes?: unknown): Promise<IgMatcher> {
+  const ig = (ignore as unknown as () => IgMatcher)().add(DEFAULT_IGNORES)
+  try { ig.add(await readFile(join(dir, '.pagefireignore'), 'utf8')) } catch { /* no ignore file */ }
+  if (Array.isArray(excludes)) ig.add(excludes.map((e) => String(e)))
+  return ig
+}
+
+async function walk(dir: string, base: string, ig: IgMatcher): Promise<string[]> {
   const out: string[] = []
   for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const abs = join(dir, entry.name)
+    const rel = relative(base, abs).split(sep).join('/')
     if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) continue
-      out.push(...(await walk(join(dir, entry.name))))
+      if (ig.ignores(rel) || ig.ignores(rel + '/')) continue   // prune ignored dirs (don't recurse)
+      out.push(...(await walk(abs, base, ig)))
     } else if (entry.isFile()) {
-      if (entry.name.startsWith('.')) continue
-      out.push(join(dir, entry.name))
+      if (ig.ignores(rel)) continue
+      out.push(abs)
     }
   }
   return out
 }
 
-async function collectFiles(dir: string, onlyMd = false) {
+async function collectFiles(dir: string, onlyMd = false, excludes?: unknown) {
   const st = await stat(dir).catch(() => null)
   if (!st || !st.isDirectory()) throw new Error(`目录不存在或不是目录：${dir}`)
-  const abs = await walk(dir)
+  const ig = await buildIgnore(dir, excludes)
+  const abs = await walk(dir, dir, ig)
   const files: { path: string; content: string; encoding: 'utf8' | 'base64' }[] = []
   for (const f of abs) {
     const rel = relative(dir, f).split(sep).join('/')
@@ -156,7 +178,7 @@ async function collectFiles(dir: string, onlyMd = false) {
       ? { path: rel, content: buf.toString('utf8'), encoding: 'utf8' }
       : { path: rel, content: buf.toString('base64'), encoding: 'base64' })
   }
-  if (files.length === 0) throw new Error(onlyMd ? `目录中没有 .md 文件：${dir}` : `目录为空：${dir}`)
+  if (files.length === 0) throw new Error(onlyMd ? `目录中没有 .md 文件：${dir}` : `目录为空(或都被排除规则过滤掉了)：${dir}`)
   return files
 }
 
@@ -175,12 +197,12 @@ async function postUpload(payload: Record<string, unknown>) {
 
 async function runLocalTool(name: string, args: any): Promise<any> {
   if (name === 'deploy_dir') {
-    const files = await collectFiles(String(args.dir), false)
+    const files = await collectFiles(String(args.dir), false, args.exclude)
     if (!files.some((f) => f.path === 'index.html')) throw new Error('目录中缺少 index.html')
     return postUpload({ files, did: args.did, title: args.title, access: args.access, password: args.password, ttl_days: args.ttl_days, pin: args.pin, spa: args.spa })
   }
   if (name === 'deploy_docs_dir') {
-    const files = await collectFiles(String(args.dir), true)
+    const files = await collectFiles(String(args.dir), true, args.exclude)
     return postUpload({ render: 'docs', files, did: args.did, title: args.title, theme: args.theme, access: args.access, password: args.password, ttl_days: args.ttl_days, pin: args.pin })
   }
   if (name === 'deploy_file') {
