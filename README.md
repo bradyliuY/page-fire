@@ -70,10 +70,44 @@ node dist/cli/index.js token list
 
 ## 使用方式
 
-PageFire 有两种用法，共用同一套 API Key：
+PageFire 有三种用法，共用同一套 API Key：
 
 - **Web 控制台** —— 浏览器零配置，注册即用，适合手动发布与管理。访问根域名即可。
+- **CLI** —— 终端 / CI 脚本中直接 `pagefire deploy`，适合自动化流水线。
 - **MCP 客户端** —— 在 Claude / Cursor 等对话中一句话发布，适合 AI 工作流。
+
+---
+
+## CLI（终端 / CI）
+
+通过 `pagefire-mcp` npm 包提供 `pagefire` 命令：
+
+```bash
+# 全局安装（一次，永久可用）
+npm install -g pagefire-mcp
+
+# 或免安装直接用（适合 CI）
+npx pagefire-mcp <command>
+```
+
+```bash
+export PAGEFIRE_TOKEN=pf_你的token
+
+pagefire deploy ./dist              # 发布目录
+pagefire deploy README.md           # 发布 Markdown（自动渲染）
+pagefire deploy-docs ./docs --pin   # 发布多页文档站
+pagefire list                       # 查看所有部署
+pagefire pin mysite                 # 永久保留
+pagefire delete mysite              # 删除
+```
+
+常用选项：`--did=<id>`（自定义 ID，覆盖更新）`--pin`（永久）`--spa`（SPA 模式）`--theme=dark`
+
+完整 CLI 文档见 [packages/mcp-client/README.md](packages/mcp-client/README.md)。
+
+---
+
+## MCP 客户端（AI 对话）
 
 ### 接入 MCP 客户端
 

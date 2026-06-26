@@ -31,35 +31,47 @@ import { extname } from 'node:path'
 import { parseCliArgs, collectFiles, TEXT_EXT, MAX_FILE_BYTES } from './utils.js'
 
 const DEFAULT_URL = 'https://mcp.pagefire.openhkt.com/mcp'
-const VERSION = '0.5.1'
+const VERSION = '0.5.2'
 
-const HELP = `pagefire-mcp v${VERSION} — stdio MCP connector + CLI for PageFire
+const HELP = `pagefire v${VERSION}  (pagefire-mcp)
 
-MCP bridge (default, no subcommand):
-  command: npx
-  args:    ["-y", "pagefire-mcp"]
-  env:     { "PAGEFIRE_TOKEN": "pf_xxx" }
+Usage:
+  pagefire <command> [options]         # after: npm install -g pagefire-mcp
+  npx pagefire-mcp <command> [options] # no install required
 
-CLI commands (PAGEFIRE_TOKEN env required):
-  pagefire-mcp deploy <path>       publish a directory or file (.md auto-renders)
-  pagefire-mcp deploy-docs <dir>   publish all .md files as a docs site with sidebar
-  pagefire-mcp list                list all deployments
-  pagefire-mcp delete <did>        delete a deployment
-  pagefire-mcp pin <did>           pin a deployment (make permanent)
+Commands:
+  deploy <path>       publish a directory, .md file, or any file
+                        directory  → static site (must contain index.html)
+                        .md file   → rendered HTML page (Mermaid + Callout)
+                        other file → served as index.html
+  deploy-docs <dir>   publish all .md files as a docs site with sidebar + TOC
+  list                list all deployments for this token
+  pin <did>           make a deployment permanent (removes TTL)
+  delete <did>        delete a deployment and all its files
 
-Options for deploy / deploy-docs:
-  --did=<name>       site alias; reuse to update in-place
-  --title=<text>     human-readable title
+Options (deploy / deploy-docs):
+  --did=<id>         custom deployment ID; same id = update in place
+  --title=<text>     page / site title
   --pin              make permanent (no expiry)
-  --theme=<t>        light|dark|sepia  (default: light)
-  --spa              SPA fallback (deploy only)
-  --exclude=<glob>   exclude glob (repeatable); also reads .pagefireignore
-  --ttl-days=<n>     expiry in days (default: 7)
+  --theme=<t>        light | dark | sepia  (default: light)
+  --spa              SPA mode — 404 falls back to index.html  (deploy only)
+  --access=<a>       public | password  (default: public)
+  --password=<text>  required when --access=password
+  --ttl-days=<n>     days until expiry  (default: 7)
+  --exclude=<glob>   exclude pattern, repeatable; also reads .pagefireignore
 
 Environment:
-  PAGEFIRE_TOKEN  (required)  pf_ Bearer token
-  PAGEFIRE_URL    (optional)  endpoint override, default ${DEFAULT_URL}
-  PAGEFIRE_DEBUG  (optional)  "1" to print diagnostics to stderr
+  PAGEFIRE_TOKEN  (required)  your pf_... Bearer token
+  PAGEFIRE_URL    (optional)  self-hosted endpoint override
+                              default: ${DEFAULT_URL}
+  PAGEFIRE_DEBUG  (optional)  "1" → print debug output to stderr
+
+MCP bridge (no subcommand — used by Claude / Cursor):
+  Add to your MCP client config:
+  { "command": "npx", "args": ["-y", "pagefire-mcp"],
+    "env": { "PAGEFIRE_TOKEN": "pf_xxx" } }
+
+Docs: https://pagefire.openhkt.com
 `
 
 function fail(msg: string): never {
