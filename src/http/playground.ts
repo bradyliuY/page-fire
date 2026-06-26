@@ -1,11 +1,21 @@
-export function renderPlayground(baseDomain: string): string {
+import { zh } from './i18n/zh.js'
+import { en } from './i18n/en.js'
+
+export function renderPlayground(baseDomain: string, lang: 'zh' | 'en' = 'zh'): string {
+  const T = lang === 'en' ? en : zh
+  const P = T.pg
+  const _t = JSON.stringify(P._t)
+  const toolRows = P.tools.map(t =>
+    `<div class="tl-row"><div class="tl-name">${t.name}</div><div class="tl-body"><div class="tl-title">${t.title}</div><div class="tl-desc">${t.desc}</div><div class="params">${t.params.split(' ').map(p => `<code>${p}</code>`).join(' ')}</div></div></div>`
+  ).join('')
+  const toolOptions = P._t.toolOptions.map(o => `<option value="${o.v}">${o.l}</option>`).join('')
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${P.htmlLang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="了解、接入并在线测试 PageFire 的 MCP 工具：查看工具列表与接入配置，选一个 API Key 直接调用，立刻看到真实结果。">
-<title>Playground — PageFire MCP</title>
+<meta name="description" content="${P.meta.desc}">
+<title>${P.meta.title}</title>
 <link rel="icon" type="image/png" href="/favicon.ico">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -30,6 +40,10 @@ nav{border-bottom:1px solid var(--bdr);background:rgba(10,10,11,.8);backdrop-fil
 .nav-r a:hover{color:var(--txt);background:var(--sur)}
 .nav-reg{background:#fafafa !important;color:#0a0a0b !important;font-weight:600}
 .nav-reg:hover{background:#e4e4e7 !important}
+.nav-lang{border:1px solid var(--bdr) !important;font-size:12.5px !important;padding:5px 10px !important}
+.nav-lang:hover{border-color:var(--bdr2) !important}
+.nav-gh{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;color:var(--muted);transition:.15s;padding:0 !important}
+.nav-gh:hover{color:var(--txt) !important;background:var(--sur) !important}
 
 .hd{padding:48px 0 22px;text-align:center}
 .tag{display:inline-flex;align-items:center;gap:8px;padding:5px 13px;border-radius:100px;background:var(--sur);border:1px solid var(--bdr);font-size:12.5px;color:var(--muted);margin-bottom:16px}
@@ -138,71 +152,59 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
 </head>
 <body>
 <nav><div class="w nav-i">
-  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
+  <a class="logo" href="${P.nav.homeLangPrefix}/"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
   <div class="nav-r">
-    <a href="/#features">功能</a>
-    <a href="/#examples">示例</a>
-    <a href="/playground">Playground</a>
-    <a href="/#quickstart">接入</a>
-    <a href="/dashboard" class="nav-reg">控制台 →</a>
+    <a href="${P.nav.homeLangPrefix}/#features">${P.nav.features}</a>
+    <a href="${P.nav.homeLangPrefix}/#examples">${P.nav.examples}</a>
+    <a href="${lang === 'en' ? '/en/playground' : '/playground'}">${P.nav.playground}</a>
+    <a href="${P.nav.homeLangPrefix}/#quickstart">${P.nav.connect}</a>
+    <a href="https://github.com/bradyliuY/page-fire" target="_blank" rel="noopener" class="nav-gh" title="GitHub"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg></a>
+    <a href="${P.nav.switchLangHref}" class="nav-lang">${P.nav.switchLang}</a>
+    <a href="${lang === 'en' ? '/en/dashboard' : '/dashboard'}" class="nav-reg">${P.nav.dashboard}</a>
   </div>
 </div></nav>
 
 <div class="w">
   <div class="hd">
-    <div class="tag"><span class="ping"></span>MCP Playground</div>
-    <h1>了解、接入并实测 MCP</h1>
-    <p class="sub">从这里读懂 PageFire 的 MCP 工具、拿到接入配置，并直接在浏览器里用你的 API Key 调用——与 AI 客户端走同一条链路。</p>
+    <div class="tag"><span class="ping"></span>${P.hero.badge}</div>
+    <h1>${P.hero.h1}</h1>
+    <p class="sub">${P.hero.sub}</p>
   </div>
 
   <div class="tabs">
-    <button class="tab active" data-p="intro" onclick="pick('intro')">介绍</button>
-    <button class="tab" data-p="tools" onclick="pick('tools')">工具</button>
-    <button class="tab" data-p="connect" onclick="pick('connect')">接入</button>
-    <button class="tab" data-p="test" onclick="pick('test')">测试</button>
+    <button class="tab active" data-p="intro" onclick="pick('intro')">${P.tabs.intro}</button>
+    <button class="tab" data-p="tools" onclick="pick('tools')">${P.tabs.tools}</button>
+    <button class="tab" data-p="connect" onclick="pick('connect')">${P.tabs.connect}</button>
+    <button class="tab" data-p="test" onclick="pick('test')">${P.tabs.test}</button>
   </div>
 
-  <!-- 介绍 -->
+  <!-- intro -->
   <div class="pane active" id="pane-intro">
-    <p class="lead">MCP（Model Context Protocol）是 AI 客户端与外部工具之间的标准协议。把 PageFire 接入 Claude、Cursor 后，你只需用<b>自然语言</b>描述，AI 就会调用 PageFire 的工具，把 HTML、Markdown、整站打包<b>直接发布成公网 HTTPS 页面</b>——几秒完成，链接可长期固定，全程不碰部署流程。</p>
+    <p class="lead">${P.intro.lead}</p>
     <div class="steps">
-      <div class="step"><div class="sn">01 · 接入</div><h4>配置一次</h4><p>在「接入」页复制 .mcp.json，填入你的 Bearer Token，加入 AI 客户端。</p></div>
-      <div class="step"><div class="sn">02 · 对话</div><h4>说一句话</h4><p>“把这份报告发布成网页” —— AI 自动选用合适的工具完成发布。</p></div>
-      <div class="step"><div class="sn">03 · 上线</div><h4>拿到链接</h4><p>立刻获得 HTTPS 子域名，直接分享；想更新就让 AI 用同名重发，链接不变。</p></div>
+      ${P.intro.steps.map(s => `<div class="step"><div class="sn">${s.num}</div><h4>${s.h}</h4><p>${s.p}</p></div>`).join('')}
     </div>
   </div>
 
-  <!-- 工具 -->
+  <!-- tools -->
   <div class="pane" id="pane-tools">
-    <div class="tool-list">
-      <div class="tl-row"><div class="tl-name">deploy_page</div><div class="tl-body"><div class="tl-title">单页 HTML</div><div class="tl-desc">发布一段 HTML 字符串，立即得到独立 HTTPS 子域名，适合 AI 生成的报告与落地页。</div><div class="params"><code>html</code> <code>title?</code> <code>did?</code> <code>access?</code> <code>password?</code> <code>ttl_days?</code> <code>pin?</code> <code>spa?</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">deploy_markdown</div><div class="tl-body"><div class="tl-title">Markdown 渲染</div><div class="tl-desc">Markdown 渲染成精致排版网页，支持 light / dark / sepia 三主题，代码高亮、表格、任务列表开箱即用。自动剥离 YAML frontmatter。</div><div class="params"><code>markdown</code> <code>theme?</code> <code>title?</code> <code>did?</code> <code>access?</code> <code>pin?</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">deploy_docs</div><div class="tl-body"><div class="tl-title">多页文档站</div><div class="tl-desc">多篇 Markdown 文件自动生成带左侧导航 + 右侧目录的文档站，无需 index.md（自动推断入口），.md 链接自动改写为 .html。</div><div class="params"><code>files[]</code> <code>title?</code> <code>theme?</code> <code>did?</code> <code>pin?</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">deploy_files</div><div class="tl-body"><div class="tl-title">多文件站点</div><div class="tl-desc">逐文件发布 HTML + CSS + JS，支持子目录结构，二进制文件用 base64 编码传输。</div><div class="params"><code>files[]</code> <code>did?</code> <code>spa?</code> <code>pin?</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">deploy_zip</div><div class="tl-body"><div class="tl-title">整站打包</div><div class="tl-desc">上传 ZIP 包自动解压发布，支持 SPA 模式（客户端路由 fallback 到 index.html）。</div><div class="params"><code>zip_base64</code> <code>did?</code> <code>spa?</code> <code>pin?</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">set_access</div><div class="tl-body"><div class="tl-title">修改访问控制</div><div class="tl-desc">随时切换已有站点的访问方式：public（公开）/ password（密码保护）/ private（私有），无需重新发布内容。</div><div class="params"><code>did</code> <code>access</code> <code>password?</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">list_deployments</div><div class="tl-body"><div class="tl-title">列出部署</div><div class="tl-desc">列出当前 API Key 下的所有站点，返回 URL、状态、文件数、大小、创建时间。</div><div class="params"><code>include_expired?</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">get_deployment</div><div class="tl-body"><div class="tl-title">查询单个部署</div><div class="tl-desc">获取指定站点的完整详情，包括 URL、文件列表、访问控制、过期时间。</div><div class="params"><code>did</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">delete_deployment</div><div class="tl-body"><div class="tl-title">删除部署</div><div class="tl-desc">立即删除指定站点及其全部文件，释放存储配额，不可恢复。</div><div class="params"><code>did</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">pin_deployment</div><div class="tl-body"><div class="tl-title">永久保留</div><div class="tl-desc">将临时站点（设有 TTL）标记为永久保留，跳过自动 GC 清理。</div><div class="params"><code>did</code></div></div></div>
-      <div class="tl-row"><div class="tl-name">set_space_id</div><div class="tl-body"><div class="tl-title">自定义子域名</div><div class="tl-desc">设置当前 API Key 的 space_id 段（全局唯一），影响该 Key 下所有站点的子域名。</div><div class="params"><code>space_id</code></div></div></div>
-    </div>
+    <div class="tool-list">${toolRows}</div>
   </div>
 
-  <!-- 接入 -->
+  <!-- connect -->
   <div class="pane" id="pane-connect">
-    <div class="cs"><div class="cn">1</div><div class="cb"><b>获取 Token</b><br>在 <a href="/dashboard">控制台</a> 注册并创建 API Key（<code class="ic">pf_</code> 开头）。</div></div>
-    <div class="cs"><div class="cn">2</div><div class="cb" style="min-width:0;flex:1"><b>配置连接</b><br>以 Claude Desktop / Claude Code 为例，在项目根目录创建 <code class="ic">.mcp.json</code>（加入 .gitignore）：
+    <div class="cs"><div class="cn">1</div><div class="cb"><b>${P.connect.step1Title}</b><br>${lang === 'en' ? 'Visit the ' : '在 '}<a href="${lang === 'en' ? '/en/dashboard' : '/dashboard'}">${P.connect.step1LinkText}</a> ${P.connect.step1Rest}</div></div>
+    <div class="cs"><div class="cn">2</div><div class="cb" style="min-width:0;flex:1"><b>${P.connect.step2Title}</b><br>${P.connect.step2Intro}
       <div class="codeblk" style="margin-top:10px"><pre>{
   <span class="str">"mcpServers"</span>: {
     <span class="str">"pagefire"</span>: {
       <span class="str">"type"</span>: <span class="str">"http"</span>,
       <span class="str">"url"</span>: <span class="str">"https://mcp.${baseDomain}/mcp"</span>,
-      <span class="str">"headers"</span>: { <span class="str">"Authorization"</span>: <span class="str">"Bearer &lt;你的token&gt;"</span> }
+      <span class="str">"headers"</span>: { <span class="str">"Authorization"</span>: <span class="str">"Bearer &lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;"</span> }
     }
   }
 }</pre></div>
-      <div style="margin-top:14px;font-size:13px;color:var(--muted,#9aa)">方式二 · <b>stdio 桥接</b>（连不上时的兜底）：若上面的 HTTP 直连报 <code class="ic">Failed to connect</code>，但浏览器 / Node 能访问该域名，多为客户端运行时 TLS 被网络按指纹拦截。改用本机 Node 的 <a href="https://www.npmjs.com/package/mcp-remote" target="_blank" rel="noopener">mcp-remote</a> 桥接同一端点：</div>
+      <div style="margin-top:14px;font-size:13px;color:var(--muted,#9aa)">${P.connect.m2label}</div>
       <div class="codeblk" style="margin-top:10px"><pre>{
   <span class="str">"mcpServers"</span>: {
     <span class="str">"pagefire"</span>: {
@@ -210,76 +212,93 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
       <span class="str">"command"</span>: <span class="str">"npx"</span>,
       <span class="str">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"mcp-remote"</span>, <span class="str">"https://mcp.${baseDomain}/mcp"</span>,
                <span class="str">"--header"</span>, <span class="str">"Authorization:\${AUTH_HEADER}"</span>, <span class="str">"--transport"</span>, <span class="str">"http-only"</span>],
-      <span class="str">"env"</span>: { <span class="str">"AUTH_HEADER"</span>: <span class="str">"Bearer &lt;你的token&gt;"</span> }
+      <span class="str">"env"</span>: { <span class="str">"AUTH_HEADER"</span>: <span class="str">"Bearer &lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;"</span> }
     }
   }
 }</pre></div>
-      <div style="margin-top:8px;font-size:12px;color:var(--dim,#777)">⚠️ token 须经 <code class="ic">env.AUTH_HEADER</code> 传入、header 写成 <code class="ic">Authorization:\${AUTH_HEADER}</code>（无空格）；写成 <code class="ic">"Authorization: Bearer ..."</code> 会因空格拆断导致工具调用 <code class="ic">UNAUTHORIZED</code>。</div>
-      <div style="margin-top:14px;font-size:13px;color:var(--muted,#9aa)">方式三 · <b>npm 连接器包</b>（最简，推荐）：已发布 <a href="https://www.npmjs.com/package/pagefire-mcp" target="_blank" rel="noopener">pagefire-mcp</a>，token 只走环境变量、无 URL、无 header 坑：</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--dim,#777)">${P.connect.m2note}</div>
+      <div style="margin-top:14px;font-size:13px;color:var(--muted,#9aa)">${P.connect.m3label}</div>
       <div class="codeblk" style="margin-top:10px"><pre>{
   <span class="str">"mcpServers"</span>: {
     <span class="str">"pagefire"</span>: {
       <span class="str">"command"</span>: <span class="str">"npx"</span>,
       <span class="str">"args"</span>: [<span class="str">"-y"</span>, <span class="str">"pagefire-mcp@latest"</span>],
-      <span class="str">"env"</span>: { <span class="str">"PAGEFIRE_TOKEN"</span>: <span class="str">"pf_&lt;你的token&gt;"</span> }
+      <span class="str">"env"</span>: { <span class="str">"PAGEFIRE_TOKEN"</span>: <span class="str">"pf_&lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;"</span> }
     }
   }
 }</pre></div>
     </div></div>
-    <div class="cs" style="border:none;padding-bottom:0"><div class="cn">3</div><div class="cb"><b>对话发布</b><br>重启客户端后直接说："帮我把这份内容发布成网页"，AI 自动调用工具完成发布。</div></div>
+    <div class="cs" style="border:none;padding-bottom:0"><div class="cn">3</div><div class="cb"><b>${P.connect.step3Title}</b><br>${P.connect.step3Desc}</div></div>
 
     <div class="conn-info">
-      <div class="ci-row"><span class="ci-k">端点</span><code class="ic">https://mcp.${baseDomain}/mcp</code></div>
-      <div class="ci-row"><span class="ci-k">传输</span><code class="ic">Streamable HTTP · MCP 2025-03-26</code></div>
-      <div class="ci-row"><span class="ci-k">鉴权</span><code class="ic">Authorization: Bearer pf_xxx</code></div>
+      <div class="ci-row"><span class="ci-k">${P.connect.connEndpoint}</span><code class="ic">https://mcp.${baseDomain}/mcp</code></div>
+      <div class="ci-row"><span class="ci-k">${P.connect.connTransport}</span><code class="ic">Streamable HTTP · MCP 2025-03-26</code></div>
+      <div class="ci-row"><span class="ci-k">${P.connect.connAuth}</span><code class="ic">Authorization: Bearer pf_xxx</code></div>
     </div>
 
-    <div class="sec-sm" style="margin:24px 0 12px">其他客户端</div>
+    <div class="sec-sm" style="margin:24px 0 12px">${P.connect.otherTitle}</div>
     <div class="cli-list">
-      <div class="cli-row"><div class="cli-name">Cursor</div><div class="cli-body">Settings → MCP → Add new global MCP server，填入端点 URL 与 Authorization header。Cursor 不读取 .mcp.json，需在全局设置里配置。</div></div>
-      <div class="cli-row"><div class="cli-name">OpenAI Codex</div><div class="cli-body">在 <code class="ic">codex.yaml</code> 的 <code class="ic">mcp_servers</code> 下添加：<code class="ic">type: http</code>、<code class="ic">url</code>、<code class="ic">headers.Authorization</code>。</div></div>
-      <div class="cli-row" style="border:none"><div class="cli-name">其他</div><div class="cli-body">任何支持 Streamable HTTP transport 的 MCP 客户端均可，填入端点 URL 与 Bearer Token 即可。</div></div>
+      <div class="cli-row"><div class="cli-name">${P.connect.cursorName}</div><div class="cli-body">${P.connect.cursorDesc}</div></div>
+      <div class="cli-row"><div class="cli-name">${P.connect.codexName}</div><div class="cli-body">${P.connect.codexDesc}</div></div>
+      <div class="cli-row" style="border:none"><div class="cli-name">${P.connect.otherName}</div><div class="cli-body">${P.connect.otherDesc}</div></div>
+    </div>
+
+    <div style="margin-top:40px;padding-top:32px;border-top:1px solid var(--bdr)">
+      <div class="sec-sm" style="margin-bottom:6px">CLI</div>
+      <div style="font-size:16px;font-weight:650;color:var(--txt);margin-bottom:6px;letter-spacing:-.3px">${P.connect.cliTitle}</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:24px">${P.connect.cliDesc}</div>
+
+      <div class="cs"><div class="cn">1</div><div class="cb"><b>${P.connect.cliStep1}</b>
+        <div class="codeblk" style="margin-top:8px"><pre>${P.connect.cliStep1Cmd}</pre></div>
+        <div style="font-size:12.5px;color:var(--dim);margin:6px 0 4px">${P.connect.cliStep1Alt}</div>
+        <div class="codeblk"><pre>${P.connect.cliStep1AltCmd}</pre></div>
+      </div></div>
+
+      <div class="cs"><div class="cn">2</div><div class="cb"><b>${P.connect.cliStep2}</b>
+        <div class="codeblk" style="margin-top:8px"><pre><span class="cm">${P.connect.cliStep2Unix}</span>
+${P.connect.cliStep2UnixCmd}
+
+<span class="cm">${P.connect.cliStep2Win}</span>
+${P.connect.cliStep2WinCmd}</pre></div>
+      </div></div>
+
+      <div class="cs" style="border:none;padding-bottom:0"><div class="cn">3</div><div class="cb"><b>${P.connect.cliStep3}</b>
+        <div class="codeblk" style="margin-top:8px"><pre>${P.connect.cliCmds.map(c =>
+          `<span class="kw">${c.cmd}</span>   <span class="cm"># ${c.desc}</span>`
+        ).join('\n')}</pre></div>
+        <div style="font-size:12.5px;color:var(--dim);margin-top:8px">${P.connect.cliHelp}</div>
+      </div></div>
     </div>
   </div>
 
-  <!-- 测试 -->
+  <!-- test -->
   <div class="pane" id="pane-test">
     <div class="panel">
       <div class="panel-b" id="tester-body">
         <div class="gate" id="gate">
           <div class="g-ico">🔑</div>
-          <p>登录后即可用你自己的 API Key 实时测试</p>
-          <a class="btn-primary" href="/">去登录 / 注册</a>
+          <p>${P.test.gatePara}</p>
+          <a class="btn-primary" href="${P.test.gateHref}">${P.test.gateBtn}</a>
         </div>
         <div id="tester" style="display:none">
           <div class="row">
-            <div class="fld"><label>API Key</label><select id="key-sel"></select></div>
-            <div class="fld"><label>工具</label>
-              <select id="tool-sel">
-                <option value="deploy_markdown">deploy_markdown — Markdown 渲染</option>
-                <option value="deploy_page">deploy_page — 单页 HTML</option>
-                <option value="deploy_docs">deploy_docs — 文档站（多 .md）</option>
-                <option value="deploy_files">deploy_files — 多文件站点（HTML/CSS/JS）</option>
-                <option value="deploy_zip">deploy_zip — 整站打包（.zip）</option>
-                <option value="list_deployments">list_deployments — 列出部署</option>
-                <option value="get_deployment">get_deployment — 查询单个部署</option>
-                <option value="delete_deployment">delete_deployment — 删除部署</option>
-                <option value="set_access">set_access — 修改访问控制</option>
-              </select>
+            <div class="fld"><label id="lbl-key"></label><select id="key-sel"></select></div>
+            <div class="fld"><label id="lbl-tool"></label>
+              <select id="tool-sel">${toolOptions}</select>
             </div>
           </div>
           <div id="uprow" style="display:none">
             <div class="dropzone" id="dropzone" onclick="$('file-in').click()">
               <input type="file" id="file-in" style="display:none" onchange="onFile(this)">
-              <span id="up-icon">📎</span> <span id="up-label">点击或拖拽文件到此处</span>
-              <div style="margin-top:4px;font-size:11px" id="up-note">可选：上传文件自动填入参数</div>
+              <span id="up-icon"></span> <span id="up-label"></span>
+              <div style="margin-top:4px;font-size:11px" id="up-note"></div>
             </div>
           </div>
-          <div class="fld"><label>参数 (JSON)</label><textarea id="args" spellcheck="false"></textarea>
-            <div class="hint">这就是 MCP <code>tools/call</code> 的 <code>arguments</code>，可自由编辑。</div>
+          <div class="fld"><label id="lbl-args"></label><textarea id="args" spellcheck="false"></textarea>
+            <div class="hint" id="lbl-hint"></div>
           </div>
           <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
-            <button class="run" id="run-btn" onclick="run()">▶ 运行</button>
+            <button class="run" id="run-btn" onclick="run()"></button>
             <span id="ms" style="font-size:12px;color:var(--dim)"></span>
           </div>
           <div class="res" id="res">
@@ -296,11 +315,22 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
 </div>
 
 <div class="toast" id="toast"></div>
-<footer><div class="w fc">© 2026 PageFire · MCP Playground</div></footer>
+<footer><div class="w fc">${P.footer}</div></footer>
 
 <script>
 const $ = id => document.getElementById(id)
 const baseDomain = ${JSON.stringify(baseDomain)}
+const _t = ${_t}
+
+// Apply labels
+$('lbl-key').textContent = _t.apiKeyLabel
+$('lbl-tool').textContent = _t.toolLabel
+$('lbl-args').textContent = _t.argsLabel
+$('lbl-hint').innerHTML = _t.argsHint
+$('run-btn').textContent = _t.runBtn
+$('up-icon').textContent = _t.uploadIcon
+$('up-label').textContent = _t.uploadLabelDefault
+$('up-note').textContent = _t.uploadNoteDefault
 
 function pick(p){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.p===p))
@@ -310,27 +340,26 @@ function pick(p){
 }
 
 const EXAMPLES = {
-  deploy_markdown: { markdown: "# 你好，PageFire\\n\\n这是用 **deploy_markdown** 渲染的页面。\\n\\n- 支持表格、代码块\\n- 三种主题：light / dark / sepia\\n", title: "测试页", theme: "light" },
-  deploy_page:     { html: "<h1>Hello PageFire</h1><p>这是 deploy_page 发布的页面。</p>", title: "测试页" },
-  deploy_docs:     { title: "测试文档", theme: "light", files: [
-    { path: "index.md", markdown: "# 首页\\n\\n前往 [指南](./guide.md)。" },
-    { path: "guide.md", markdown: "# 指南\\n\\n返回 [首页](./index.md)。" } ] },
-  deploy_files:    { title: "多文件站", files: [
-    { path: "index.html", content: "<html><body><h1>Hello</h1><link rel='stylesheet' href='style.css'></body></html>", encoding: "utf8" },
-    { path: "style.css",  content: "body{font-family:sans-serif;background:#f0f0f0}", encoding: "utf8" } ] },
-  deploy_zip:      { title: "整站", spa: false },
+  deploy_markdown: { markdown: _t.exMarkdownContent, title: _t.exMarkdownTitle, theme: 'light' },
+  deploy_page:     { html: _t.exPageHtml, title: _t.exPageTitle },
+  deploy_docs:     { title: _t.exDocsTitle, theme: 'light', files: [
+    { path: 'index.md', markdown: _t.exDocsIndex },
+    { path: 'guide.md', markdown: _t.exDocsGuide } ] },
+  deploy_files:    { title: _t.exFilesTitle, files: [
+    { path: 'index.html', content: '<html><body><h1>Hello</h1><link rel="stylesheet" href="style.css"></body></html>', encoding: 'utf8' },
+    { path: 'style.css',  content: 'body{font-family:sans-serif;background:#f0f0f0}', encoding: 'utf8' } ] },
+  deploy_zip:      { title: _t.exZipTitle, spa: false },
   list_deployments: {},
-  get_deployment:  { did: "填写站点别名" },
-  delete_deployment: { did: "填写站点别名" },
-  set_access:      { did: "填写站点别名", access: "public" },
+  get_deployment:  { did: _t.exGetDid },
+  delete_deployment: { did: _t.exDeleteDid },
+  set_access:      { did: _t.exSetAccessDid, access: 'public' },
 }
-// which tools accept an uploaded file, and the accept filter
 const UPLOAD = {
-  deploy_markdown: { accept: '.md,.markdown,.txt', multiple:false, label:'上传 .md / .txt' },
-  deploy_page:     { accept: '.html,.htm',         multiple:false, label:'上传 .html' },
-  deploy_zip:      { accept: '.zip',               multiple:false, label:'上传 .zip' },
-  deploy_docs:     { accept: '.md,.markdown',      multiple:true,  label:'上传多个 .md' },
-  deploy_files:    { accept: '.html,.htm,.css,.js,.json,.svg,.txt,.md', multiple:true, label:'上传多个文件（HTML/CSS/JS…）' },
+  deploy_markdown: { accept: '.md,.markdown,.txt', multiple:false, label: _t.uploadLabels['deploy_markdown'] },
+  deploy_page:     { accept: '.html,.htm',         multiple:false, label: _t.uploadLabels['deploy_page'] },
+  deploy_zip:      { accept: '.zip',               multiple:false, label: _t.uploadLabels['deploy_zip'] },
+  deploy_docs:     { accept: '.md,.markdown',      multiple:true,  label: _t.uploadLabels['deploy_docs'] },
+  deploy_files:    { accept: '.html,.htm,.css,.js,.json,.svg,.txt,.md', multiple:true, label: _t.uploadLabels['deploy_files'] },
 }
 
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1900) }
@@ -343,8 +372,8 @@ function syncUpload(){
     $('file-in').accept=u.accept
     $('file-in').multiple=!!u.multiple
     $('up-label').textContent=u.label
-    $('up-note').textContent='可选：上传文件，自动填入参数（' + u.accept + '）'
-    $('file-in').value=''  // reset so same file can be re-selected
+    $('up-note').textContent=_t.uploadOptNote+' ('+u.accept+')'
+    $('file-in').value=''
   } else {
     $('uprow').style.display='none'
   }
@@ -360,7 +389,6 @@ function syncUpload(){
     const files=e.dataTransfer?.files
     if(!files?.length) return
     const fi=$('file-in')
-    // DataTransfer trick to populate the file input
     const dt=new DataTransfer()
     ;[...files].forEach(f=>dt.items.add(f))
     fi.files=dt.files
@@ -376,7 +404,7 @@ async function initTester(){
   if(!ok){ $('gate').style.display=''; $('tester').style.display='none'; testerReady=false; return }
   const kr=await fetch('/api/keys',{credentials:'same-origin'}); const {keys}=await kr.json()
   const active=(keys||[]).filter(k=>k.status==='active')
-  if(!active.length){ $('gate').innerHTML='<div class="g-ico">🔑</div><p>你还没有可用的 API Key</p><a class="btn-primary" href="/dashboard">去控制台创建</a>'; return }
+  if(!active.length){ $('gate').innerHTML='<div class="g-ico">🔑</div><p>'+_t.noKeys+'</p><a class="btn-primary" href="${lang === 'en' ? '/en/dashboard' : '/dashboard'}">'+_t.createKey+'</a>'; return }
   $('gate').style.display='none'; $('tester').style.display=''
   $('key-sel').innerHTML=active.map(k=>'<option value="'+k.id+'">'+esc(k.label||k.space_id)+' ('+k.space_id+')</option>').join('')
   setArgs(); syncUpload()
@@ -394,35 +422,35 @@ async function onFile(input){
     if(t==='deploy_zip'){ const b64=await readB64(files[0]); setArgsObj({ zip_base64:b64, title:files[0].name.replace(/\\.zip$/,'') }) }
     else if(t==='deploy_page'){ const txt=await readText(files[0]); setArgsObj({ html:txt, title:files[0].name }) }
     else if(t==='deploy_markdown'){ const txt=await readText(files[0]); setArgsObj({ markdown:txt, title:files[0].name.replace(/\\.(md|markdown|txt)$/,''), theme:'light' }) }
-    else if(t==='deploy_docs'){ const arr=await Promise.all(files.map(async f=>({ path:f.name, markdown:await readText(f) }))); setArgsObj({ title:'文档站', theme:'light', files:arr }) }
+    else if(t==='deploy_docs'){ const arr=await Promise.all(files.map(async f=>({ path:f.name, markdown:await readText(f) }))); setArgsObj({ title:_t.exDocsTitle, theme:'light', files:arr }) }
     else if(t==='deploy_files'){
       const isBin = f => /\.(png|jpg|jpeg|gif|ico|woff2?|ttf|eot|pdf)$/i.test(f.name)
       const arr=await Promise.all(files.map(async f=>isBin(f)
         ? { path:f.name, content:await readB64(f), encoding:'base64' }
         : { path:f.name, content:await readText(f), encoding:'utf8' }))
-      setArgsObj({ title:'多文件站', files:arr })
+      setArgsObj({ title:_t.exFilesTitle, files:arr })
     }
-    $('up-note').textContent = '✓ 已载入 ' + files.length + ' 个文件'
-  } catch { toast('文件读取失败') }
+    $('up-note').textContent = _t.fileLoaded.replace('{n}', files.length)
+  } catch { toast(_t.fileError) }
 }
 
 async function run(){
   const btn=$('run-btn'), tool=$('tool-sel').value, keyId=$('key-sel').value
-  let args; try { args=JSON.parse($('args').value||'{}') } catch { toast('参数不是合法 JSON'); return }
-  btn.disabled=true; btn.textContent='运行中…'; $('ms').textContent=''
+  let args; try { args=JSON.parse($('args').value||'{}') } catch { toast(_t.invalidJson); return }
+  btn.disabled=true; btn.textContent=_t.runBtnRunning; $('ms').textContent=''
   try {
     const r=await fetch('/api/playground',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({key_id:keyId,tool,arguments:args})})
     const d=await r.json(); showResult(r.ok&&d.ok,d); if(d.ms!=null)$('ms').textContent=d.ms+' ms'
-  } catch { toast('请求失败（文件可能过大，上限 24MB）') }
-  btn.disabled=false; btn.textContent='▶ 运行'
+  } catch { toast(_t.reqError) }
+  btn.disabled=false; btn.textContent=_t.runBtn
 }
 function showResult(ok,d){
   const res=$('res'); res.classList.add('show')
   $('res-dot').className='dot '+(ok?'ok':'err')
-  $('res-label').textContent=ok?'调用成功':('失败'+(d.error?'：'+d.error:''))
+  $('res-label').textContent=ok?_t.callOk:(_t.callFail+(d.error?': '+d.error:''))
   const payload=d.result!==undefined?d.result:d
   const url=payload&&payload.url, u=$('res-url')
-  if(ok&&url){ u.style.display='inline-flex'; u.href=url; u.textContent='打开页面 → '+url.replace('https://','') } else u.style.display='none'
+  if(ok&&url){ u.style.display='inline-flex'; u.href=url; u.textContent=_t.openPage+' '+url.replace('https://','') } else u.style.display='none'
   $('res-json').textContent=JSON.stringify(payload,null,2)
 }
 // open the tab from #hash
