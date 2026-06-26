@@ -255,6 +255,23 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
   </div>
 </div>
 
+<!-- edit space_id modal -->
+<div class="ov" id="ov-space">
+  <div class="modal">
+    <button class="x" onclick="closeModal('ov-space')">×</button>
+    <h2>自定义 space_id</h2>
+    <div class="mdesc">space_id 是该 Key 所有子域名中固定的那一段。</div>
+    <div class="err" id="s-err"></div>
+    <div class="field">
+      <label>新 space_id</label>
+      <input id="s-input" placeholder="4–20 位，a-z 0-9 -" maxlength="20">
+      <div class="hint">子域名预览：<code id="s-preview">&lt;space_id&gt;.${baseDomain}</code></div>
+    </div>
+    <div class="warn-once">⚠ 修改后,该 Key 已发布的所有 URL 立即改用新地址,旧链接失效。</div>
+    <button class="btn-primary" id="s-btn" onclick="saveSpaceId()">保存</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -312,6 +329,7 @@ async function loadKeys() {
     const on = k.status === 'active'
     const actions = !on ? '<span class="badge-rev">已吊销</span>'
       : '<button class="icon-btn" title="测试连接" onclick="testKey(\\'' + k.id + '\\',this)">⚡</button>' +
+        '<button class="icon-btn" title="自定义 space_id" data-id="' + k.id + '" data-sid="' + esc(k.space_id) + '" onclick="openSpaceEdit(this)">✎</button>' +
         '<button class="icon-btn danger" title="吊销" data-id="' + k.id + '" data-label="' + esc(k.label || k.space_id) + '" onclick="revoke(this)">✕</button>'
     return '<div class="krow">' +
       '<div class="kmain">' +
@@ -420,6 +438,32 @@ async function createKey() {
 function closeReveal() { closeModal('ov-reveal'); loadKeys() }
 function copyTok() { navigator.clipboard.writeText($('r-token').textContent).then(() => toast('已复制到剪贴板')) }
 
+let spaceEditId = null
+function openSpaceEdit(btn) {
+  spaceEditId = btn.dataset.id
+  $('s-err').style.display = 'none'
+  $('s-input').value = btn.dataset.sid
+  $('s-preview').textContent = btn.dataset.sid + '.' + baseDomain
+  $('ov-space').classList.add('show')
+  setTimeout(() => $('s-input').focus(), 50)
+}
+$('s-input').addEventListener('input', e => {
+  const v = e.target.value.trim()
+  $('s-preview').textContent = (v || '<space_id>') + '.' + baseDomain
+})
+async function saveSpaceId() {
+  const err = $('s-err'); err.style.display = 'none'
+  const sid = $('s-input').value.trim()
+  const btn = $('s-btn'); btn.disabled = true; btn.textContent = '保存中…'
+  try {
+    const r = await api('/api/keys/' + spaceEditId + '/space-id', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ space_id: sid }) })
+    const d = await r.json()
+    if (r.ok) { closeModal('ov-space'); toast('space_id 已更新'); loadKeys(); loadDeployments() }
+    else { err.textContent = d.error || '修改失败'; err.style.display = '' }
+  } catch { err.textContent = '网络错误'; err.style.display = '' }
+  btn.disabled = false; btn.textContent = '保存'
+}
+
 async function revoke(btn) {
   const id = btn.dataset.id, name = btn.dataset.label
   if (!confirm('确定吊销「' + name + '」？\\n该 Key 立即失效，其下所有已发布站点将无法访问。')) return
@@ -452,7 +496,7 @@ async function changePassword() {
 }
 async function logout() { await api('/api/logout', { method:'POST' }); location.href = '/' }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal('ov-create'); closeModal('ov-reveal') } })
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal('ov-create'); closeModal('ov-reveal'); closeModal('ov-space') } })
 init()
 </script>
 </body>

@@ -177,5 +177,15 @@ export function handleRequest(
     filePath = join(deployDir, 'index.html')
   }
 
+  // Default PageFire favicon for deployed pages that don't ship their own
+  if ((requestedPath === '/favicon.ico' || requestedPath === '/favicon.png') && !existsSync(filePath)) {
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    res.setHeader('Content-Length', FAVICON_PNG.length)
+    res.statusCode = 200
+    res.end(FAVICON_PNG)
+    return
+  }
+
   serveFile(res, filePath)
 }

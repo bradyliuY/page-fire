@@ -12,6 +12,7 @@ import {
   createSession, getSessionUser, deleteSession, updateUserPassword,
   listTokensByUser, getTokenByIdForUser, revokeTokenById, countActiveTokensByUser,
   listDeploymentsByUser, getDeploymentForUser, deleteDeploymentRow, updateDeployment,
+  setSpaceIdByTokenId,
   type UserRow,
 } from '../db/repo.js'
 import { deleteDeploymentFiles } from '../core/deploy.js'
@@ -319,6 +320,28 @@ export async function handleApiRequest(
     } catch (e: any) {
       json(res, 400, { error: e?.message ?? '创建失败' })
     }
+    return true
+  }
+
+  // ── Change a key's space_id (vanity subdomain) ────────────────────────────────
+  if (method === 'POST' && url.startsWith('/api/keys/') && url.endsWith('/space-id')) {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const id = decodeURIComponent(url.slice('/api/keys/'.length, -'/space-id'.length))
+    const tok = getTokenByIdForUser(db, id, user.id)
+    if (!tok) { json(res, 404, { error: 'Key 不存在' }); return true }
+    const body = await readJson(req) as any
+    const sid = typeof body?.space_id === 'string' ? body.space_id.trim() : ''
+    try { validateCustomSpaceId(sid) }
+    catch (e) { json(res, 400, { error: (e as ValidationError).message }); return true }
+    try { setSpaceIdByTokenId(db, id, sid) }
+    catch (e: any) { json(res, 400, { error: e?.message ?? '修改失败', code: e?.code }); return true }
+    // Keep deployment domains consistent with the new space_id.
+    db.prepare("UPDATE deployments SET domain = did || '-' || ? WHERE token_id = ?")
+      .run(`${sid}.${config.baseDomain}`, id)
+    insertAuditLog(db, { token_id: id, action: 'set_space_id', ip })
+    const scheme = config.baseDomain === 'localhost' ? 'http' : 'https'
+    json(res, 200, { ok: true, space_id: sid, base_url: `${scheme}://${sid}.${config.baseDomain}` })
     return true
   }
 

@@ -22,12 +22,14 @@ code,pre{font-family:'SF Mono',ui-monospace,'Fira Code',Consolas,monospace}
 .w{max-width:1000px;margin:0 auto;padding:0 24px}
 
 nav{border-bottom:1px solid var(--bdr);background:rgba(10,10,11,.8);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50}
-.nav-i{display:flex;align-items:center;justify-content:space-between;height:58px}
+.nav-i{display:flex;align-items:center;justify-content:space-between;height:60px}
 .logo{display:flex;align-items:center;gap:9px;font-weight:650;font-size:15.5px}
 .flame{width:26px;height:26px;border-radius:7px;background:var(--fire-dim);border:1px solid rgba(249,115,22,.25);display:grid;place-items:center;font-size:13px}
 .nav-r{display:flex;gap:6px;align-items:center}
 .nav-r a{color:var(--muted);font-size:13.5px;padding:7px 12px;border-radius:8px;transition:.15s}
 .nav-r a:hover{color:var(--txt);background:var(--sur)}
+.nav-reg{background:#fafafa !important;color:#0a0a0b !important;font-weight:600}
+.nav-reg:hover{background:#e4e4e7 !important}
 
 .hd{padding:48px 0 22px;text-align:center}
 .tag{display:inline-flex;align-items:center;gap:8px;padding:5px 13px;border-radius:100px;background:var(--sur);border:1px solid var(--bdr);font-size:12.5px;color:var(--muted);margin-bottom:16px}
@@ -139,8 +141,10 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
   <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
   <div class="nav-r">
     <a href="/#features">功能</a>
+    <a href="/#examples">示例</a>
+    <a href="/playground">Playground</a>
     <a href="/#quickstart">接入</a>
-    <a href="/dashboard">控制台</a>
+    <a href="/dashboard" class="nav-reg">控制台 →</a>
   </div>
 </div></nav>
 
