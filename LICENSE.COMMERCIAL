@@ -1,0 +1,61 @@
+PageFire Commercial License
+Copyright (c) 2026 OpenHKT (https://openhkt.com)
+
+================================================================================
+SUMMARY
+================================================================================
+
+The PageFire source code is released under the MIT License (see LICENSE), which
+permits self-hosting, modification, and redistribution for any purpose —
+including internal commercial use — at no charge.
+
+This Commercial License applies if you intend to:
+
+  (a) Operate PageFire as a hosted / cloud service for third parties
+      (i.e., you are the operator and your users are the tenants), OR
+
+  (b) Distribute a product or SaaS whose primary value is derived from
+      PageFire's publishing infrastructure without building substantial
+      additional functionality on top of it.
+
+In other words: **run it yourself = MIT, free forever**.
+Resell it as a cloud service to others = contact us.
+
+================================================================================
+WHAT YOU CAN DO UNDER MIT (no commercial license needed)
+================================================================================
+
+✓ Self-host PageFire on your own server for your own use or your team
+✓ Use PageFire in your AI / MCP workflow to publish content
+✓ Modify, fork, and redistribute the source code
+✓ Build products on top of PageFire (as long as you are the primary user)
+✓ Use pagefire-mcp (the npm connector) freely in any project
+
+================================================================================
+WHAT REQUIRES A COMMERCIAL LICENSE
+================================================================================
+
+✗ Offering a multi-tenant PageFire hosting service where paying customers
+  deploy via *your* instance (e.g., a white-label "Pages-as-a-Service")
+✗ Bundling PageFire as the core infrastructure of a commercial SaaS product
+  where the publishing capability is the primary feature being sold
+
+================================================================================
+OBTAINING A COMMERCIAL LICENSE
+================================================================================
+
+Contact: bradyliuy@gmail.com
+Subject: PageFire Commercial License Inquiry
+
+We offer flexible licensing for startups, enterprises, and hosting providers.
+
+================================================================================
+DISCLAIMER
+================================================================================
+
+This commercial license is complementary to, and does not supersede, the MIT
+License. The MIT License remains fully in effect for all permitted uses.
+Nothing in this document restricts rights expressly granted by the MIT License.
+
+OpenHKT reserves the right to update these terms. The version in effect at the
+time of your deployment governs your use.

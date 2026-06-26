@@ -206,4 +206,6 @@ packages/
 
 ## License
 
-MIT © [OpenHKT](https://github.com/bradyliuY)
+MIT © [OpenHKT](https://github.com/bradyliuY) — 自托管使用无限制。
+
+基于本项目对外提供多租户云服务（即你是运营商、用户是租户）需要商业授权，详见 [LICENSE.COMMERCIAL](LICENSE.COMMERCIAL)。
