@@ -151,13 +151,29 @@ input[type=checkbox]{margin-right:.5em}
   body.nav-open .scrim{display:block}
   .content{margin-left:0;padding:64px 22px 90px}
 }
+/* desktop: keep content centered between nav and TOC; collapsible nav + TOC */
+@media(min-width:1280px){
+  body.has-toc .content{margin-right:214px}
+  body.has-toc.toc-hidden .content{margin-right:0}
+}
+.nav-x{margin-left:auto;flex-shrink:0;width:22px;height:22px;border:1px solid var(--bdr);
+  background:var(--bg);color:var(--muted);border-radius:6px;cursor:pointer;display:grid;
+  place-items:center;font-size:15px;line-height:1}
+.nav-x:hover{color:var(--fg);background:var(--table-alt)}
+.nav-reopen{display:none;position:fixed;top:14px;left:14px;z-index:18;align-items:center;
+  justify-content:center;width:38px;height:38px;border-radius:9px;border:1px solid var(--bdr);
+  background:var(--bg);color:var(--fg);font-size:17px;cursor:pointer}
+body.nav-hidden .sidebar{transform:translateX(-100%);transition:transform .2s}
+body.nav-hidden .content{margin-left:0}
+@media(min-width:861px){body.nav-hidden .nav-reopen{display:flex}}
 </style>
 </head>
-<body>
+<body class="${toc ? 'has-toc' : ''}">
 <button class="menu-btn" onclick="document.body.classList.toggle('nav-open')" aria-label="菜单">☰</button>
+<button class="nav-reopen" onclick="document.body.classList.remove('nav-hidden')" aria-label="展开导航">☰</button>
 <div class="scrim" onclick="document.body.classList.remove('nav-open')"></div>
 <aside class="sidebar">
-  <div class="site-title"><span class="fl">📖</span>${escapeHtml(siteTitle)}</div>
+  <div class="site-title"><span class="fl">📖</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(siteTitle)}</span><button class="nav-x" onclick="document.body.classList.add('nav-hidden')" title="收起导航" aria-label="收起导航">‹</button></div>
   <nav>
 ${navHtml}
   </nav>

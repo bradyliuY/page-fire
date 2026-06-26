@@ -93,8 +93,9 @@ export function renderTocPanel(headings: Heading[], minBreakpoint = 1100): strin
     const indent = h.level === 3 ? ' style="padding-left:14px"' : ''
     return `<a href="#${h.id}"${indent}>${escapeHtml(h.text)}</a>`
   }).join('\n')
-  return `<div class="toc-wrap">
-<div class="toc-label">目录</div>
+  return `<button class="toc-reopen" onclick="document.body.classList.remove('toc-hidden')" aria-label="展开目录">‹ 目录</button>
+<div class="toc-wrap">
+<div class="toc-head"><span class="toc-label">目录</span><button class="toc-x" onclick="document.body.classList.add('toc-hidden')" title="收起目录" aria-label="收起目录">›</button></div>
 <nav class="toc" aria-label="页内目录">
 ${items}
 </nav>
@@ -103,9 +104,20 @@ ${items}
 .toc-wrap{position:fixed;top:56px;right:24px;width:190px;max-height:calc(100vh - 80px);
   overflow-y:auto;display:none;scrollbar-width:none}
 .toc-wrap::-webkit-scrollbar{display:none}
-@media(min-width:${minBreakpoint}px){.toc-wrap{display:block}}
+.toc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-left:8px}
+.toc-x,.toc-reopen{border:1px solid var(--bdr);background:var(--bg);color:var(--muted);
+  cursor:pointer;line-height:1;transition:color .12s,background .12s}
+.toc-x{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:15px}
+.toc-x:hover,.toc-reopen:hover{color:var(--fg);background:var(--table-alt)}
+.toc-reopen{display:none;position:fixed;top:56px;right:0;padding:7px 11px;font-size:11.5px;
+  border-radius:8px 0 0 8px;border-right:none;z-index:15}
+@media(min-width:${minBreakpoint}px){
+  .toc-wrap{display:block}
+  body.toc-hidden .toc-wrap{display:none}
+  body.toc-hidden .toc-reopen{display:block}
+}
 .toc-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:8px;padding-left:8px}
+  color:var(--muted)}
 .toc a{display:block;color:var(--muted);font-size:12.5px;text-decoration:none;
   padding:4px 8px;border-radius:5px;line-height:1.45;transition:color .1s,background .1s;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -156,6 +168,8 @@ body{margin:0;background:var(--bg);color:var(--fg);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,'PingFang SC','Microsoft YaHei',sans-serif;
   font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
 .md{max-width:var(--maxw);margin:0 auto;padding:64px 24px 120px}
+/* when the right TOC is shown, reserve its width so the content stays centered in the visible band */
+@media(min-width:1100px){body.has-toc{padding-right:214px}body.has-toc.toc-hidden{padding-right:0}}
 .md>*:first-child{margin-top:0}
 h1,h2,h3,h4,h5,h6{margin:2em 0 .7em;line-height:1.3;font-weight:650;letter-spacing:-.01em}
 h1{font-size:2em;padding-bottom:.3em;border-bottom:1px solid var(--bdr)}
@@ -187,7 +201,7 @@ kbd{font-family:'SF Mono',monospace;font-size:.82em;background:var(--code-bg);
 @media(max-width:600px){.md{padding:40px 18px 90px}body{font-size:15.5px}}
 </style>
 </head>
-<body>
+<body class="${toc ? 'has-toc' : ''}">
 <article class="md">
 ${bodyHtml}
 </article>
