@@ -197,10 +197,9 @@ PageFire 有两种用法，共用同一套 API Key，可任意搭配：
 
 ## 部署到生产服务器
 
-完整部署步骤（nginx 共存、证书申请、PM2 配置）见：
+完整部署步骤（nginx 共存、证书申请、PM2 配置）见 [docs/design.md](docs/design.md) 的部署章节。
 
-- [docs/deploy/PAGEFIRE_DEPLOY.md](docs/deploy/PAGEFIRE_DEPLOY.md) — PageFire 专属部署手册
-- [docs/design.md](docs/design.md) — 架构设计与安全模型
+> 含服务器 IP / 凭证的完整可执行手册仅在本地保留（`docs/deploy/`，不入库）。
 
 ---
 

@@ -24,8 +24,7 @@ specs/001-pagefire-mcp-publisher/plan.md
 ## 文档地图
 
 - `docs/design.md` —— **权威设计文档**。架构、安全模型、SQLite 数据模型、MCP 工具接口、代码结构(§11)、设计补遗(§12)、路线图。改动架构前先改这里。
-- `docs/deploy/PAGEFIRE_DEPLOY.md` —— PageFire 的部署手册(与 Luminar 同机共存版),含域名/证书/nginx/PM2 全部可执行步骤。
-- `docs/deploy/`（本地保留,不入库） —— PageFire 的完整部署手册,含域名/证书/nginx/PM2 步骤,以及与现有应用同机共存的约束说明。
+- `docs/deploy/`（**本地保留,不入库**,含服务器敏感信息) —— 完整部署手册 `PAGEFIRE_DEPLOY.md`(域名/证书/nginx/PM2 可执行步骤、与 Luminar 同机共存约束),以及私钥、SSH 隧道、备份脚本 `backup.sh`。
 
 ## 必须守住的架构约束(违反会破坏安全模型或撞车线上服务)
 
