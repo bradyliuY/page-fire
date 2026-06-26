@@ -5,7 +5,8 @@
 <h3 align="center">PageFire</h3>
 
 <p align="center">
-  通过 MCP 一句话把 HTML / Markdown / 静态包发布成公网 HTTPS 网页 &nbsp;·&nbsp; 自托管 &nbsp;·&nbsp; 秒级
+  给 AI 一个「发布」能力 —— 一句话，内容秒变带 HTTPS 的独立子域名页面<br>
+  自托管 &nbsp;·&nbsp; 多租户 &nbsp;·&nbsp; MCP 原生 &nbsp;·&nbsp; 零部署流程
 </p>
 
 <p align="center">
