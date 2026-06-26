@@ -9,6 +9,7 @@ import { renderHome } from './home.js'
 import { renderDashboard } from './dashboard.js'
 import { renderPlayground } from './playground.js'
 import { SECURITY_HEADERS } from './headers.js'
+import { LOGO_PNG, FAVICON_PNG } from './assets.js'
 
 let cachedHomeBuf: Buffer | null = null
 let cachedHomeKey: string | null = null
@@ -37,6 +38,17 @@ export function handleRequest(
 
   // Root domain → serve product homepage / dashboard
   if (host === baseDomain) {
+    // Brand assets (logo + favicon), base64-embedded, long-cached (ignore any query string)
+    const assetPath = url.split('?')[0]
+    if (assetPath === '/logo.png' || assetPath === '/favicon.ico' || assetPath === '/favicon.png') {
+      const buf = assetPath === '/logo.png' ? LOGO_PNG : FAVICON_PNG
+      res.setHeader('Content-Type', 'image/png')
+      res.setHeader('Cache-Control', 'public, max-age=604800')
+      res.setHeader('Content-Length', buf.length)
+      res.statusCode = 200
+      res.end(buf)
+      return
+    }
     // Dashboard shell (auth enforced client-side via /api/me + httpOnly session cookie)
     if (url === '/dashboard' || url.startsWith('/dashboard?')) {
       if (cachedDashKey !== baseDomain) {

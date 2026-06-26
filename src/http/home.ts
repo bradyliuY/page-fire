@@ -6,6 +6,11 @@ export function renderHome(baseDomain: string, requireInvite = false): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="通过 MCP 协议，让 AI 直接把 HTML / ZIP 发布成公网可访问页面。自托管、多租户、秒级响应。">
 <title>PageFire — MCP 驱动的静态站点发布服务</title>
+<link rel="icon" type="image/png" href="/favicon.ico">
+<meta property="og:title" content="PageFire — AI · Create · Publish">
+<meta property="og:description" content="通过 MCP 一键把 HTML / 静态包发布成公网可访问网页的自托管静态发布服务。">
+<meta property="og:image" content="https://${baseDomain}/logo.png">
+<meta property="og:type" content="website">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -145,7 +150,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
 <div class="glow"></div>
 
 <nav><div class="w nav-i">
-  <a class="logo" href="/"><span class="flame">🔥</span>PageFire</a>
+  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:30px;width:auto;display:block"></a>
   <div class="nav-r">
     <a href="#features">功能</a>
     <a href="#examples">示例</a>

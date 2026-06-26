@@ -6,6 +6,7 @@ export function renderPlayground(baseDomain: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="了解、接入并在线测试 PageFire 的 MCP 工具：查看工具列表与接入配置，选一个 API Key 直接调用，立刻看到真实结果。">
 <title>Playground — PageFire MCP</title>
+<link rel="icon" type="image/png" href="/favicon.ico">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -135,7 +136,7 @@ footer{border-top:1px solid var(--bdr);padding:22px 0;margin-top:40px}
 </head>
 <body>
 <nav><div class="w nav-i">
-  <a class="logo" href="/"><span class="flame">🔥</span>PageFire</a>
+  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:30px;width:auto;display:block"></a>
   <div class="nav-r">
     <a href="/#features">功能</a>
     <a href="/#quickstart">接入</a>

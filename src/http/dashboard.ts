@@ -6,6 +6,7 @@ export function renderDashboard(baseDomain: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>控制台 — PageFire</title>
+<link rel="icon" type="image/png" href="/favicon.ico">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -138,7 +139,7 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 </head>
 <body>
 <nav><div class="nav-i">
-  <a class="logo" href="/"><span class="flame">🔥</span>PageFire</a>
+  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:30px;width:auto;display:block"></a>
   <div class="nav-r">
     <a class="btn-ghost" href="/playground" style="text-decoration:none">Playground</a>
     <span class="uname" id="uname"></span>
