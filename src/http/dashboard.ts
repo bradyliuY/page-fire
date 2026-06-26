@@ -170,7 +170,9 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
       </div>
       <div class="card">
         <h3>怎么发布</h3>
-        在 Claude / Cursor 等 MCP 客户端配置 <code>npx pagefire-mcp@latest</code>（用上方 API Key 作 <code>PAGEFIRE_TOKEN</code>），一句话即可发布网页；用 <code>deploy_dir</code> 可直接发布整个本地目录。详见 <a href="/playground#connect" style="color:var(--fire2)">Playground → 接入</a>。
+        <b>MCP 客户端</b>（AI 对话）：配置 <code>npx pagefire-mcp@latest</code>（<code>PAGEFIRE_TOKEN</code> 用上方 Key），一句话发布。<br>
+        <b>CLI</b>（终端 / CI）：<code>npm i -g pagefire-mcp</code>，然后 <code>pagefire deploy ./dist</code> 或 <code>pagefire deploy-docs ./docs</code>。<br>
+        详见 <a href="/playground#connect" style="color:var(--fire2)">Playground → 接入文档</a>。
       </div>
     </section>
 

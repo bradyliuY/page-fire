@@ -401,6 +401,20 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
         </div>
       </div>
     </div>
+    <div class="qs-item">
+      <div class="qn" style="background:none;border:1px solid var(--bdr);color:var(--dim);font-size:16px">→</div>
+      <div class="qb">
+        <p style="margin-bottom:6px"><b>也可以不用 AI 客户端，直接从终端 / CI 发布：</b></p>
+        <code>npm install -g pagefire-mcp
+export PAGEFIRE_TOKEN=pf_你的token
+
+pagefire deploy ./dist --pin        # 发布目录
+pagefire deploy README.md           # 发布 Markdown
+pagefire deploy-docs ./docs         # 发布文档站
+pagefire list                       # 查看所有部署</code>
+        <div class="note" style="margin-top:8px">安装后 <code style="font-size:11px">pagefire --help</code> 查看全部命令；或免安装用 <code style="font-size:11px">npx pagefire-mcp</code>。</div>
+      </div>
+    </div>
   </div>
 </div></div>
 
