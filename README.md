@@ -147,9 +147,9 @@ PageFire 有两种用法，共用同一套 API Key，可任意搭配：
 
 > ⚠️ token 必须通过 `env.AUTH_HEADER` 传入、`--header` 写成 `Authorization:${AUTH_HEADER}`（中间**无空格**）。若直接写 `--header "Authorization: Bearer pf_xxx"`，头里的空格会在进程拼接时被拆断，导致**握手成功但工具调用报 `UNAUTHORIZED`**。
 
-### 方式三：npm 连接器包（最简，需先发布到 npm）
+### 方式三：npm 连接器包（最简，推荐）
 
-把 [`pagefire-mcp`](packages/mcp-client) 发布到 npm 后，配置可简化为最干净的形态——token 只走环境变量，无 URL、无 header 拆断坑：
+已发布到 npm：[`pagefire-mcp`](https://www.npmjs.com/package/pagefire-mcp)。配置最干净——token 只走环境变量，无 URL、无 header 拆断坑：
 
 ```json
 {
@@ -164,6 +164,8 @@ PageFire 有两种用法，共用同一套 API Key，可任意搭配：
 ```
 
 底层与方式二一样经本机 Node 桥接、绕过指纹拦截，但免去了 `mcp-remote` 的 OAuth 探测与 header 拼接坑（详见 `packages/mcp-client/`）。
+
+> 若 `npx` 默认源是国内镜像（如 npmmirror），新版本可能有同步延迟；可加 `--registry=https://registry.npmjs.org/` 或稍候片刻。
 
 三种方式指向同一服务、token 通用，任选其一即可。配置完成后重启 MCP 客户端，即可直接对话发布页面：
 

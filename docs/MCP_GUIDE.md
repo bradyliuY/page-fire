@@ -77,9 +77,9 @@ pf_your_token_here
 
 > ⚠️ token 必须通过 `env.AUTH_HEADER` 传入、`--header` 写成 `Authorization:${AUTH_HEADER}`（中间**无空格**）。若直接写 `--header "Authorization: Bearer <你的token>"`，头里的空格会在进程拼接时被拆断，导致**握手成功但工具调用报 `UNAUTHORIZED`**。
 
-**方式三：npm 连接器包（最简，需先发布到 npm）**
+**方式三：npm 连接器包（最简，推荐）**
 
-发布 `pagefire-mcp`（仓库 `packages/mcp-client/`）后，配置最简洁，token 仅走环境变量：
+已发布到 npm：[`pagefire-mcp`](https://www.npmjs.com/package/pagefire-mcp)。配置最简洁，token 仅走环境变量：
 
 ```json
 {

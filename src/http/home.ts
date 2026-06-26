@@ -328,6 +328,16 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
   }
 }</code>
           <div class="note">⚠️ token 须经 <span class="inline-c">env.AUTH_HEADER</span> 传入、header 写成 <span class="inline-c">Authorization:\${AUTH_HEADER}</span>（中间无空格）。若直接写 <span class="inline-c">"Authorization: Bearer ..."</span>，空格会在进程拼接时被拆断，导致握手成功但工具调用报 <span class="inline-c">UNAUTHORIZED</span>。</div>
+          <p style="margin-top:16px"><b>方式三 · npm 连接器包（最简，推荐）</b><br>已发布 <a href="https://www.npmjs.com/package/pagefire-mcp" target="_blank" rel="noopener">pagefire-mcp</a>，token 只走环境变量，无 URL、无 header 拆断坑：</p>
+          <code>{
+  "mcpServers": {
+    "pagefire": {
+      "command": "npx",
+      "args": ["-y", "pagefire-mcp"],
+      "env": { "PAGEFIRE_TOKEN": "pf_&lt;你的token&gt;" }
+    }
+  }
+}</code>
         </div>
         <div class="cpane" id="qp-cursor">
           <p>打开 Cursor → Settings → MCP → <b>Add new global MCP server</b>，填入：</p>
