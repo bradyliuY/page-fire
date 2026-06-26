@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://pagefire.openhkt.com/logo.png" height="64" alt="PageFire">
+  <img src="brand/pagefire-logo.png" height="80" alt="PageFire">
 </p>
 
 <h3 align="center">PageFire</h3>
