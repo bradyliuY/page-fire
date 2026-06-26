@@ -147,7 +147,25 @@ PageFire 有两种用法，共用同一套 API Key，可任意搭配：
 
 > ⚠️ token 必须通过 `env.AUTH_HEADER` 传入、`--header` 写成 `Authorization:${AUTH_HEADER}`（中间**无空格**）。若直接写 `--header "Authorization: Bearer pf_xxx"`，头里的空格会在进程拼接时被拆断，导致**握手成功但工具调用报 `UNAUTHORIZED`**。
 
-两种方式指向同一服务、token 通用，任选其一即可。配置完成后重启 MCP 客户端，即可直接对话发布页面：
+### 方式三：npm 连接器包（最简，需先发布到 npm）
+
+把 [`@openhkt/pagefire-mcp`](packages/mcp-client) 发布到 npm 后，配置可简化为最干净的形态——token 只走环境变量，无 URL、无 header 拆断坑：
+
+```json
+{
+  "mcpServers": {
+    "pagefire": {
+      "command": "npx",
+      "args": ["-y", "@openhkt/pagefire-mcp"],
+      "env": { "PAGEFIRE_TOKEN": "pf_your_token_here" }
+    }
+  }
+}
+```
+
+底层与方式二一样经本机 Node 桥接、绕过指纹拦截，但免去了 `mcp-remote` 的 OAuth 探测与 header 拼接坑（详见 `packages/mcp-client/`）。
+
+三种方式指向同一服务、token 通用，任选其一即可。配置完成后重启 MCP 客户端，即可直接对话发布页面：
 
 ```
 帮我把这段产品介绍发布成网页，永久保留。

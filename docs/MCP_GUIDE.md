@@ -77,6 +77,24 @@ pf_your_token_here
 
 > ⚠️ token 必须通过 `env.AUTH_HEADER` 传入、`--header` 写成 `Authorization:${AUTH_HEADER}`（中间**无空格**）。若直接写 `--header "Authorization: Bearer <你的token>"`，头里的空格会在进程拼接时被拆断，导致**握手成功但工具调用报 `UNAUTHORIZED`**。
 
+**方式三：npm 连接器包（最简，需先发布到 npm）**
+
+发布 `@openhkt/pagefire-mcp`（仓库 `packages/mcp-client/`）后，配置最简洁，token 仅走环境变量：
+
+```json
+{
+  "mcpServers": {
+    "pagefire": {
+      "command": "npx",
+      "args": ["-y", "@openhkt/pagefire-mcp"],
+      "env": { "PAGEFIRE_TOKEN": "<你的token>" }
+    }
+  }
+}
+```
+
+底层同样经本机 Node 桥接绕过指纹拦截，但免去 `mcp-remote` 的 OAuth 探测与 header 拼接坑。
+
 配置完成后重新加载 MCP 插件，即可在 Claude / Cursor 等客户端中直接对话发布页面。
 
 ---
