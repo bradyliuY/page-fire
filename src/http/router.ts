@@ -16,12 +16,15 @@ import { LOGO_PNG, FAVICON_PNG } from './assets.js'
 const MERMAID_ASSET = fileURLToPath(new URL('../assets/mermaid.min.js', import.meta.url))
 let mermaidBuf: Buffer | null = null
 
-let cachedHomeBuf: Buffer | null = null
-let cachedHomeKey: string | null = null
+const homeCache = new Map<string, Buffer>()
 let cachedDashBuf: Buffer | null = null
 let cachedDashKey: string | null = null
 let cachedPlayBuf: Buffer | null = null
 let cachedPlayKey: string | null = null
+
+function getLang(path: string): 'zh' | 'en' {
+  return (path === '/en' || path === '/en/') ? 'en' : 'zh'
+}
 
 export function handleRequest(
   req: IncomingMessage,
@@ -103,12 +106,12 @@ export function handleRequest(
       res.end(buf)
       return
     }
-    const homeKey = `${baseDomain}:${requireInvite}`
-    if (cachedHomeKey !== homeKey) {
-      cachedHomeBuf = Buffer.from(renderHome(baseDomain, requireInvite), 'utf8')
-      cachedHomeKey = homeKey
+    const lang = getLang(path)
+    const homeKey = `${baseDomain}:${requireInvite}:${lang}`
+    if (!homeCache.has(homeKey)) {
+      homeCache.set(homeKey, Buffer.from(renderHome(baseDomain, requireInvite, lang), 'utf8'))
     }
-    const buf = cachedHomeBuf!
+    const buf = homeCache.get(homeKey)!
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.setHeader('Content-Length', buf.length)

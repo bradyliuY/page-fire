@@ -1,16 +1,74 @@
-export function renderHome(baseDomain: string, requireInvite = false): string {
+import { zh } from './i18n/zh.js'
+import { en } from './i18n/en.js'
+
+export function renderHome(baseDomain: string, requireInvite = false, lang: 'zh' | 'en' = 'zh'): string {
+  const T = lang === 'en' ? en : zh
+
+  // Strings injected into the inline <script> block for JS-driven UI
+  const _t = JSON.stringify({
+    btnCreate: T.modal.btnCreate,
+    btnLogin: T.modal.btnLogin,
+    waiting: T.modal.waiting,
+    errorDefault: T.modal.errorDefault,
+    errorNetwork: T.modal.errorNetwork,
+    btnCopy: T.modal.btnCopy,
+    btnCopied: T.modal.btnCopied,
+    spaceLabel: T.modal.spaceLabel,
+    say: T.scenes.say,
+    run: T.scenes.run,
+    ret: T.scenes.ret,
+    s: T.scenes.s,
+    mdTitle: T.scenes.mdTitle,
+  })
+
+  const [sl0, sl1, sl2, sl3] = T.statLabels
+  const canonicalUrl = `https://${baseDomain}${lang === 'en' ? '/en' : '/'}`
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'PageFire',
+    url: `https://${baseDomain}/`,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Web',
+    description: T.meta.description,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    featureList: [
+      'deploy_page', 'deploy_zip', 'deploy_markdown', 'deploy_docs',
+      'deploy_files', 'deploy_dir', 'pin_deployment', 'set_access',
+      'list_deployments', 'get_deployment', 'delete_deployment',
+    ],
+    provider: { '@type': 'Organization', name: 'PageFire', url: `https://${baseDomain}/` },
+    inLanguage: [T.htmlLang],
+  })
+
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${T.htmlLang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="通过 MCP 协议，让 AI 直接把 HTML / ZIP 发布成公网可访问页面。自托管、多租户、秒级响应。">
-<title>PageFire — MCP 驱动的静态站点发布服务</title>
+<meta name="robots" content="index, follow">
+<meta name="description" content="${T.meta.description}">
+<meta name="keywords" content="${T.meta.keywords}">
+<title>${T.meta.title}</title>
+<link rel="canonical" href="${canonicalUrl}">
+<link rel="alternate" hreflang="zh" href="https://${baseDomain}/">
+<link rel="alternate" hreflang="en" href="https://${baseDomain}/en">
+<link rel="alternate" hreflang="x-default" href="https://${baseDomain}/">
 <link rel="icon" type="image/png" href="/favicon.ico">
-<meta property="og:title" content="PageFire — AI · Create · Publish">
-<meta property="og:description" content="通过 MCP 一键把 HTML / 静态包发布成公网可访问网页的自托管静态发布服务。">
-<meta property="og:image" content="https://${baseDomain}/logo.png">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="PageFire">
+<meta property="og:url" content="${canonicalUrl}">
+<meta property="og:title" content="${T.meta.ogTitle}">
+<meta property="og:description" content="${T.meta.ogDescription}">
+<meta property="og:image" content="https://${baseDomain}/logo.png">
+<meta property="og:image:alt" content="PageFire logo">
+<meta property="og:locale" content="${T.meta.ogLocale}">
+<meta property="og:locale:alternate" content="${T.meta.ogLocaleAlt}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${T.meta.ogTitle}">
+<meta name="twitter:description" content="${T.meta.ogDescription}">
+<meta name="twitter:image" content="https://${baseDomain}/logo.png">
+<script type="application/ld+json">${jsonLd}</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -40,6 +98,7 @@ nav{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bdr);backdro
 .nav-login{border:1px solid var(--bdr)}
 .nav-reg{background:#fafafa !important;color:#0a0a0b !important;font-weight:600}
 .nav-reg:hover{background:#e4e4e7 !important}
+.nav-lang{border:1px solid var(--bdr);font-size:12px !important;padding:5px 10px !important}
 
 /* hero */
 .hero{padding:104px 0 76px;text-align:center}
@@ -152,171 +211,132 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
 <nav><div class="w nav-i">
   <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
   <div class="nav-r">
-    <a href="#features">功能</a>
-    <a href="#examples">示例</a>
+    <a href="#features">${T.nav.features}</a>
+    <a href="#examples">${T.nav.examples}</a>
     <a href="/playground">Playground</a>
-    <a href="#quickstart">接入</a>
+    <a href="#quickstart">${T.nav.quickstart}</a>
+    <a href="${T.nav.switchLangHref}" class="nav-lang">${T.nav.switchLang}</a>
     <span id="nav-auth">
-      <a onclick="showAuth('login')" class="nav-login">登录</a>
-      <a onclick="showAuth('register')" class="nav-reg">注册</a>
+      <a onclick="showAuth('login')" class="nav-login">${T.nav.login}</a>
+      <a onclick="showAuth('register')" class="nav-reg">${T.nav.register}</a>
     </span>
     <span id="nav-user" style="display:none;align-items:center;gap:6px">
-      <a href="/dashboard" class="nav-reg">进入控制台 →</a>
+      <a href="/dashboard" class="nav-reg">${T.nav.dashboard}</a>
     </span>
   </div>
 </div></nav>
 
 <main>
 <div class="sec hero w">
-  <div class="badge"><span class="ping"></span>MCP 驱动 · 自托管 · 即发即得</div>
-  <h1>对 AI 说一句话，<br>内容秒变在线网页</h1>
-  <p class="hero-sub">PageFire 给 Claude、Cursor 等 AI 一个"发布"能力——HTML、Markdown、整站 ZIP 一句话变成公网 HTTPS 链接，无需服务器，不碰部署流程。</p>
+  <div class="badge"><span class="ping"></span>${T.hero.badge}</div>
+  <h1>${T.hero.h1}</h1>
+  <p class="hero-sub">${T.hero.sub}</p>
   <div class="btns">
-    <a class="bp" onclick="showAuth('register')">免费开始 →</a>
-    <a class="bg" href="/playground">在线试用 →</a>
+    <a class="bp" onclick="showAuth('register')">${T.hero.btnStart}</a>
+    <a class="bg" href="/playground">${T.hero.btnPlayground}</a>
   </div>
 
   <div class="term">
     <div class="t-bar">
       <div class="d dr"></div><div class="d dy"></div><div class="d dg"></div>
       <div class="t-tabs">
-        <button class="t-tab active" data-i="0" onclick="pickScene(0)">单页</button>
-        <button class="t-tab" data-i="1" onclick="pickScene(1)">Markdown</button>
-        <button class="t-tab" data-i="2" onclick="pickScene(2)">文档站</button>
+        <button class="t-tab active" data-i="0" onclick="pickScene(0)">${T.hero.sceneTabs[0]}</button>
+        <button class="t-tab" data-i="1" onclick="pickScene(1)">${T.hero.sceneTabs[1]}</button>
+        <button class="t-tab" data-i="2" onclick="pickScene(2)">${T.hero.sceneTabs[2]}</button>
       </div>
     </div>
     <div class="t-body"><pre id="scene"></pre></div>
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="sv"><span class="u">&lt;</span>3s</div><div class="sl">从调用到上线</div></div>
-    <div class="stat"><div class="sv">11</div><div class="sl">MCP 工具</div></div>
-    <div class="stat"><div class="sv">0</div><div class="sl">额外部署步骤</div></div>
-    <div class="stat"><div class="sv">SPA</div><div class="sl">客户端路由支持</div></div>
+    <div class="stat"><div class="sv"><span class="u">&lt;</span>3s</div><div class="sl">${sl0}</div></div>
+    <div class="stat"><div class="sv">11</div><div class="sl">${sl1}</div></div>
+    <div class="stat"><div class="sv">0</div><div class="sl">${sl2}</div></div>
+    <div class="stat"><div class="sv">SPA</div><div class="sl">${sl3}</div></div>
   </div>
 </div>
 
 <div class="sec" id="features"><div class="w">
-  <div class="stag">核心能力</div>
-  <h2>为 AI 工作流设计的发布层</h2>
-  <p class="ssub">不是传统部署工具，而是让 AI 直接控制发布的基础设施层。</p>
+  <div class="stag">${T.features.tag}</div>
+  <h2>${T.features.h2}</h2>
+  <p class="ssub">${T.features.sub}</p>
   <div class="grid">
-    <div class="feat">
-      <div class="fi">⚡</div>
-      <h3><code>deploy_page</code> — 单页发布</h3>
-      <p>传入 HTML 字符串，秒内获得独立 HTTPS 子域名。最适合 AI 生成的报告、演示、落地页。</p>
-    </div>
-    <div class="feat">
-      <div class="fi">📦</div>
-      <h3><code>deploy_zip</code> — 完整站点</h3>
-      <p>上传 ZIP 包，自动解压发布。支持 React / Vue 打包产物，开启 SPA 模式客户端路由不会 404。</p>
-    </div>
-    <div class="feat">
-      <div class="fi">📝</div>
-      <h3><code>deploy_markdown</code> — 一键渲染</h3>
-      <p>传入 Markdown 即生成精致排版网页，内置 light / dark / sepia 三主题，无需手写 HTML/CSS。</p>
-    </div>
-    <div class="feat">
-      <div class="fi">📖</div>
-      <h3><code>deploy_docs</code> — 文档站</h3>
-      <p>多篇 Markdown 自动生成带侧边导航的文档站，跨页链接自动改写，GitBook 风格开箱即用。</p>
-    </div>
-    <div class="feat">
-      <div class="fi">🔗</div>
-      <h3>链接不变更新</h3>
-      <p>给站点起个 <code>did</code> 名字，重发即原地覆盖、<strong>URL 永久不变</strong>，分享出去的链接始终有效。</p>
-    </div>
-    <div class="feat">
-      <div class="fi">🔒</div>
-      <h3>访问控制与有效期</h3>
-      <p>一键切换公开或密码访问；页面可设自动过期，也可永久保留，敏感内容只给指定的人看。</p>
-    </div>
-    <div class="feat">
-      <div class="fi">🛡️</div>
-      <h3>数据自主可控</h3>
-      <p>完全自托管，所有页面与数据都在你自己的服务器上，不依赖任何第三方平台，随时可迁移。</p>
-    </div>
+    ${T.features.items.map(f => `<div class="feat">
+      <div class="fi">${f.icon}</div>
+      <h3>${f.title}</h3>
+      <p>${f.desc}</p>
+    </div>`).join('')}
   </div>
 </div></div>
 
 <div class="sec" id="examples" style="padding-top:0"><div class="w">
-  <div class="stag">实时示例</div>
-  <h2>看看真实效果</h2>
-  <p class="ssub">下面都是用 PageFire 发布的真实页面，点开即可访问。</p>
+  <div class="stag">${T.examples.tag}</div>
+  <h2>${T.examples.h2}</h2>
+  <p class="ssub">${T.examples.sub}</p>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
     <a class="feat" href="https://demosite-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
-      <div class="fi">⚡</div>
-      <h3>产品落地页 <span style="color:var(--dim);font-weight:400">deploy_page</span></h3>
-      <p>某 AI 团队用 PageFire 发布的 SaaS 产品落地页，AI 生成 HTML 后一句话上线，全程不碰服务器。<span style="color:var(--fire2)">打开 →</span></p>
+      <div class="fi">${T.examples.items[0].icon}</div>
+      <h3>${T.examples.items[0].title} <span style="color:var(--dim);font-weight:400">${T.examples.items[0].tool}</span></h3>
+      <p>${T.examples.items[0].desc}<span style="color:var(--fire2)">${T.examples.items[0].link}</span></p>
     </a>
     <a class="feat" href="https://demoarticle-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
-      <div class="fi">📝</div>
-      <h3>技术文章 <span style="color:var(--dim);font-weight:400">deploy_markdown</span></h3>
-      <p>《MCP 协议详解》，开发者把 Markdown 丢给 Claude，秒发为精致排版的公开技术文章。<span style="color:var(--fire2)">打开 →</span></p>
+      <div class="fi">${T.examples.items[1].icon}</div>
+      <h3>${T.examples.items[1].title} <span style="color:var(--dim);font-weight:400">${T.examples.items[1].tool}</span></h3>
+      <p>${T.examples.items[1].desc}<span style="color:var(--fire2)">${T.examples.items[1].link}</span></p>
     </a>
     <a class="feat" href="https://demodocs-ylfupykx.${baseDomain}/" target="_blank" rel="noopener" style="display:block">
-      <div class="fi">📖</div>
-      <h3>开发者文档站 <span style="color:var(--dim);font-weight:400">deploy_docs</span></h3>
-      <p>某团队把 API 文档的多篇 Markdown 一次发布为带侧栏导航的文档站，更新只需重新运行工具。<span style="color:var(--fire2)">打开 →</span></p>
+      <div class="fi">${T.examples.items[2].icon}</div>
+      <h3>${T.examples.items[2].title} <span style="color:var(--dim);font-weight:400">${T.examples.items[2].tool}</span></h3>
+      <p>${T.examples.items[2].desc}<span style="color:var(--fire2)">${T.examples.items[2].link}</span></p>
     </a>
   </div>
 </div></div>
 
 <div class="sec" style="padding-top:0"><div class="w">
-  <div class="stag">工作流程</div>
-  <h2>三步，零配置</h2>
+  <div class="stag">${T.steps.tag}</div>
+  <h2>${T.steps.h2}</h2>
   <div class="steps">
-    <div class="step">
-      <div class="sn">01 · 配置</div>
-      <h4>加入 MCP 服务器</h4>
-      <p>在 <code>.mcp.json</code> 填入服务地址和 Bearer Token，加入 AI 客户端（Claude / Cursor）。</p>
-    </div>
-    <div class="step">
-      <div class="sn">02 · 对话</div>
-      <h4>告诉 AI 发布什么</h4>
-      <p>用自然语言描述，AI 自动调用 <code>deploy_page</code> 或 <code>deploy_zip</code> 工具完成发布。</p>
-    </div>
-    <div class="step">
-      <div class="sn">03 · 访问</div>
-      <h4>获得公网 URL</h4>
-      <p>HTTPS 子域名即时可用，无需登录，直接分享给任何人访问。支持密码保护。</p>
-    </div>
+    ${T.steps.items.map(s => `<div class="step">
+      <div class="sn">${s.num}</div>
+      <h4>${s.h4}</h4>
+      <p>${s.p}</p>
+    </div>`).join('')}
   </div>
 </div></div>
 
 <div class="sec" id="quickstart" style="padding-top:0"><div class="w">
-  <div class="stag">快速接入</div>
-  <h2>5 分钟接入</h2>
+  <div class="stag">${T.qs.tag}</div>
+  <h2>${T.qs.h2}</h2>
   <div class="qs">
     <div class="qs-item">
       <div class="qn">1</div>
       <div class="qb">
-        <p><a onclick="showAuth('register')" style="cursor:pointer">注册账户</a>，在控制台创建 API Key（<span class="inline-c">pf_</span> 开头的密钥）</p>
+        <p><a onclick="showAuth('register')" style="cursor:pointer">${T.qs.step1link}</a>${T.qs.step1rest}</p>
       </div>
     </div>
     <div class="qs-item">
       <div class="qn">2</div>
       <div class="qb">
-        <p>按你使用的客户端配置 MCP 连接：</p>
+        <p>${T.qs.step2p}</p>
         <div class="ctabs">
           <button class="ctab on" onclick="qpick('claude')">Claude Desktop / Code</button>
           <button class="ctab" onclick="qpick('cursor')">Cursor</button>
           <button class="ctab" onclick="qpick('codex')">OpenAI Codex</button>
-          <button class="ctab" onclick="qpick('other')">其他客户端</button>
+          <button class="ctab" onclick="qpick('other')">${T.qs.tabOther}</button>
         </div>
         <div class="cpane on" id="qp-claude">
-          <p><b>方式一 · HTTP 直连（推荐，零依赖）</b><br>在项目根目录创建 <span class="inline-c">.mcp.json</span>，加入 <span class="inline-c">.gitignore</span> 后不会提交 token：</p>
+          <p><b>${T.qs.claude.m1title}</b><br>${T.qs.claude.m1desc}</p>
           <code>{
   "mcpServers": {
     "pagefire": {
       "type": "http",
       "url": "https://mcp.${baseDomain}/mcp",
-      "headers": { "Authorization": "Bearer &lt;你的token&gt;" }
+      "headers": { "Authorization": "Bearer &lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;" }
     }
   }
 }</code>
-          <div class="note">Claude Code CLI 也可用命令添加：<span class="inline-c">claude mcp add --transport http pagefire https://mcp.${baseDomain}/mcp -H "Authorization: Bearer &lt;token&gt;"</span></div>
-          <p style="margin-top:16px"><b>方式二 · stdio 桥接（连不上时的兜底）</b><br>若方式一报 <span class="inline-c">Failed to connect</span>，但浏览器 / Node 能访问该域名，多为客户端运行时的 TLS 被网络按指纹拦截。改用本机 Node 的 <a href="https://www.npmjs.com/package/mcp-remote" target="_blank" rel="noopener">mcp-remote</a> 以 stdio 桥接同一端点（需本机 Node ≥ 18 / npx）：</p>
+          <div class="note">${T.qs.claude.cliNote} <span class="inline-c">claude mcp add --transport http pagefire https://mcp.${baseDomain}/mcp -H "Authorization: Bearer &lt;token&gt;"</span></div>
+          <p style="margin-top:16px"><b>${T.qs.claude.m2title}</b><br>${T.qs.claude.m2desc}</p>
           <code>{
   "mcpServers": {
     "pagefire": {
@@ -328,91 +348,91 @@ footer{border-top:1px solid var(--bdr);padding:22px 0}
         "--header", "Authorization:\${AUTH_HEADER}",
         "--transport", "http-only"
       ],
-      "env": { "AUTH_HEADER": "Bearer &lt;你的token&gt;" }
+      "env": { "AUTH_HEADER": "Bearer &lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;" }
     }
   }
 }</code>
-          <div class="note">⚠️ token 须经 <span class="inline-c">env.AUTH_HEADER</span> 传入、header 写成 <span class="inline-c">Authorization:\${AUTH_HEADER}</span>（中间无空格）。若直接写 <span class="inline-c">"Authorization: Bearer ..."</span>，空格会在进程拼接时被拆断，导致握手成功但工具调用报 <span class="inline-c">UNAUTHORIZED</span>。</div>
-          <p style="margin-top:16px"><b>方式三 · npm 连接器包（最简，推荐）</b><br>已发布 <a href="https://www.npmjs.com/package/pagefire-mcp" target="_blank" rel="noopener">pagefire-mcp</a>，token 只走环境变量，无 URL、无 header 拆断坑：</p>
+          <div class="note">${T.qs.claude.m2note}</div>
+          <p style="margin-top:16px"><b>${T.qs.claude.m3title}</b><br>${T.qs.claude.m3desc}</p>
           <code>{
   "mcpServers": {
     "pagefire": {
       "command": "npx",
       "args": ["-y", "pagefire-mcp@latest"],
-      "env": { "PAGEFIRE_TOKEN": "pf_&lt;你的token&gt;" }
+      "env": { "PAGEFIRE_TOKEN": "pf_&lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;" }
     }
   }
 }</code>
         </div>
         <div class="cpane" id="qp-cursor">
-          <p>打开 Cursor → Settings → MCP → <b>Add new global MCP server</b>，填入：</p>
+          <p>${T.qs.cursor.p}</p>
           <code>{
   "pagefire": {
     "url": "https://mcp.${baseDomain}/mcp",
-    "headers": { "Authorization": "Bearer &lt;你的token&gt;" }
+    "headers": { "Authorization": "Bearer &lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;" }
   }
 }</code>
-          <div class="note">Cursor 使用全局 MCP 配置，不读取项目目录的 .mcp.json。</div>
+          <div class="note">${T.qs.cursor.note}</div>
         </div>
         <div class="cpane" id="qp-codex">
-          <p>在 <span class="inline-c">codex.yaml</span>（或 <span class="inline-c">~/.codex/config.yaml</span>）中添加：</p>
+          <p>${T.qs.codex.p}</p>
           <code>mcp_servers:
   - name: pagefire
     type: http
     url: https://mcp.${baseDomain}/mcp
     headers:
-      Authorization: "Bearer &lt;你的token&gt;"</code>
-          <div class="note">Codex CLI 支持 Streamable HTTP transport，重启后工具列表自动出现。</div>
+      Authorization: "Bearer &lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;"</code>
+          <div class="note">${T.qs.codex.note}</div>
         </div>
         <div class="cpane" id="qp-other">
-          <p>任何支持 <b>Streamable HTTP transport</b> 的 MCP 客户端均可接入，填入以下两个信息：</p>
-          <code>端点：https://mcp.${baseDomain}/mcp
-鉴权：Authorization: Bearer &lt;你的token&gt;
-协议：MCP 2025-03-26 (Streamable HTTP)</code>
-          <div class="note">若客户端原生连接报 <span class="inline-c">Failed to connect</span>（但浏览器 / Node 能访问域名），可用 <span class="inline-c">npx mcp-remote &lt;端点&gt; --header "Authorization:\${AUTH_HEADER}" --transport http-only</span> 以 stdio 桥接（token 经 <span class="inline-c">env.AUTH_HEADER</span> 传入，避免空格拆断）。详见 <a href="/playground#connect">Playground → 接入</a>。</div>
+          <p>${T.qs.other.p}</p>
+          <code>${lang === 'en' ? 'Endpoint' : '端点'}：https://mcp.${baseDomain}/mcp
+${lang === 'en' ? 'Auth' : '鉴权'}：Authorization: Bearer &lt;${lang === 'en' ? 'your-token' : '你的token'}&gt;
+${lang === 'en' ? 'Protocol' : '协议'}：MCP 2025-03-26 (Streamable HTTP)</code>
+          <div class="note">${T.qs.other.note}</div>
         </div>
       </div>
     </div>
     <div class="qs-item">
       <div class="qn">3</div>
       <div class="qb">
-        <p>重新加载客户端，直接用一句话发布——不同客户端的对话入口如下：</p>
+        <p>${T.qs.step3p}</p>
         <div class="ctabs" id="dp-tabs">
           <button class="dtab on" onclick="dpick('claude')">Claude Desktop / Code</button>
           <button class="dtab" onclick="dpick('cursor')">Cursor</button>
           <button class="dtab" onclick="dpick('codex')">OpenAI Codex</button>
-          <button class="dtab" onclick="dpick('other')">其他客户端</button>
+          <button class="dtab" onclick="dpick('other')">${T.qs.tabOther}</button>
         </div>
         <div class="dpane on" id="dp-claude">
-          <code>帮我把这份内容发布成公网网页，永久保留。</code>
-          <div class="note">在对话框直接输入，Claude 自动调用 PageFire 工具并返回 HTTPS 链接。</div>
+          <code>${T.qs.deploy.claude.cmd}</code>
+          <div class="note">${T.qs.deploy.claude.note}</div>
         </div>
         <div class="dpane" id="dp-cursor">
-          <code>把这份内容发布成网页。</code>
-          <div class="note">在 Cursor 的 Agent 模式（<span class="inline-c">Cmd/Ctrl+I</span>）下输入，会自动调用已配置的 MCP 工具。</div>
+          <code>${T.qs.deploy.cursor.cmd}</code>
+          <div class="note">${T.qs.deploy.cursor.note}</div>
         </div>
         <div class="dpane" id="dp-codex">
-          <code>把这份内容发布成网页。</code>
-          <div class="note">Codex CLI 识别到 PageFire 工具后，按需调用 <span class="inline-c">deploy_*</span> 完成发布。</div>
+          <code>${T.qs.deploy.codex.cmd}</code>
+          <div class="note">${T.qs.deploy.codex.note}</div>
         </div>
         <div class="dpane" id="dp-other">
-          <code>把这份内容发布成网页。</code>
-          <div class="note">任何支持 MCP 工具调用的客户端，用自然语言描述即可，无需写代码。</div>
+          <code>${T.qs.deploy.other.cmd}</code>
+          <div class="note">${T.qs.deploy.other.note}</div>
         </div>
       </div>
     </div>
     <div class="qs-item">
       <div class="qn" style="background:none;border:1px solid var(--bdr);color:var(--dim);font-size:16px">→</div>
       <div class="qb">
-        <p style="margin-bottom:6px"><b>也可以不用 AI 客户端，直接从终端 / CI 发布：</b></p>
+        <p style="margin-bottom:6px"><b>${T.qs.step4label}</b></p>
         <code>npm install -g pagefire-mcp
-export PAGEFIRE_TOKEN=pf_你的token
+export PAGEFIRE_TOKEN=pf_${lang === 'en' ? 'your-token' : '你的token'}
 
-pagefire deploy ./dist --pin        # 发布目录
-pagefire deploy README.md           # 发布 Markdown
-pagefire deploy-docs ./docs         # 发布文档站
-pagefire list                       # 查看所有部署</code>
-        <div class="note" style="margin-top:8px">安装后 <code style="font-size:11px">pagefire --help</code> 查看全部命令；或免安装用 <code style="font-size:11px">npx pagefire-mcp</code>。</div>
+pagefire deploy ./dist --pin        # ${lang === 'en' ? 'deploy directory' : '发布目录'}
+pagefire deploy README.md           # ${lang === 'en' ? 'deploy Markdown' : '发布 Markdown'}
+pagefire deploy-docs ./docs         # ${lang === 'en' ? 'deploy docs site' : '发布文档站'}
+pagefire list                       # ${lang === 'en' ? 'list all deployments' : '查看所有部署'}</code>
+        <div class="note" style="margin-top:8px">${T.qs.step4note}</div>
       </div>
     </div>
   </div>
@@ -420,22 +440,22 @@ pagefire list                       # 查看所有部署</code>
 
 <div class="sec"><div class="w">
   <div class="cta-box">
-    <h2>开始使用 PageFire</h2>
-    <p style="color:var(--muted);font-size:15px;margin:14px auto 34px;line-height:1.7;max-width:440px">注册即可在控制台自助创建 API Key，数据完全自主可控。从注册到第一个页面上线，不超过 5 分钟。</p>
+    <h2>${T.cta.h2}</h2>
+    <p style="color:var(--muted);font-size:15px;margin:14px auto 34px;line-height:1.7;max-width:440px">${T.cta.sub}</p>
     <div class="btns">
-      <a class="bp" onclick="showAuth('register')">免费开始 →</a>
-      <a class="bg" href="/playground">在线试用 Playground</a>
+      <a class="bp" onclick="showAuth('register')">${T.cta.btnStart}</a>
+      <a class="bg" href="/playground">${T.cta.btnPlayground}</a>
     </div>
   </div>
 </div></div>
 </main>
 
 <footer><div class="w fi-row">
-  <div class="fc">© 2026 PageFire · Self-hosted MCP static publisher</div>
+  <div class="fc">${T.footer.copyright}</div>
   <div class="fl">
     <a href="/playground">Playground</a>
-    <a href="#quickstart">接入文档</a>
-    <a href="https://mcp.${baseDomain}/mcp">MCP 端点</a>
+    <a href="#quickstart">${T.footer.quickstart}</a>
+    <a href="https://mcp.${baseDomain}/mcp">${T.footer.mcp}</a>
   </div>
 </div></footer>
 
@@ -445,74 +465,76 @@ pagefire list                       # 查看所有部署</code>
   <button onclick="closeAuth()" style="position:absolute;top:14px;right:17px;background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1">×</button>
 
   <div style="display:flex;gap:0;margin-bottom:26px;border-bottom:1px solid var(--bdr)">
-    <button id="tab-register" onclick="switchTab('register')" style="flex:1;background:none;border:none;padding:11px 0;font-size:14px;font-weight:600;cursor:pointer;color:var(--fire);border-bottom:2px solid var(--fire);transition:.15s">注册</button>
-    <button id="tab-login" onclick="switchTab('login')" style="flex:1;background:none;border:none;padding:11px 0;font-size:14px;font-weight:500;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;transition:.15s">登录</button>
+    <button id="tab-register" onclick="switchTab('register')" style="flex:1;background:none;border:none;padding:11px 0;font-size:14px;font-weight:600;cursor:pointer;color:var(--fire);border-bottom:2px solid var(--fire);transition:.15s">${T.modal.tabRegister}</button>
+    <button id="tab-login" onclick="switchTab('login')" style="flex:1;background:none;border:none;padding:11px 0;font-size:14px;font-weight:500;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;transition:.15s">${T.modal.tabLogin}</button>
   </div>
 
   <form id="auth-form" onsubmit="submitAuth(event)">
     <div style="margin-bottom:14px">
-      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">用户名</label>
-      <input id="f-username" autocomplete="username" placeholder="3–20 位，仅 a-z 0-9 _ -"
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">${T.modal.labelUsername}</label>
+      <input id="f-username" autocomplete="username" placeholder="${T.modal.placeholderUsername}"
         style="width:100%;background:#0a0a0b;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
         onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='var(--bdr)'">
     </div>
     <div style="margin-bottom:14px">
-      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">密码</label>
-      <input id="f-password" type="password" autocomplete="current-password" placeholder="至少 6 位"
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">${T.modal.labelPassword}</label>
+      <input id="f-password" type="password" autocomplete="current-password" placeholder="${T.modal.placeholderPassword}"
         style="width:100%;background:#0a0a0b;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
         onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='var(--bdr)'">
     </div>
     <div id="invite-wrap" style="margin-bottom:20px;display:none">
-      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">邀请码${requireInvite ? ' <span style="color:#f87171">*</span>' : ' <span style="color:var(--dim)">(可选)</span>'}</label>
-      <input id="f-invite" placeholder="邀请码"
+      <label style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px">${T.modal.labelInvite}${requireInvite ? ' <span style="color:#f87171">*</span>' : ` <span style="color:var(--dim)">${T.modal.inviteOptional}</span>`}</label>
+      <input id="f-invite" placeholder="${T.modal.labelInvite}"
         style="width:100%;background:#0a0a0b;border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;color:var(--txt);font-size:14px;outline:none;transition:.15s"
         onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='var(--bdr)'">
     </div>
     <div id="auth-err" style="display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:9px 12px;font-size:13px;color:#fca5a5;margin-bottom:14px"></div>
     <button id="auth-btn" type="submit"
       style="width:100%;padding:12px;border-radius:10px;background:#fafafa;color:#0a0a0b;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:.18s">
-      创建账户
+      ${T.modal.btnCreate}
     </button>
   </form>
 
   <!-- token result (shown after register success) -->
   <div id="auth-ok" style="display:none;text-align:center">
     <div style="width:46px;height:46px;border-radius:12px;background:var(--fire-dim);border:1px solid rgba(249,115,22,.25);display:grid;place-items:center;font-size:22px;margin:0 auto 14px">🔑</div>
-    <div style="font-size:16px;font-weight:660;margin-bottom:4px;color:#fafafa">账户创建成功</div>
-    <div style="font-size:13px;color:var(--dim);margin-bottom:16px">这是你的第一个 API Key，仅显示一次</div>
+    <div style="font-size:16px;font-weight:660;margin-bottom:4px;color:#fafafa">${T.modal.successTitle}</div>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:16px">${T.modal.successSub}</div>
     <div style="position:relative">
       <code id="ok-token" style="display:block;background:#0a0a0b;border:1px solid var(--bdr);border-radius:9px;padding:12px 46px 12px 14px;font-size:12px;color:var(--fire2);word-break:break-all;text-align:left;line-height:1.6"></code>
-      <button onclick="copyToken()" title="复制"
-        style="position:absolute;right:9px;top:9px;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;padding:5px 9px;color:var(--muted);cursor:pointer;font-size:12px">复制</button>
+      <button onclick="copyToken()" title="${T.modal.btnCopy}"
+        style="position:absolute;right:9px;top:9px;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;padding:5px 9px;color:var(--muted);cursor:pointer;font-size:12px">${T.modal.btnCopy}</button>
     </div>
     <div id="ok-space" style="font-size:12px;color:var(--dim);margin:10px 0 18px"></div>
-    <a href="/dashboard" style="display:block;width:100%;padding:11px;border-radius:10px;background:#fafafa;color:#0a0a0b;font-size:14px;font-weight:600">进入控制台 →</a>
+    <a href="/dashboard" style="display:block;width:100%;padding:11px;border-radius:10px;background:#fafafa;color:#0a0a0b;font-size:14px;font-weight:600">${T.modal.btnDashboard}</a>
   </div>
 </div></div>
 
 <script>
+const _t = ${_t}
+
 // ── Interactive hero demo: switchable / auto-rotating scenarios ───────────────
 const C = (cls, t) => '<span class="' + cls + '">' + t + '</span>'
 const SCENES = [
-  C('cm','// 你对 AI 说') + '\\n' +
-  C('str','"把这份产品介绍发布成网页，永久保留"') + '\\n\\n' +
-  C('cm','// PageFire 自动执行') + '\\n' +
+  C('cm',_t.say) + '\\n' +
+  C('str',_t.s[0]) + '\\n\\n' +
+  C('cm',_t.run) + '\\n' +
   C('fn','deploy_page') + '({ html: ' + C('str','"&lt;h1&gt;...&lt;/h1&gt;"') + ', pin: ' + C('kw','true') + ' })\\n\\n' +
-  C('cm','// ✓ 几秒后返回') + '\\n' +
+  C('cm',_t.ret[0]) + '\\n' +
   '{ url: ' + C('str','"https://f4vyog-3ixketu6.${baseDomain}/"') + ' }',
 
-  C('cm','// 你对 AI 说') + '\\n' +
-  C('str','"把这篇 Markdown 发布成网页，用暗色主题"') + '\\n\\n' +
-  C('cm','// PageFire 自动执行') + '\\n' +
-  C('fn','deploy_markdown') + '({ markdown: ' + C('str','"# 标题..."') + ', theme: ' + C('str','"dark"') + ' })\\n\\n' +
-  C('cm','// ✓ 自动套用精致排版') + '\\n' +
+  C('cm',_t.say) + '\\n' +
+  C('str',_t.s[1]) + '\\n\\n' +
+  C('cm',_t.run) + '\\n' +
+  C('fn','deploy_markdown') + '({ markdown: ' + C('str',_t.mdTitle) + ', theme: ' + C('str','"dark"') + ' })\\n\\n' +
+  C('cm',_t.ret[1]) + '\\n' +
   '{ url: ' + C('str','"https://ragdemo-bmwvx12a.${baseDomain}/"') + ' }',
 
-  C('cm','// 你对 AI 说') + '\\n' +
-  C('str','"把这套文档做成带侧栏的文档站"') + '\\n\\n' +
-  C('cm','// PageFire 自动执行') + '\\n' +
+  C('cm',_t.say) + '\\n' +
+  C('str',_t.s[2]) + '\\n\\n' +
+  C('cm',_t.run) + '\\n' +
   C('fn','deploy_docs') + '({ files: [' + C('str','"index.md"') + ', ' + C('str','"guide.md"') + ', ...] })\\n\\n' +
-  C('cm','// ✓ 多页 + 导航一次生成') + '\\n' +
+  C('cm',_t.ret[2]) + '\\n' +
   '{ url: ' + C('str','"https://pfdocs-vguan2uk.${baseDomain}/"') + ' }',
 ]
 let sceneI = 0, sceneTimer = null
@@ -564,7 +586,7 @@ function switchTab(tab) {
   document.getElementById('tab-register').style.borderBottomColor = isReg ? 'var(--fire)' : 'transparent'
   document.getElementById('tab-login').style.color = isReg ? 'var(--dim)' : 'var(--fire)'
   document.getElementById('tab-login').style.borderBottomColor = isReg ? 'transparent' : 'var(--fire)'
-  document.getElementById('auth-btn').textContent = isReg ? '创建账户' : '登录'
+  document.getElementById('auth-btn').textContent = isReg ? _t.btnCreate : _t.btnLogin
   document.getElementById('invite-wrap').style.display = isReg ? '' : 'none'
   document.getElementById('auth-err').style.display = 'none'
 }
@@ -573,7 +595,7 @@ async function submitAuth(e) {
   const btn = document.getElementById('auth-btn')
   const errEl = document.getElementById('auth-err')
   errEl.style.display = 'none'
-  btn.disabled = true; btn.textContent = '请稍候…'
+  btn.disabled = true; btn.textContent = _t.waiting
   const body = {
     username: document.getElementById('f-username').value.trim(),
     password: document.getElementById('f-password').value,
@@ -588,22 +610,22 @@ async function submitAuth(e) {
       credentials: 'same-origin', body: JSON.stringify(body)
     })
     const d = await r.json()
-    if (!r.ok) { errEl.textContent = d.error || '操作失败'; errEl.style.display = '' }
+    if (!r.ok) { errEl.textContent = d.error || _t.errorDefault; errEl.style.display = '' }
     else if (curTab === 'login') {
       location.href = '/dashboard'
     } else {
       document.getElementById('auth-form').style.display = 'none'
       document.getElementById('auth-ok').style.display = ''
       document.getElementById('ok-token').textContent = d.token || ''
-      document.getElementById('ok-space').textContent = d.space_id ? '子域名空间：' + d.space_id + '.${baseDomain}' : ''
+      document.getElementById('ok-space').textContent = d.space_id ? _t.spaceLabel + d.space_id + '.${baseDomain}' : ''
     }
-  } catch { errEl.textContent = '网络错误，请重试'; errEl.style.display = '' }
-  btn.disabled = false; btn.textContent = curTab === 'register' ? '创建账户' : '登录'
+  } catch { errEl.textContent = _t.errorNetwork; errEl.style.display = '' }
+  btn.disabled = false; btn.textContent = curTab === 'register' ? _t.btnCreate : _t.btnLogin
 }
 function copyToken() {
   const t = document.getElementById('ok-token').textContent
   navigator.clipboard.writeText(t).then(() => {
-    const b = event.target; b.textContent = '已复制'; setTimeout(() => b.textContent = '复制', 1500)
+    const b = event.target; b.textContent = _t.btnCopied; setTimeout(() => b.textContent = _t.btnCopy, 1500)
   })
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth() })
