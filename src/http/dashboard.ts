@@ -152,6 +152,7 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
     <button class="snav active" data-pane="overview" onclick="switchPane('overview')"><span class="si">▦</span>概览</button>
     <button class="snav" data-pane="keys" onclick="switchPane('keys')"><span class="si">🔑</span>API Keys</button>
     <button class="snav" data-pane="deploy" onclick="switchPane('deploy')"><span class="si">📦</span>部署应用</button>
+    <button class="snav" data-pane="account" onclick="switchPane('account')"><span class="si">⚙</span>账户</button>
     <a class="snav-link" href="/playground"><span class="si">⚡</span>Playground ↗</a>
   </aside>
 
@@ -192,6 +193,29 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
         <div class="sub">所有已发布的站点，按所属 API Key 分组，可直接管理。</div>
       </div></div>
       <div id="deploy-list"></div>
+    </section>
+
+    <!-- 账户 -->
+    <section class="pane" id="pane-account">
+      <div class="head"><div>
+        <h1>账户</h1>
+        <div class="sub">基本信息与安全设置。</div>
+      </div></div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>基本信息</h3>
+        <div style="display:flex;gap:48px;flex-wrap:wrap;margin-top:8px">
+          <div><div style="font-size:11.5px;color:var(--dim)">用户名</div><div id="ac-user" style="font-size:14.5px;color:var(--txt);margin-top:3px">—</div></div>
+          <div><div style="font-size:11.5px;color:var(--dim)">注册时间</div><div id="ac-since" style="font-size:14.5px;color:var(--txt);margin-top:3px">—</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>修改密码</h3>
+        <div class="err" id="pw-err" style="margin-top:12px"></div>
+        <div class="field" style="max-width:340px"><label>当前密码</label><input id="pw-cur" type="password" placeholder="当前密码"></div>
+        <div class="field" style="max-width:340px"><label>新密码</label><input id="pw-new" type="password" placeholder="至少 6 位"></div>
+        <div class="field" style="max-width:340px"><label>确认新密码</label><input id="pw-cf" type="password" placeholder="再次输入新密码"></div>
+        <button class="btn-primary" id="pw-btn" onclick="changePassword()">更新密码</button>
+      </div>
     </section>
   </main>
 </div>
@@ -246,6 +270,7 @@ async function api(path, opts) {
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1600) }
 function fmtDate(ts) { const d = new Date(ts); return d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') }
 function fmtSize(b){ if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB' }
+function fmtDateTime(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()) }
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
 
 function switchPane(name) {
@@ -258,6 +283,8 @@ async function init() {
     const me = await (await api('/api/me')).json()
     $('uname').textContent = me.username
     $('ov-user').textContent = me.username
+    $('ac-user').textContent = me.username
+    $('ac-since').textContent = me.created_at ? fmtDate(me.created_at) : '—'
   } catch { return }
   loadKeys()
   loadDeployments()
@@ -326,7 +353,7 @@ async function loadDeployments() {
         '</div>' +
         '<div class="dmeta">' +
           '<div><div class="dmv">' + fmtSize(d.size_bytes) + '</div><div class="dml">' + d.file_count + ' 文件</div></div>' +
-          '<div><div class="dmv">' + fmtDate(d.created_at) + '</div><div class="dml">' + life + '</div></div>' +
+          '<div><div class="dmv">' + fmtDateTime(d.created_at) + '</div><div class="dml">' + life + '</div></div>' +
         '</div>' +
         '<div class="dact">' +
           '<button class="icon-btn" title="复制链接" data-url="' + d.url + '" onclick="copyUrl(this)">⧉</button>' +
@@ -408,6 +435,20 @@ async function testKey(id, btn) {
     else toast('✗ ' + (d.error || '连接失败'))
   } catch { toast('✗ 测试失败') }
   btn.textContent = prev; btn.disabled = false
+}
+async function changePassword() {
+  const err = $('pw-err'); err.style.display = 'none'
+  const cur = $('pw-cur').value, nw = $('pw-new').value, cf = $('pw-cf').value
+  if (nw.length < 6) { err.textContent = '新密码至少 6 位'; err.style.display = ''; return }
+  if (nw !== cf) { err.textContent = '两次输入的新密码不一致'; err.style.display = ''; return }
+  const btn = $('pw-btn'); btn.disabled = true; btn.textContent = '更新中…'
+  try {
+    const r = await api('/api/account/password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ current: cur, new: nw }) })
+    const d = await r.json()
+    if (r.ok) { toast('密码已更新'); $('pw-cur').value = ''; $('pw-new').value = ''; $('pw-cf').value = '' }
+    else { err.textContent = d.error || '更新失败'; err.style.display = '' }
+  } catch { err.textContent = '网络错误'; err.style.display = '' }
+  btn.disabled = false; btn.textContent = '更新密码'
 }
 async function logout() { await api('/api/logout', { method:'POST' }); location.href = '/' }
 

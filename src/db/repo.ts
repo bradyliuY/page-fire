@@ -176,6 +176,10 @@ export function getUserByUsername(db: Database.Database, username: string): User
   return db.prepare('SELECT * FROM users WHERE username = ?').get(username) as UserRow | undefined
 }
 
+export function updateUserPassword(db: Database.Database, userId: string, passwordHash: string): void {
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, userId)
+}
+
 // ── Invite code repo ─────────────────────────────────────────────────────────
 
 export interface InviteRow {

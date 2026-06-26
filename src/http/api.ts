@@ -9,7 +9,7 @@ import { encryptToken, decryptToken } from '../core/token-enc.js'
 import {
   createToken, createUser, getUserByUsername, insertAuditLog,
   getInviteByCode, useInvite,
-  createSession, getSessionUser, deleteSession,
+  createSession, getSessionUser, deleteSession, updateUserPassword,
   listTokensByUser, getTokenByIdForUser, revokeTokenById, countActiveTokensByUser,
   listDeploymentsByUser, getDeploymentForUser, deleteDeploymentRow, updateDeployment,
   type UserRow,
@@ -190,7 +190,24 @@ export async function handleApiRequest(
   if (method === 'GET' && url === '/api/me') {
     const user = currentUser(req, db)
     if (!user) { json(res, 401, { error: '未登录' }); return true }
-    json(res, 200, { username: user.username })
+    json(res, 200, { username: user.username, created_at: user.created_at })
+    return true
+  }
+
+  // ── Change password ───────────────────────────────────────────────────────────
+  if (method === 'POST' && url === '/api/account/password') {
+    const user = currentUser(req, db)
+    if (!user) { json(res, 401, { error: '未登录' }); return true }
+    const body = await readJson(req) as any
+    const current = typeof body?.current === 'string' ? body.current : ''
+    const next = typeof body?.new === 'string' ? body.new : ''
+    if (next.length < 6) { json(res, 400, { error: '新密码至少 6 位' }); return true }
+    const ok = await bcrypt.compare(current, user.password_hash)
+    if (!ok) { json(res, 401, { error: '当前密码错误' }); return true }
+    const hash = await bcrypt.hash(next, 10)
+    updateUserPassword(db, user.id, hash)
+    insertAuditLog(db, { token_id: user.token_id, action: 'password_change', ip })
+    json(res, 200, { ok: true })
     return true
   }
 
