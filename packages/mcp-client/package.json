@@ -35,7 +35,11 @@
   "homepage": "https://pagefire.openhkt.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bradyliuY/page-fire.git",
+    "url": "git+https://github.com/bradyliuY/page-fire.git",
     "directory": "packages/mcp-client"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   }
 }
