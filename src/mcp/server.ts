@@ -16,6 +16,9 @@ import { deleteDeploymentTool } from './tools/delete-deployment.js'
 import { setAccessTool } from './tools/set-access.js'
 import { setSpaceIdTool } from './tools/set-space-id.js'
 import { verifyBearer } from '../auth.js'
+import { publish } from '../core/publish.js'
+import { renderDocsSite } from '../core/docs.js'
+import type { FileEntry } from '../core/deploy.js'
 
 // Per-token sliding-window rate limiter (in-memory)
 const rateLimiter = new Map<string, number[]>()
@@ -66,6 +69,52 @@ function makeError(err: any) {
   }
 }
 
+// Read a JSON upload body with a hard size cap (memory safety on a small box).
+function readUploadBody(req: IncomingMessage): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    let size = 0
+    const MAX = 64 * 1024 * 1024
+    req.on('data', (c: Buffer) => {
+      size += c.length
+      if (size > MAX) { reject({ code: 'PAYLOAD_TOO_LARGE', message: '上传体超过 64 MB 上限' }); req.destroy(); return }
+      chunks.push(c)
+    })
+    req.on('end', () => {
+      try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))) }
+      catch { reject({ code: 'INVALID_JSON', message: '请求体不是合法 JSON' }) }
+    })
+    req.on('error', reject)
+  })
+}
+
+// Out-of-band file deploy: bytes arrive via a direct HTTP POST (read from disk by the
+// local connector), never through the LLM or MCP tool arguments. Reuses publish().
+async function handleUpload(
+  body: any, token: NonNullable<ReturnType<typeof verifyBearer>>, db: Database.Database, config: Config, ip?: string,
+) {
+  const { files, render, did, title, theme, access, password, ttl_days, pin, spa } = body ?? {}
+  if (!Array.isArray(files) || files.length === 0) {
+    throw { code: 'INVALID_CONTENT', message: 'files is required' }
+  }
+  if (render === 'docs') {
+    const pages = files.map((f: any) => ({
+      path: String(f.path),
+      markdown: f.encoding === 'base64' ? Buffer.from(f.content, 'base64').toString('utf8') : String(f.content),
+    }))
+    const htmlFiles = renderDocsSite(pages, { title, theme })
+    return publish(db, config, token, { files: htmlFiles, did, title, access, password, ttl_days, pin, ip })
+  }
+  const bufFiles: FileEntry[] = files.map((f: any) => ({
+    path: String(f.path),
+    content: f.encoding === 'base64' ? Buffer.from(f.content, 'base64') : Buffer.from(String(f.content), 'utf8'),
+  }))
+  if (!bufFiles.some((f) => f.path === 'index.html' || f.path === './index.html')) {
+    throw { code: 'MISSING_INDEX', message: 'files must include index.html at the root' }
+  }
+  return publish(db, config, token, { files: bufFiles, did, title, access, password, ttl_days, pin, spa, ip })
+}
+
 export async function startMcpServer(
   db: Database.Database,
   config: Config,
@@ -75,6 +124,35 @@ export async function startMcpServer(
     if (req.method === 'GET' && req.url === '/healthz') {
       res.writeHead(200, { 'Content-Type': 'text/plain' })
       res.end('ok')
+      return
+    }
+
+    // Out-of-band upload — large files are read from disk by the connector and POSTed
+    // here directly, so they never pass through the model or MCP tool arguments.
+    if (req.method === 'POST' && req.url === '/upload') {
+      try {
+        const body = await readUploadBody(req)
+        const token = verifyBearer(req.headers['authorization'] as string | undefined, db)
+        if (!token) {
+          res.writeHead(401, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Invalid or missing Bearer token', code: 'UNAUTHORIZED' }))
+          return
+        }
+        checkRateLimit(token.id, 20)
+        const ip =
+          (req.headers['x-real-ip'] as string | undefined) ??
+          (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
+          req.socket.remoteAddress
+        const result = await handleUpload(body, token, db, config, ip)
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify(result))
+      } catch (err: any) {
+        const status = err?.code === 'PAYLOAD_TOO_LARGE' ? 413 : 400
+        if (!res.headersSent) {
+          res.writeHead(status, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: err?.message ?? String(err), code: err?.code ?? 'UPLOAD_ERROR' }))
+        }
+      }
       return
     }
 

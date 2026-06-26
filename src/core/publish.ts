@@ -58,10 +58,25 @@ export function resolveTarget(db: Database.Database, token: TokenRow, customDid?
  * Shared publish path for deploy_page / deploy_files / deploy_markdown.
  * (deploy_zip keeps its own streaming extraction but reuses resolveTarget.)
  */
+/** Shared per-file size ceiling for all inline/upload deploy paths. */
+export const MAX_FILE_BYTES = 10 * 1024 * 1024
+
 export function publish(
   db: Database.Database, config: Config, token: TokenRow, opts: PublishOpts,
 ): PublishResult {
   const { did, isUpdate, existing } = resolveTarget(db, token, opts.did)
+
+  // Per-file 10 MB ceiling — guards every shared deploy path (page/files/docs/upload).
+  // Larger payloads should go through the local-upload flow, not inline tool args.
+  for (const f of opts.files) {
+    const size = typeof f.content === 'string' ? Buffer.byteLength(f.content) : f.content.length
+    if (size > MAX_FILE_BYTES) {
+      throw {
+        code: 'FILE_TOO_LARGE',
+        message: `文件 "${f.path}" 为 ${(size / 1024 / 1024).toFixed(1)} MB，超过单文件 10 MB 上限。大文件请用本地上传方式（pagefire-mcp 的 deploy_dir）发布，避免把内容塞进工具参数。`,
+      }
+    }
+  }
 
   const incomingBytes = opts.files.reduce(
     (s, f) => s + (typeof f.content === 'string' ? Buffer.byteLength(f.content) : f.content.length), 0)
