@@ -43,17 +43,27 @@ const DEFAULT_IGNORES = [
 // Extensions sent as utf8 text; everything else is base64-encoded.
 const TEXT_EXT = new Set(['.html', '.htm', '.css', '.js', '.mjs', '.json', '.txt', '.md', '.xml', '.svg'])
 
-const HELP = `pagefire-mcp v${VERSION} — stdio connector for the hosted PageFire MCP service
+const HELP = `pagefire-mcp v${VERSION} — stdio MCP connector + CLI for PageFire
 
-Usage (in your MCP client config):
+MCP bridge (default, no subcommand):
   command: npx
   args:    ["-y", "pagefire-mcp"]
   env:     { "PAGEFIRE_TOKEN": "pf_xxx" }
 
-Adds local-file deploy tools on top of the hosted tools:
-  deploy_dir       publish a local directory as a static site (reads files from disk)
-  deploy_docs_dir  render every local .md file into a docs site
-  deploy_file      publish a single local file
+CLI commands (PAGEFIRE_TOKEN env required):
+  pagefire-mcp deploy <path>      publish a directory or file (.md auto-renders)
+  pagefire-mcp list               list all deployments
+  pagefire-mcp delete <did>       delete a deployment
+  pagefire-mcp pin <did>          pin a deployment (make permanent)
+
+Options for deploy:
+  --did=<name>       site alias; reuse to update in-place
+  --title=<text>     human-readable title
+  --pin              make permanent (no expiry)
+  --theme=<t>        for .md: light|dark|sepia  (default: light)
+  --spa              SPA fallback for directories
+  --exclude=<glob>   exclude glob (repeatable); also reads .pagefireignore
+  --ttl-days=<n>     expiry in days (default: 7)
 
 Environment:
   PAGEFIRE_TOKEN  (required)  pf_ Bearer token
@@ -218,6 +228,145 @@ async function runLocalTool(name: string, args: any): Promise<any> {
   throw new Error(`未知本地工具：${name}`)
 }
 
+// ── CLI mode ──────────────────────────────────────────────────────────────────
+// Activated when called with a subcommand: npx pagefire-mcp deploy ./dist
+const CLI_CMDS = new Set(['deploy', 'list', 'delete', 'pin'])
+
+function parseCliArgs(argv: string[]) {
+  const flags: Record<string, string | boolean | string[]> = {}
+  const positional: string[] = []
+  for (const a of argv) {
+    if (a.startsWith('--')) {
+      const eq = a.indexOf('=')
+      const key = eq !== -1 ? a.slice(2, eq) : a.slice(2)
+      const val = eq !== -1 ? a.slice(eq + 1) : true
+      if (key === 'exclude' && val !== true) {
+        if (!Array.isArray(flags[key])) flags[key] = []
+        ;(flags[key] as string[]).push(val)
+      } else {
+        flags[key] = val
+      }
+    } else {
+      positional.push(a)
+    }
+  }
+  return { flags, positional }
+}
+
+async function callRemote(name: string, args: Record<string, unknown>) {
+  const initRes = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'pagefire-cli', version: VERSION } } }),
+  })
+  const sid = initRes.headers.get('mcp-session-id')
+  const callRes = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', ...(sid ? { 'mcp-session-id': sid } : {}) },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args } }),
+  })
+  const text = await callRes.text()
+  for (const line of text.split('\n')) {
+    if (!line.startsWith('data:')) continue
+    try {
+      const msg = JSON.parse(line.slice(5))
+      if (msg.result) return msg.result
+      if (msg.error) throw new Error(msg.error.message ?? JSON.stringify(msg.error))
+    } catch (e: any) { if (e?.message) throw e }
+  }
+  throw new Error('No result from server')
+}
+
+function parseMcpText(result: any) {
+  const t = result?.content?.[0]?.text
+  try { return t ? JSON.parse(t) : result?.structuredContent ?? result } catch { return t ?? result }
+}
+
+async function runCli(cmd: string, argv: string[]) {
+  const { flags, positional } = parseCliArgs(argv)
+  const lifecycle = {
+    ...(flags.did ? { did: String(flags.did) } : {}),
+    ...(flags.title ? { title: String(flags.title) } : {}),
+    ...(flags.pin === true ? { pin: true } : {}),
+    ...(flags['ttl-days'] ? { ttl_days: Number(flags['ttl-days']) } : {}),
+    ...(flags.access ? { access: String(flags.access) } : {}),
+    ...(flags.password ? { password: String(flags.password) } : {}),
+  }
+
+  if (cmd === 'list') {
+    const data = parseMcpText(await callRemote('list_deployments', {}))
+    const rows: any[] = data?.deployments ?? []
+    if (!rows.length) { process.stdout.write('No deployments.\n'); return }
+    const cols = ['did', 'url', 'pinned', 'files', 'expires'] as const
+    const display = rows.map(d => ({
+      did: d.did,
+      url: d.url ?? d.domain ?? '-',
+      pinned: d.pinned ? 'yes' : 'no',
+      files: String(d.file_count ?? '-'),
+      expires: d.expires_at ? new Date(d.expires_at).toISOString().slice(0, 10) : '-',
+    }))
+    const widths = cols.map(c => Math.max(c.length, ...display.map(r => String(r[c]).length)))
+    const fmt = (r: Record<string, string>) => cols.map((c, i) => String(r[c]).padEnd(widths[i])).join('  ')
+    const header = Object.fromEntries(cols.map(c => [c, c])) as Record<string, string>
+    process.stdout.write(fmt(header) + '\n')
+    process.stdout.write(cols.map((_, i) => '-'.repeat(widths[i])).join('  ') + '\n')
+    for (const row of display) process.stdout.write(fmt(row) + '\n')
+    return
+  }
+
+  if (cmd === 'delete') {
+    const did = positional[0]; if (!did) fail('Usage: pagefire-mcp delete <did>')
+    await callRemote('delete_deployment', { did })
+    process.stdout.write(`Deleted: ${did}\n`)
+    return
+  }
+
+  if (cmd === 'pin') {
+    const did = positional[0]; if (!did) fail('Usage: pagefire-mcp pin <did>')
+    await callRemote('pin_deployment', { did })
+    process.stdout.write(`Pinned: ${did}\n`)
+    return
+  }
+
+  if (cmd === 'deploy') {
+    const target = positional[0]; if (!target) fail('Usage: pagefire-mcp deploy <path> [options]')
+    const st = await stat(target).catch(() => null)
+    if (!st) fail(`Not found: ${target}`)
+    const excludes = Array.isArray(flags.exclude) ? flags.exclude as string[] : undefined
+    let data: any
+
+    if (st.isDirectory()) {
+      const files = await collectFiles(target, false, excludes)
+      if (!files.some(f => f.path === 'index.html')) fail('Directory must contain index.html')
+      process.stderr.write(`Deploying ${target} (${files.length} files)...\n`)
+      data = await postUpload({ files, ...lifecycle, ...(flags.spa ? { spa: true } : {}) })
+    } else if (extname(target).toLowerCase() === '.md') {
+      const content = await readFile(target, 'utf8')
+      process.stderr.write(`Publishing Markdown: ${target}\n`)
+      data = parseMcpText(await callRemote('deploy_markdown', { markdown: content, theme: String(flags.theme ?? 'light'), ...lifecycle }))
+    } else {
+      const buf = await readFile(target)
+      const isText = TEXT_EXT.has(extname(target).toLowerCase())
+      const file = isText
+        ? { path: 'index.html', content: buf.toString('utf8'), encoding: 'utf8' as const }
+        : { path: 'index.html', content: buf.toString('base64'), encoding: 'base64' as const }
+      process.stderr.write(`Deploying ${target}...\n`)
+      data = await postUpload({ files: [file], ...lifecycle, ...(flags.spa ? { spa: true } : {}) })
+    }
+
+    const u = data?.url ?? data?.domain
+    process.stdout.write((u ?? JSON.stringify(data, null, 2)) + '\n')
+    return
+  }
+}
+
+if (CLI_CMDS.has(process.argv[2])) {
+  runCli(process.argv[2], process.argv.slice(3)).catch(e => {
+    process.stderr.write(`Error: ${e?.message ?? String(e)}\n`)
+    process.exit(1)
+  })
+} else {
+
 // ── Transports + routing ────────────────────────────────────────────────────────
 const remote = new StreamableHTTPClientTransport(url, {
   requestInit: { headers: { Authorization: `Bearer ${token}` } },
@@ -289,3 +438,4 @@ process.on('SIGTERM', () => shutdown(0))
 await remote.start()
 await local.start()
 log(`bridging stdio <-> ${url.href}  (+ local deploy tools, /upload at ${uploadUrl})`)
+}
