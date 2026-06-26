@@ -14,6 +14,13 @@ specs/001-pagefire-mcp-publisher/plan.md
 
 ⚠️ **当前处于设计阶段:仓库里还没有任何代码,只有设计与部署文档。** 实现尚未开始;动手写代码前必读 `docs/design.md`(权威设计,所有架构决策已确认)。计划技术栈:**TypeScript + 官方 `@modelcontextprotocol/sdk` + better-sqlite3**,复用服务器现有 nginx。
 
+## ⚠️ 操作安全(最高优先级,必须遵守)
+
+1. **破坏性命令必须先经用户同意**:任何 `rm -rf`、`rm` 通配删除、`DROP`/批量 `DELETE`、`mv`/覆盖数据、`git reset --hard`、`git push --force`、`pm2 delete`、改/删 nginx·证书·`.env` 等**不可逆或影响线上数据的操作,执行前必须明确征得用户同意**,不得自作主张。
+2. **绝不对数据目录用通配删除**:`/var/pagefire/sites`、`pagefire.db` 是线上用户数据。清理测试数据只能删**明确的单个 `token_id`/`did` 路径**,**严禁** `rm -rf /var/pagefire/sites/*` 这类通配。
+   - 教训:曾因 `rm -rf /var/pagefire/sites/*` 误删全部 47 个部署的静态文件(DB 元数据尚在,可经相同 did 重发复原)。
+3. 在线上服务器(`8.163.52.153`)上操作前先想清楚影响面;只动 PageFire 自己的进程/目录,**绝不碰 Luminar**(backend/storefront/nginx)。
+
 ## 文档地图
 
 - `docs/design.md` —— **权威设计文档**。架构、安全模型、SQLite 数据模型、MCP 工具接口、代码结构(§11)、设计补遗(§12)、路线图。改动架构前先改这里。
