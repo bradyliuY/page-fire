@@ -31,7 +31,7 @@ import { extname } from 'node:path'
 import { parseCliArgs, collectFiles, TEXT_EXT, MAX_FILE_BYTES } from './utils.js'
 
 const DEFAULT_URL = 'https://mcp.pagefire.openhkt.com/mcp'
-const VERSION = '0.4.0'
+const VERSION = '0.5.0'
 
 const HELP = `pagefire-mcp v${VERSION} — stdio MCP connector + CLI for PageFire
 
@@ -41,17 +41,18 @@ MCP bridge (default, no subcommand):
   env:     { "PAGEFIRE_TOKEN": "pf_xxx" }
 
 CLI commands (PAGEFIRE_TOKEN env required):
-  pagefire-mcp deploy <path>      publish a directory or file (.md auto-renders)
-  pagefire-mcp list               list all deployments
-  pagefire-mcp delete <did>       delete a deployment
-  pagefire-mcp pin <did>          pin a deployment (make permanent)
+  pagefire-mcp deploy <path>       publish a directory or file (.md auto-renders)
+  pagefire-mcp deploy-docs <dir>   publish all .md files as a docs site with sidebar
+  pagefire-mcp list                list all deployments
+  pagefire-mcp delete <did>        delete a deployment
+  pagefire-mcp pin <did>           pin a deployment (make permanent)
 
-Options for deploy:
+Options for deploy / deploy-docs:
   --did=<name>       site alias; reuse to update in-place
   --title=<text>     human-readable title
   --pin              make permanent (no expiry)
-  --theme=<t>        for .md: light|dark|sepia  (default: light)
-  --spa              SPA fallback for directories
+  --theme=<t>        light|dark|sepia  (default: light)
+  --spa              SPA fallback (deploy only)
   --exclude=<glob>   exclude glob (repeatable); also reads .pagefireignore
   --ttl-days=<n>     expiry in days (default: 7)
 

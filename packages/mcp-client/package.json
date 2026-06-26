@@ -1,6 +1,6 @@
 {
   "name": "pagefire-mcp",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "stdio MCP connector for PageFire — bridges your MCP client to the hosted PageFire endpoint over Node's TLS stack, sidestepping client-runtime TLS quirks (e.g. Bun) and network fingerprint filtering.",
   "type": "module",
   "bin": {
