@@ -31,7 +31,7 @@ import { extname } from 'node:path'
 import { parseCliArgs, collectFiles, TEXT_EXT, MAX_FILE_BYTES } from './utils.js'
 
 const DEFAULT_URL = 'https://mcp.pagefire.openhkt.com/mcp'
-const VERSION = '0.5.0'
+const VERSION = '0.5.1'
 
 const HELP = `pagefire-mcp v${VERSION} — stdio MCP connector + CLI for PageFire
 
