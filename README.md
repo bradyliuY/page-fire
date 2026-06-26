@@ -1,14 +1,41 @@
-# PageFire
+<p align="center">
+  <img src="https://pagefire.openhkt.com/logo.png" height="64" alt="PageFire">
+</p>
 
-[![CI](https://github.com/bradyliuY/page-fire/actions/workflows/ci.yml/badge.svg)](https://github.com/bradyliuY/page-fire/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/pagefire-mcp?label=pagefire-mcp)](https://www.npmjs.com/package/pagefire-mcp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<h3 align="center">PageFire</h3>
 
-> 通过 MCP 一键把 HTML / Markdown / 静态包发布成公网可访问网页的**自托管**静态发布服务。
+<p align="center">
+  通过 MCP 一句话把 HTML / Markdown / 静态包发布成公网 HTTPS 网页 &nbsp;·&nbsp; 自托管 &nbsp;·&nbsp; 秒级
+</p>
 
-给 Claude、Cursor 等 AI 客户端一个"发布"能力——对话中一句话，内容立刻变成带 HTTPS 链接的独立子域名页面，几秒完成，全程不碰部署流程。
+<p align="center">
+  <a href="https://pagefire.openhkt.com"><b>在线体验</b></a> &nbsp;·&nbsp;
+  <a href="packages/mcp-client/README.md">CLI 文档</a> &nbsp;·&nbsp;
+  <a href="docs/DEPLOY.md">部署指南</a> &nbsp;·&nbsp;
+  <a href="https://www.npmjs.com/package/pagefire-mcp">npm</a>
+</p>
 
-**在线体验：[pagefire.openhkt.com](https://pagefire.openhkt.com)**
+<p align="center">
+  <a href="https://github.com/bradyliuY/page-fire/actions/workflows/ci.yml">
+    <img src="https://github.com/bradyliuY/page-fire/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+  <a href="https://www.npmjs.com/package/pagefire-mcp">
+    <img src="https://img.shields.io/npm/v/pagefire-mcp?label=pagefire-mcp&color=f97316" alt="npm version">
+  </a>
+  <a href="https://www.npmjs.com/package/pagefire-mcp">
+    <img src="https://img.shields.io/npm/dm/pagefire-mcp?color=f97316&label=npm%20downloads" alt="npm downloads">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+  </a>
+  <img src="https://img.shields.io/badge/live-pagefire.openhkt.com-f97316" alt="Live">
+</p>
+
+---
+
+> 给 Claude、Cursor 等 AI 客户端一个「发布」能力——对话中一句话，内容立刻变成带 HTTPS 链接的独立子域名页面，几秒完成，全程不碰部署流程。
+>
+> 托管版直接用：**[pagefire.openhkt.com](https://pagefire.openhkt.com)**（注册即得 API Key）&nbsp;·&nbsp; 或自托管在自己服务器上。
 
 ---
 
