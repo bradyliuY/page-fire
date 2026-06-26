@@ -47,6 +47,9 @@ Thumbs.db
 # 部署文档 / 服务器相关 —— 含敏感信息，仅本地保留(目录约定,无需写具体文件名)
 docs/deploy/
 
+# 内部规划草稿 —— 实现前的 spec/task/research，已由 docs/ 正式文档取代
+specs/
+
 # 开发工具内部配置（speckit / Claude Code）
 .specify/
 .claude/
