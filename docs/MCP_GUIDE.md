@@ -188,6 +188,7 @@ React / Vue / Svelte 等框架打包后只有一个 `index.html`，路由由 JS 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `markdown` | string | ✅ | Markdown 内容（UTF-8，最大 5 MB） |
+| `mode` | `"article"` \| `"slide"` | — | 渲染模式，`article` 为文章页（默认），`slide` 为演示幻灯片 |
 | `title` | string | — | 标题，不填则取第一个 `#` 标题 |
 | `theme` | `"light"` \| `"dark"` \| `"sepia"` | — | 主题色，默认 `light` |
 | `did` | string | — | 自定义 ID，传已有 ID 则原地更新（URL 不变） |
@@ -196,17 +197,26 @@ React / Vue / Svelte 等框架打包后只有一个 `index.html`，路由由 JS 
 | `ttl_days` | integer 1–365 | — | 有效天数，默认 7 天 |
 | `pin` | boolean | — | `true` 则永不过期 |
 
-**渲染特性：**
+**渲染特性（文章模式 `mode="article"`，默认）：**
 
 - 自动解析并去掉 YAML/TOML frontmatter（`---`/`+++` 块）
 - 支持 GFM（表格、任务列表、删除线等）
 - 宽屏（> 1100px）自动在右侧显示**页内目录**（从 `##` / `###` 提取，滚动时高亮当前章节）
+
+**渲染特性（幻灯片模式 `mode="slide"`）：**
+
+- 每条 `---` 分割线 = 一页幻灯片
+- 全屏展示，键盘 ← → 翻页，支持触屏滑动
+- 代码自动高亮（基于 highlight.js）
+- 三主题（light / dark / sepia）与文章模式一致
+- 可按 `P` 进入演示者模式，按 `O` 显示总览
 
 **对话示例：**
 
 ```
 帮我把这篇技术文档发布成网页，用 sepia 主题，永久保留。
 把下面这个 README.md 发布出去，标题设为「项目文档」。
+把这份演讲稿发布成幻灯片模式，用 dark 主题，永久保留。
 ```
 
 ---
@@ -382,6 +392,36 @@ React / Vue / Svelte 等框架打包后只有一个 `index.html`，路由由 JS 
 ```
 把这个 ZIP 文件里的站点发布出去。
 把 dist/ 目录打包成 ZIP 发布，开启 SPA 模式（React 应用），永久保留。
+```
+
+---
+
+### `deploy_presentation` — 发布 PDF / PPTX 演示文稿
+
+上传 PDF 或 PPTX 文件，自动生成可在线查看的演示页面。
+
+- **PDF**：浏览器原生查看器包装（全屏 iframe 嵌入，支持键盘翻页、缩放、下载）
+- **PPTX**：服务端自动提取文本 + 图片 → remark.js 幻灯片（保留原始文件可下载）
+
+**参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pdf` | string | ⚠️ | Base64 编码的 PDF 文件（与 `pptx` 二选一，≤ 50 MB） |
+| `pptx` | string | ⚠️ | Base64 编码的 PPTX 文件（与 `pdf` 二选一，≤ 50 MB） |
+| `title` | string | — | 演示文稿标题 |
+| `theme` | `"light"` \| `"dark"` \| `"sepia"` | — | 主题色（仅 PPTX 模式生效），默认 `light` |
+| `did` | string | — | 自定义 ID，传已有 ID 则原地更新 |
+| `access` | `"public"` \| `"password"` | — | 默认 `public` |
+| `password` | string | — | 密码保护时填写 |
+| `ttl_days` | integer 1–365 | — | 默认 7 天 |
+| `pin` | boolean | — | 永久保留 |
+
+**对话示例：**
+
+```
+把这份 PDF 报告发布成网页，永久保留。
+把这个 PPTX 演示文稿发布成幻灯片，用 dark 主题。
 ```
 
 ---
