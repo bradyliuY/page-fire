@@ -8,14 +8,15 @@ import {
  * Uses `---` as slide separator (standard remark.js syntax).
  * Supports light / dark / sepia themes matching article mode palette.
  *
- * Navigation UI (auto-generated):
- *   - Bottom progress bar
- *   - Bottom-center arrow buttons (◀ / ▶)
- *   - Bottom-right slide counter (3 / 10)
+ * Navigation UI:
+ *   - Bottom progress bar (thin accent line)
+ *   - Bottom-left prev / bottom-right next arrow buttons
+ *   - Bottom-center slide counter (3 / 10)
+ *   - Auto-hide controls after 2s inactive, show on mouse move / key press
  *   - Keyboard ← →, touch swipe, presenter mode (P), overview (O)
  *
- * remark.min.js is loaded from /__pf__/remark.min.js (same-origin, served
- * by the router) with a CDN fallback.
+ * remark.min.js is loaded from /__pf__/remark.min.js (same-origin)
+ * with a CDN fallback.
  */
 export function renderMarkdownSlides(
   markdown: string,
@@ -23,7 +24,6 @@ export function renderMarkdownSlides(
 ): string {
   const theme = resolveTheme(opts.theme)
 
-  // Title: explicit > first ATX heading > default
   let title = opts.title?.trim()
   if (!title) {
     const m = markdown.match(/^\s{0,3}#\s+(.+?)\s*#*\s*$/m)
@@ -31,14 +31,9 @@ export function renderMarkdownSlides(
   }
   title ||= 'Presentation'
 
-  // Strip YAML/TOML frontmatter so `---` isn't mistaken for a slide separator.
   const body = stripFrontmatter(markdown)
-
-  // remark.js reads from <textarea id="source"> as raw text.
-  // Only `</textarea>` can break parsing — escape it.
   const safeMd = body.replace(/<\/textarea>/gi, '&lt;/textarea&gt;')
 
-  // Empty body → single placeholder slide.
   const mdContent = body.trim()
     ? safeMd
     : '# No Content\n\n_This presentation has no content._'
@@ -53,8 +48,6 @@ export function renderMarkdownSlides(
     ratio: '16:9',
     highlightStyle: highlightStyle[theme],
     navigation: { scroll: false, click: true },
-    // remark's built-in number; we overlay our own counter but keep
-    // remark's for the slide DOM reference.
     slideNumberFormat: '',
     countIncrementalSlides: false,
   }
@@ -99,24 +92,36 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
 
 /* ── Navigation UI ──────────────────────────────────── */
 
-/* Progress bar - thin line across the bottom */
-#pf-progress{position:fixed;bottom:0;left:0;height:3px;background:var(--accent);transition:width .25s ease;z-index:100;border-radius:0 2px 2px 0}
+/* Progress bar — thin accent line at the very bottom edge */
+#pf-progress{position:fixed;bottom:0;left:0;height:2px;background:var(--accent);transition:width .35s ease;z-index:100;border-radius:0}
 
-/* Bottom bar: arrows + counter */
-#pf-bar{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:100;
-  background:var(--bg);border:1px solid var(--bdr);border-radius:20px;padding:4px 6px;opacity:.35;transition:opacity .25s;
-  user-select:none;-webkit-user-select:none}
-#pf-bar:hover{opacity:.85}
-#pf-bar button{background:none;border:none;color:var(--fg);font-size:15px;cursor:pointer;padding:2px 10px;border-radius:8px;line-height:1.5;transition:background .12s}
-#pf-bar button:hover{background:var(--code-bg)}
-#pf-bar button:disabled{opacity:.2;cursor:default;background:none}
-#pf-count{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:42px;text-align:center;font-family:'SF Mono',ui-monospace,monospace}
+/* Controls wrapper — bottom-center, auto-hides */
+#pf-ctrl{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;
+  display:flex;align-items:center;gap:10px;user-select:none;-webkit-user-select:none;
+  opacity:1;transition:opacity .4s ease}
+#pf-ctrl.hidden{opacity:0;pointer-events:none}
 
-/* Hide the native remark slide number */
+/* Prev/next — positioned outward for cleaner look */
+#pf-prev,#pf-next{
+  background:var(--bg);border:1px solid var(--bdr);border-radius:50%;
+  width:32px;height:32px;display:grid;place-items:center;
+  color:var(--muted);font-size:13px;cursor:pointer;
+  transition:color .15s,background .15s,border-color .15s,opacity .2s;line-height:1;
+  font-family:inherit;padding:0}
+#pf-prev:hover,#pf-next:hover{color:var(--fg);background:var(--code-bg);border-color:var(--bdr2)}
+#pf-prev:disabled,#pf-next:disabled{opacity:0;pointer-events:none}
+
+/* Slide counter */
+#pf-count{
+  font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
+  min-width:48px;text-align:center;font-family:'SF Mono',ui-monospace,monospace;
+  letter-spacing:.02em}
+
+/* Hide native remark number */
 .remark-slide-number{display:none !important}
 
-/* Print support */
-@media print{@page{size:landscape}.remark-slide-scaler{width:100% !important;height:100% !important;left:0 !important;top:0 !important;transform:scale(1) !important}#pf-bar,#pf-progress{display:none !important}}
+/* Print */
+@media print{@page{size:landscape}.remark-slide-scaler{width:100% !important;height:100% !important;left:0 !important;top:0 !important;transform:scale(1) !important}#pf-ctrl,#pf-progress{display:none !important}}
 </style>
 </head>
 <body>
@@ -124,7 +129,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
 
 <!-- Navigation UI -->
 <div id="pf-progress" style="width:0%"></div>
-<div id="pf-bar">
+<div id="pf-ctrl">
   <button id="pf-prev" onclick="prevSlide()" title="上一页 (←)">◀</button>
   <span id="pf-count">1 / 1</span>
   <button id="pf-next" onclick="nextSlide()" title="下一页 (→)">▶</button>
@@ -134,7 +139,15 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
 <script>
 var slideshow = remark.create(${JSON.stringify(remarkConfig)});
 
-// ── UI update on slide change ──────────────────────────
+// ── Auto-hide controls ───────────────────────────────
+var hideTimer = null;
+function showCtrl(){ document.getElementById('pf-ctrl').classList.remove('hidden'); resetHide(); }
+function resetHide(){ clearTimeout(hideTimer); hideTimer = setTimeout(function(){ document.getElementById('pf-ctrl').classList.add('hidden'); }, 2000); }
+resetHide();
+document.addEventListener('mousemove', showCtrl);
+document.addEventListener('keydown', showCtrl);
+
+// ── Update UI on slide change ────────────────────────
 function updateUI(){
   var total = slideshow.getSlideCount() || 1;
   var idx = slideshow.getCurrentSlideIndex() + 1;
@@ -144,13 +157,12 @@ function updateUI(){
   document.getElementById('pf-count').textContent = idx + ' / ' + total;
   document.getElementById('pf-prev').disabled = idx <= 1;
   document.getElementById('pf-next').disabled = idx >= total;
+  showCtrl();
 }
 
 slideshow.on('showSlide', updateUI);
-// Also run after remark finishes initial layout
 setTimeout(updateUI, 100);
 
-// ── Button helpers ────────────────────────────────────
 function prevSlide(){ slideshow.gotoPreviousSlide(); }
 function nextSlide(){ slideshow.gotoNextSlide(); }
 </script>
