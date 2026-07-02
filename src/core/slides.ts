@@ -149,8 +149,10 @@ document.addEventListener('keydown', showCtrl);
 
 // ── Update UI on slide change ────────────────────────
 function updateUI(){
-  var total = slideshow.getSlideCount() || 1;
-  var idx = slideshow.getCurrentSlideIndex() + 1;
+  var slides = slideshow.getSlides ? slideshow.getSlides() : [];
+  var total = slides.length || slideshow.getSlideCount() || 1;
+  var idx = (typeof slideshow.getCurrentSlideIndex === 'function' ? slideshow.getCurrentSlideIndex() : 0) + 1;
+  if (idx > total) idx = total;
   var pct = Math.min(100, (idx / total) * 100);
 
   document.getElementById('pf-progress').style.width = pct + '%';
@@ -161,7 +163,7 @@ function updateUI(){
 }
 
 slideshow.on('showSlide', updateUI);
-setTimeout(updateUI, 100);
+setTimeout(updateUI, 300);
 
 function prevSlide(){ slideshow.gotoPreviousSlide(); }
 function nextSlide(){ slideshow.gotoNextSlide(); }
