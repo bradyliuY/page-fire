@@ -96,26 +96,26 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
 #pf-progress{position:fixed;bottom:0;left:0;height:2px;background:var(--accent);transition:width .35s ease;z-index:100;border-radius:0}
 
 /* Controls wrapper — bottom-center, auto-hides */
-#pf-ctrl{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;
-  display:flex;align-items:center;gap:10px;user-select:none;-webkit-user-select:none;
+#pf-ctrl{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:100;
+  display:flex;align-items:center;gap:6px;user-select:none;-webkit-user-select:none;
   opacity:1;transition:opacity .4s ease}
 #pf-ctrl.hidden{opacity:0;pointer-events:none}
 
-/* Prev/next — positioned outward for cleaner look */
+/* Prev/next — minimal chevron-only buttons */
 #pf-prev,#pf-next{
-  background:var(--bg);border:1px solid var(--bdr);border-radius:50%;
-  width:32px;height:32px;display:grid;place-items:center;
-  color:var(--muted);font-size:13px;cursor:pointer;
-  transition:color .15s,background .15s,border-color .15s,opacity .2s;line-height:1;
-  font-family:inherit;padding:0}
-#pf-prev:hover,#pf-next:hover{color:var(--fg);background:var(--code-bg);border-color:var(--bdr2)}
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:22px;line-height:1;
+  padding:6px 12px;border-radius:6px;
+  transition:color .15s,background .15s,opacity .2s;
+  font-family:serif}
+#pf-prev:hover,#pf-next:hover{color:var(--fg);background:var(--code-bg)}
 #pf-prev:disabled,#pf-next:disabled{opacity:0;pointer-events:none}
 
 /* Slide counter */
 #pf-count{
   font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
-  min-width:48px;text-align:center;font-family:'SF Mono',ui-monospace,monospace;
-  letter-spacing:.02em}
+  min-width:44px;text-align:center;font-family:'SF Mono',ui-monospace,monospace;
+  letter-spacing:.02em;margin:0 2px}
 
 /* Hide native remark number */
 .remark-slide-number{display:none !important}
@@ -130,9 +130,9 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
 <!-- Navigation UI -->
 <div id="pf-progress" style="width:0%"></div>
 <div id="pf-ctrl">
-  <button id="pf-prev" onclick="prevSlide()" title="上一页 (←)">◀</button>
+  <button id="pf-prev" onclick="prevSlide()" title="上一页 (←)">‹</button>
   <span id="pf-count">1 / 1</span>
-  <button id="pf-next" onclick="nextSlide()" title="下一页 (→)">▶</button>
+  <button id="pf-next" onclick="nextSlide()" title="下一页 (→)">›</button>
 </div>
 
 <script src="/__pf__/remark.min.js"></script>
