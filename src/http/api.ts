@@ -27,7 +27,8 @@ const MAX_KEYS_PER_USER = 10
 // (would rewrite every existing URL of the key) — destructive global change.
 const PLAYGROUND_TOOLS = new Set([
   'list_deployments', 'get_deployment',
-  'deploy_page', 'deploy_markdown', 'deploy_docs', 'deploy_files',
+  'deploy_page', 'deploy_markdown', 'deploy_docs', 'deploy_files', 'deploy_zip',
+  'deploy_presentation',
   'pin_deployment', 'set_access', 'delete_deployment',
 ])
 
