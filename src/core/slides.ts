@@ -8,9 +8,14 @@ import {
  * Uses `---` as slide separator (standard remark.js syntax).
  * Supports light / dark / sepia themes matching article mode palette.
  *
- * The output is a self-contained HTML page.  remark.min.js is loaded from
- * /__pf__/remark.min.js (same-origin, served by the router) with a CDN
- * fallback — exactly the same pattern as the mermaid asset.
+ * Navigation UI (auto-generated):
+ *   - Bottom progress bar
+ *   - Bottom-center arrow buttons (◀ / ▶)
+ *   - Bottom-right slide counter (3 / 10)
+ *   - Keyboard ← →, touch swipe, presenter mode (P), overview (O)
+ *
+ * remark.min.js is loaded from /__pf__/remark.min.js (same-origin, served
+ * by the router) with a CDN fallback.
  */
 export function renderMarkdownSlides(
   markdown: string,
@@ -41,13 +46,15 @@ export function renderMarkdownSlides(
   const highlightStyle: Record<MarkdownTheme, string> = {
     light: 'github',
     dark: 'github-dark',
-    sepia: 'github', // no perfect warm highlight — github is neutral enough
+    sepia: 'github',
   }
 
   const remarkConfig = {
     ratio: '16:9',
     highlightStyle: highlightStyle[theme],
     navigation: { scroll: false, click: true },
+    // remark's built-in number; we overlay our own counter but keep
+    // remark's for the slide DOM reference.
     slideNumberFormat: '',
     countIncrementalSlides: false,
   }
@@ -61,6 +68,7 @@ export function renderMarkdownSlides(
 <style>
 :root{${THEMES[theme]}}
 html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
+
 .remark-slide-content{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,'PingFang SC','Microsoft YaHei',sans-serif;
   font-size:1.6rem;line-height:1.6;color:var(--fg);background:var(--bg);
@@ -88,16 +96,63 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
 .remark-slide-content img{max-width:100%;height:auto;border-radius:6px}
 .remark-slide-content .remark-slide-number{font-size:11px;color:var(--muted)}
 .remark-slide-content blockquote p:last-child,.remark-slide-content p:last-child{margin-bottom:0}
-.remark-slide-number{font-size:11px;color:var(--muted);opacity:.6 !important;bottom:8px !important;right:14px !important}
-/* Print support — reset the scaler transform so slides print at full width */
-@media print{@page{size:landscape}.remark-slide-scaler{width:100% !important;height:100% !important;left:0 !important;top:0 !important;transform:scale(1) !important}}
+
+/* ── Navigation UI ──────────────────────────────────── */
+
+/* Progress bar - thin line across the bottom */
+#pf-progress{position:fixed;bottom:0;left:0;height:3px;background:var(--accent);transition:width .25s ease;z-index:100;border-radius:0 2px 2px 0}
+
+/* Bottom bar: arrows + counter */
+#pf-bar{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:100;
+  background:var(--bg);border:1px solid var(--bdr);border-radius:20px;padding:4px 6px;opacity:.35;transition:opacity .25s;
+  user-select:none;-webkit-user-select:none}
+#pf-bar:hover{opacity:.85}
+#pf-bar button{background:none;border:none;color:var(--fg);font-size:15px;cursor:pointer;padding:2px 10px;border-radius:8px;line-height:1.5;transition:background .12s}
+#pf-bar button:hover{background:var(--code-bg)}
+#pf-bar button:disabled{opacity:.2;cursor:default;background:none}
+#pf-count{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:42px;text-align:center;font-family:'SF Mono',ui-monospace,monospace}
+
+/* Hide the native remark slide number */
+.remark-slide-number{display:none !important}
+
+/* Print support */
+@media print{@page{size:landscape}.remark-slide-scaler{width:100% !important;height:100% !important;left:0 !important;top:0 !important;transform:scale(1) !important}#pf-bar,#pf-progress{display:none !important}}
 </style>
 </head>
 <body>
 <textarea id="source" style="display:none">${mdContent}</textarea>
+
+<!-- Navigation UI -->
+<div id="pf-progress" style="width:0%"></div>
+<div id="pf-bar">
+  <button id="pf-prev" onclick="prevSlide()" title="上一页 (←)">◀</button>
+  <span id="pf-count">1 / 1</span>
+  <button id="pf-next" onclick="nextSlide()" title="下一页 (→)">▶</button>
+</div>
+
 <script src="/__pf__/remark.min.js"></script>
 <script>
 var slideshow = remark.create(${JSON.stringify(remarkConfig)});
+
+// ── UI update on slide change ──────────────────────────
+function updateUI(){
+  var total = slideshow.getSlideCount() || 1;
+  var idx = slideshow.getCurrentSlideIndex() + 1;
+  var pct = Math.min(100, (idx / total) * 100);
+
+  document.getElementById('pf-progress').style.width = pct + '%';
+  document.getElementById('pf-count').textContent = idx + ' / ' + total;
+  document.getElementById('pf-prev').disabled = idx <= 1;
+  document.getElementById('pf-next').disabled = idx >= total;
+}
+
+slideshow.on('showSlide', updateUI);
+// Also run after remark finishes initial layout
+setTimeout(updateUI, 100);
+
+// ── Button helpers ────────────────────────────────────
+function prevSlide(){ slideshow.gotoPreviousSlide(); }
+function nextSlide(){ slideshow.gotoNextSlide(); }
 </script>
 </body>
 </html>`
