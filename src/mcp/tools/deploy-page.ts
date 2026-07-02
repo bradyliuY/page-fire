@@ -28,7 +28,7 @@ export async function deployPage(
     throw { code: 'INVALID_CONTENT', message: 'html is required' }
   }
   if (Buffer.byteLength(args.html) > 10 * 1024 * 1024) {
-    throw { code: 'FILE_TOO_LARGE', message: 'html exceeds 10 MB limit' }
+    throw { code: 'FILE_TOO_LARGE', message: `HTML 内容超过 10 MB 上限（当前 ${(Buffer.byteLength(args.html) / 1024 / 1024).toFixed(1)} MB）。大文件请用 deploy_dir 本地上传方式发布，避免把内容塞进工具参数。` }
   }
 
   return publish(db, config, token, {

@@ -21,6 +21,11 @@ const MIME: Record<string, string> = {
   '.txt': 'text/plain; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
   '.map': 'application/json',
+  '.pdf': 'application/pdf',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.ppsx': 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+  '.pps': 'application/vnd.ms-powerpoint',
 }
 
 export function serveFile(res: ServerResponse, filePath: string, forceDownload = false): void {

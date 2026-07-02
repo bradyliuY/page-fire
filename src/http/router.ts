@@ -16,6 +16,9 @@ import { LOGO_PNG, FAVICON_PNG } from './assets.js'
 const MERMAID_ASSET = fileURLToPath(new URL('../assets/mermaid.min.js', import.meta.url))
 let mermaidBuf: Buffer | null = null
 
+const REMARK_ASSET = fileURLToPath(new URL('../assets/remark.min.js', import.meta.url))
+let remarkBuf: Buffer | null = null
+
 const homeCache = new Map<string, Buffer>()
 let cachedDashBuf: Buffer | null = null
 let cachedDashKey: string | null = null
@@ -23,7 +26,7 @@ let cachedPlayBuf: Buffer | null = null
 let cachedPlayKey: string | null = null
 
 function getLang(path: string): 'zh' | 'en' {
-  return (path === '/en' || path === '/en/') ? 'en' : 'zh'
+  return (path === '/en' || path === '/en/' || path.startsWith('/en/')) ? 'en' : 'zh'
 }
 
 export function handleRequest(
@@ -58,6 +61,26 @@ export function handleRequest(
     return
   }
 
+  // Self-hosted remark.js – same-origin load for presentations.
+  // Falls back to CDN if the local file hasn't been downloaded yet.
+  if (path === '/__pf__/remark.min.js') {
+    if (!remarkBuf) {
+      try { remarkBuf = readFileSync(REMARK_ASSET) } catch { /* not yet downloaded */ }
+    }
+    if (remarkBuf) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+      res.setHeader('Cache-Control', 'public, max-age=604800')
+      res.setHeader('Content-Length', remarkBuf.length)
+      res.statusCode = 200
+      res.end(remarkBuf)
+    } else {
+      res.statusCode = 302
+      res.setHeader('Location', 'https://cdnjs.cloudflare.com/ajax/libs/remark/0.15.0/remark.min.js')
+      res.end()
+    }
+    return
+  }
+
   // Health check (internal only)
   if (url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
@@ -79,10 +102,12 @@ export function handleRequest(
       return
     }
     // Dashboard shell (auth enforced client-side via /api/me + httpOnly session cookie)
-    if (url === '/dashboard' || url.startsWith('/dashboard?')) {
-      if (cachedDashKey !== baseDomain) {
-        cachedDashBuf = Buffer.from(renderDashboard(baseDomain), 'utf8')
-        cachedDashKey = baseDomain
+    if (url === '/dashboard' || url.startsWith('/dashboard?') || url === '/en/dashboard' || url.startsWith('/en/dashboard?')) {
+      const lang = getLang(path)
+      const dashKey = `${baseDomain}:${lang}`
+      if (cachedDashKey !== dashKey) {
+        cachedDashBuf = Buffer.from(renderDashboard(baseDomain, lang), 'utf8')
+        cachedDashKey = dashKey
       }
       const buf = cachedDashBuf!
       for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
@@ -93,10 +118,12 @@ export function handleRequest(
       return
     }
     // Playground (auth enforced client-side via /api/me; deploys proxied through /api/playground)
-    if (url === '/playground' || url.startsWith('/playground?')) {
-      if (cachedPlayKey !== baseDomain) {
-        cachedPlayBuf = Buffer.from(renderPlayground(baseDomain), 'utf8')
-        cachedPlayKey = baseDomain
+    if (url === '/playground' || url.startsWith('/playground?') || url === '/en/playground' || url.startsWith('/en/playground?')) {
+      const lang = getLang(path)
+      const playKey = `${baseDomain}:${lang}`
+      if (cachedPlayKey !== playKey) {
+        cachedPlayBuf = Buffer.from(renderPlayground(baseDomain, lang), 'utf8')
+        cachedPlayKey = playKey
       }
       const buf = cachedPlayBuf!
       for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)

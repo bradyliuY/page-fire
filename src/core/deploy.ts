@@ -27,7 +27,7 @@ export function deployFiles(sitesDir: string, tokenId: string, did: string, file
       const destPath = validatePath(file.path, tmpDir)
       validateExtension(file.path)
       const buf = typeof file.content === 'string' ? Buffer.from(file.content, 'utf8') : file.content
-      validateFileSize(buf.length, MAX_SINGLE_FILE)
+      validateFileSize(buf.length, MAX_SINGLE_FILE, file.path)
       totalSize += buf.length
       mkdirSync(dirname(destPath), { recursive: true })
       writeFileSync(destPath, buf)

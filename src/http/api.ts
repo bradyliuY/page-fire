@@ -12,7 +12,7 @@ import {
   createSession, getSessionUser, deleteSession, updateUserPassword,
   listTokensByUser, getTokenByIdForUser, revokeTokenById, countActiveTokensByUser,
   listDeploymentsByUser, getDeploymentForUser, deleteDeploymentRow, updateDeployment,
-  setSpaceIdByTokenId,
+  setSpaceIdByTokenId, getTokenUsage,
   type UserRow,
 } from '../db/repo.js'
 import { deleteDeploymentFiles } from '../core/deploy.js'
@@ -191,7 +191,27 @@ export async function handleApiRequest(
   if (method === 'GET' && url === '/api/me') {
     const user = currentUser(req, db)
     if (!user) { json(res, 401, { error: '未登录' }); return true }
-    json(res, 200, { username: user.username, created_at: user.created_at })
+    // Aggregate usage across all API keys for this user
+    const agg = db.prepare(`
+      SELECT
+        COUNT(d.id) AS dep_cnt,
+        COALESCE(SUM(d.size_bytes), 0) AS dep_bytes,
+        COALESCE(SUM(t.quota_deployments), 0) AS max_deps,
+        COALESCE(SUM(t.quota_bytes), 0) AS max_bytes
+      FROM tokens t LEFT JOIN deployments d ON d.token_id = t.id
+        AND (d.pinned = 1 OR d.expires_at IS NULL OR d.expires_at > ?)
+      WHERE t.user_id = ? AND t.status = 'active'
+    `).get(Date.now(), user.id) as { dep_cnt: number; dep_bytes: number; max_deps: number; max_bytes: number }
+    json(res, 200, {
+      username: user.username,
+      created_at: user.created_at,
+      usage: {
+        deployments: agg.dep_cnt,
+        size_bytes: agg.dep_bytes,
+        quota_deployments: agg.max_deps,
+        quota_bytes: agg.max_bytes,
+      },
+    })
     return true
   }
 
@@ -216,16 +236,22 @@ export async function handleApiRequest(
   if (method === 'GET' && url === '/api/keys') {
     const user = currentUser(req, db)
     if (!user) { json(res, 401, { error: '未登录' }); return true }
-    const keys = listTokensByUser(db, user.id).map(k => ({
-      id: k.id,
-      label: k.label,
-      space_id: k.space_id,
-      token_masked: maskToken(k.token_enc, config.tokenEncKey),
-      status: k.status,
-      deployment_count: k.deployment_count,
-      created_at: k.created_at,
-      base_url: `https://${k.space_id}.${config.baseDomain}`,
-    }))
+    const keys = listTokensByUser(db, user.id).map(k => {
+      const usage = getTokenUsage(db, k.id)
+      return {
+        id: k.id,
+        label: k.label,
+        space_id: k.space_id,
+        token_masked: maskToken(k.token_enc, config.tokenEncKey),
+        status: k.status,
+        deployment_count: k.deployment_count,
+        size_bytes: usage.total_bytes,
+        quota_deployments: k.quota_deployments,
+        quota_bytes: k.quota_bytes,
+        created_at: k.created_at,
+        base_url: `https://${k.space_id}.${config.baseDomain}`,
+      }
+    })
     json(res, 200, { keys })
     return true
   }

@@ -75,7 +75,7 @@ export async function extractZip(base64: string, destDir: string): Promise<ZipRe
 
         fileCount++
         if (fileCount > MAX_FILES) {
-          fail(new ValidationError('FILE_COUNT_EXCEEDED', `ZIP contains more than ${MAX_FILES} files`))
+          fail(new ValidationError('FILE_COUNT_EXCEEDED', `ZIP 文件数量超过 ${MAX_FILES} 个上限，请减少文件数量后重试。`))
           return
         }
 
@@ -96,14 +96,14 @@ export async function extractZip(base64: string, destDir: string): Promise<ZipRe
             if (totalSize > MAX_UNCOMPRESSED) {
               out.destroy()
               readStream.destroy()
-              fail(new ValidationError('ZIP_TOO_LARGE', 'Uncompressed size exceeds 200 MB limit'))
+              fail(new ValidationError('ZIP_TOO_LARGE', `ZIP 解压后总大小超过 200 MB 上限，请减小文件体积后重试。`))
               return
             }
 
             if (entry.compressedSize > 0 && entrySize / entry.compressedSize > MAX_RATIO) {
               out.destroy()
               readStream.destroy()
-              fail(new ValidationError('ZIP_BOMB', 'Compression ratio exceeds safety threshold'))
+              fail(new ValidationError('ZIP_BOMB', 'ZIP 压缩比异常，疑似 zip bomb 攻击，已中止解压。'))
               return
             }
           })

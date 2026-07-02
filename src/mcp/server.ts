@@ -9,6 +9,7 @@ import { deployZip } from './tools/deploy-zip.js'
 import { deployFilesTool } from './tools/deploy-files.js'
 import { deployMarkdown } from './tools/deploy-markdown.js'
 import { deployDocs } from './tools/deploy-docs.js'
+import { deployPresentation } from './tools/deploy-presentation.js'
 import { listDeploymentsTool } from './tools/list-deployments.js'
 import { getDeploymentTool } from './tools/get-deployment.js'
 import { pinDeploymentTool } from './tools/pin-deployment.js'
@@ -29,7 +30,7 @@ function checkRateLimit(tokenId: string, limit: number): void {
   const prev = rateLimiter.get(tokenId) ?? []
   const recent = prev.filter((t) => t > now - window)
   if (recent.length >= limit) {
-    throw { code: 'RATE_LIMITED', message: 'Too many requests — please wait before retrying' }
+    throw { code: 'RATE_LIMITED', message: '请求太频繁，请稍后重试。' }
   }
   recent.push(now)
   rateLimiter.set(tokenId, recent)
@@ -312,11 +313,12 @@ export async function startMcpServer(
     // ── deploy_markdown ──────────────────────────────────────────────────────
     mcpServer.tool(
       'deploy_markdown',
-      'Render a Markdown document into a styled HTML page and publish it. Ideal for READMEs, articles, reports, and docs — no need to write HTML/CSS.',
+      'Render a Markdown document and publish it. Use mode="article" for a styled reading page (default), or mode="slide" for a remark.js presentation. No need to write HTML/CSS.',
       {
         markdown: z.string().describe('Markdown source (GFM supported: tables, task lists, code fences). Max 5 MB.'),
         title: z.string().optional().describe('Page title (defaults to the first # heading).'),
-        theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Reading theme — "light" (default), "dark", or "sepia".'),
+        theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Theme — "light" (default), "dark", or "sepia".'),
+        mode: z.enum(['article', 'slide']).optional().describe('Rendering mode — "article" (default) for a styled reading page, "slide" for a remark.js presentation with keyboard arrow navigation.'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates the page in place — the URL never changes.'),
         access: z.enum(['public', 'password']).optional().describe('Access control — "public" (default) or "password".'),
         password: z.string().optional().describe('Passphrase required when access="password".'),
@@ -358,6 +360,33 @@ export async function startMcpServer(
           const tok = verifyBearer(authHeader, db)
           if (tok) checkRateLimit(tok.id, 20)
           return makeResult(await deployDocs(args, authHeader, db, config, ip))
+        } catch (err: any) {
+          return makeError(err)
+        }
+      },
+    )
+
+    // ── deploy_presentation ──────────────────────────────────────────────────
+    mcpServer.tool(
+      'deploy_presentation',
+      'Publish a PDF or PPTX file as a presentation. PDF files get a browser-native viewer wrapper. PPTX files are converted to a remark.js slideshow on the server (text + images extracted, original kept for download).',
+      {
+        pdf: z.string().optional().describe('Base64-encoded PDF file (max 50 MB). Mutually exclusive with pptx.'),
+        pptx: z.string().optional().describe('Base64-encoded PPTX file (max 50 MB). Mutually exclusive with pdf. Text and images are extracted and rendered as slides.'),
+        title: z.string().optional().describe('Presentation title (defaults to first slide heading for PPTX, or filename for PDF).'),
+        theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Slide theme — "light" (default), "dark", or "sepia".'),
+        did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates in place — the URL never changes.'),
+        access: z.enum(['public', 'password']).optional().describe('Access control — "public" (default) or "password".'),
+        password: z.string().optional().describe('Passphrase required when access="password".'),
+        ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
+        pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
+      },
+      { title: '发布演示文稿', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      async (args) => {
+        try {
+          const tok = verifyBearer(authHeader, db)
+          if (tok) checkRateLimit(tok.id, 20)
+          return makeResult(await deployPresentation(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
         }

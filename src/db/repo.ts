@@ -42,6 +42,20 @@ export function countActiveTokensByUser(db: Database.Database, userId: string): 
   return r.n
 }
 
+export interface TokenUsageStats {
+  deployment_count: number
+  total_bytes: number
+}
+
+/** Compute current storage usage for a token (live deployments only). */
+export function getTokenUsage(db: Database.Database, tokenId: string): TokenUsageStats {
+  const r = db.prepare(`SELECT
+    COUNT(*) AS cnt, COALESCE(SUM(size_bytes), 0) AS total
+    FROM deployments WHERE token_id = ? AND (pinned = 1 OR expires_at IS NULL OR expires_at > ?)`)
+    .get(tokenId, Date.now()) as { cnt: number; total: number }
+  return { deployment_count: r.cnt, total_bytes: r.total }
+}
+
 export function getTokenByHash(db: Database.Database, hash: string): TokenRow | undefined {
   return db.prepare('SELECT * FROM tokens WHERE token_hash = ?').get(hash) as TokenRow | undefined
 }

@@ -1,11 +1,17 @@
-export function renderDashboard(baseDomain: string): string {
+import { zh } from './i18n/zh.js'
+import { en } from './i18n/en.js'
+
+export function renderDashboard(baseDomain: string, lang: 'zh' | 'en' = 'zh'): string {
+  const T = lang === 'en' ? en : zh
+  const D = T.dash
+  const _t = JSON.stringify(D._t)
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${T.htmlLang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>控制台 — PageFire</title>
+<title>${D.overview.title} — PageFire</title>
 <link rel="icon" type="image/png" href="/favicon.ico">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -29,6 +35,7 @@ nav{border-bottom:1px solid var(--bdr);background:rgba(10,10,11,.8);backdrop-fil
 .uname{font-size:13px;color:var(--muted)}
 .btn-ghost{font-size:13px;color:var(--muted);padding:6px 12px;border-radius:8px;border:1px solid var(--bdr);cursor:pointer;background:none;transition:.15s}
 .btn-ghost:hover{color:var(--txt);border-color:var(--bdr2);background:var(--sur)}
+.btn-ghost.lang{font-size:12.5px;padding:5px 10px}
 
 /* sidebar layout */
 .layout{max-width:1080px;margin:0 auto;padding:36px 24px 80px;display:flex;gap:34px}
@@ -133,46 +140,59 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 .warn-once{font-size:12px;color:var(--fire2);background:var(--fire-dim);border-radius:8px;padding:8px 12px;margin-bottom:18px}
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#fafafa;color:#0a0a0b;font-size:13px;font-weight:600;padding:10px 18px;border-radius:10px;opacity:0;transition:.25s;z-index:200;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* progress bar */
+.bar{display:flex;align-items:center;gap:10px;margin-top:6px}
+.bar-track{flex:1;height:6px;background:var(--sur2);border-radius:4px;overflow:hidden;min-width:60px}
+.bar-fill{height:100%;border-radius:4px;background:var(--fire);transition:width .3s}
+.bar-fill.yellow{background:#eab308}
+.bar-fill.red{background:var(--red)}
+.bar-label{font-size:11px;color:var(--dim);white-space:nowrap}
 @media(max-width:720px){.layout{flex-direction:column;gap:18px;padding:24px 16px 60px}.side{width:auto;flex-direction:row;position:static;overflow-x:auto;gap:4px}.snav-link{display:none}.stats{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.kmeta,.dmeta{display:none}}
 </style>
 </head>
 <body>
 <nav><div class="nav-i">
-  <a class="logo" href="/"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
+  <a class="logo" href="${lang === 'en' ? '/en' : '/'}"><img src="/logo.png" alt="PageFire" style="height:34px;width:auto;display:block"></a>
   <div class="nav-r">
-    <a class="btn-ghost" href="/playground" style="text-decoration:none">Playground</a>
+    <a class="btn-ghost" href="${lang === 'en' ? '/en/playground' : '/playground'}" style="text-decoration:none">${D.nav.playground}</a>
     <span class="uname" id="uname"></span>
-    <button class="btn-ghost" onclick="logout()">退出</button>
+    <a class="btn-ghost lang" href="${D.nav.switchLangHref}" style="text-decoration:none">${D.nav.switchLang}</a>
+    <button class="btn-ghost" onclick="logout()">${D.nav.btnLogout}</button>
   </div>
 </div></nav>
 
 <div class="layout">
   <aside class="side">
-    <button class="snav active" data-pane="overview" onclick="switchPane('overview')"><span class="si">▦</span>概览</button>
-    <button class="snav" data-pane="keys" onclick="switchPane('keys')"><span class="si">🔑</span>API Keys</button>
-    <button class="snav" data-pane="deploy" onclick="switchPane('deploy')"><span class="si">📦</span>部署应用</button>
-    <button class="snav" data-pane="account" onclick="switchPane('account')"><span class="si">⚙</span>账户</button>
-    <a class="snav-link" href="/playground"><span class="si">⚡</span>Playground ↗</a>
+    <button class="snav active" data-pane="overview" onclick="switchPane('overview')"><span class="si">▦</span>${D.side.overview}</button>
+    <button class="snav" data-pane="keys" onclick="switchPane('keys')"><span class="si">🔑</span>${D.side.keys}</button>
+    <button class="snav" data-pane="deploy" onclick="switchPane('deploy')"><span class="si">📦</span>${D.side.deploy}</button>
+    <button class="snav" data-pane="account" onclick="switchPane('account')"><span class="si">⚙</span>${D.side.account}</button>
+    <a class="snav-link" href="${lang === 'en' ? '/en/playground' : '/playground'}"><span class="si">⚡</span>${D.side.playgroundLink}</a>
   </aside>
 
   <main class="content">
-    <!-- 概览 -->
+    <!-- overview -->
     <section class="pane active" id="pane-overview">
       <div class="head"><div>
-        <h1>概览</h1>
-        <div class="sub">你好，<span id="ov-user">—</span>。这里是你的发布概况。</div>
+        <h1>${D.overview.title}</h1>
+        <div class="sub" id="ov-sub">&nbsp;</div>
       </div></div>
       <div class="stats">
-        <div class="stat"><div class="stat-v" id="ov-keys">—</div><div class="stat-l">API Keys</div></div>
-        <div class="stat"><div class="stat-v" id="ov-deps">—</div><div class="stat-l">已发布站点</div></div>
-        <div class="stat"><div class="stat-v" id="ov-size">—</div><div class="stat-l">存储用量</div></div>
+        <div class="stat"><div class="stat-v" id="ov-keys">${D._t.statEmpty}</div><div class="stat-l">${D.overview.statKeys}</div></div>
+        <div class="stat"><div class="stat-v" id="ov-deps">${D._t.statEmpty}</div><div class="stat-l">${D.overview.statSites}</div></div>
+        <div class="stat" id="ov-size-stat">
+          <div class="stat-v" id="ov-size">${D._t.statEmpty}</div>
+          <div class="stat-l">${D.overview.statSize}</div>
+          <div class="bar" id="ov-size-bar" style="display:none">
+            <div class="bar-track"><div class="bar-fill" id="ov-size-fill" style="width:0%"></div></div>
+            <span class="bar-label" id="ov-size-label"></span>
+          </div>
+        </div>
       </div>
       <div class="card">
-        <h3>怎么发布</h3>
-        <b>MCP 客户端</b>（AI 对话）：配置 <code>npx pagefire-mcp@latest</code>（<code>PAGEFIRE_TOKEN</code> 用上方 Key），一句话发布。<br>
-        <b>CLI</b>（终端 / CI）：<code>npm i -g pagefire-mcp</code>，然后 <code>pagefire deploy ./dist</code> 或 <code>pagefire deploy-docs ./docs</code>。<br>
-        详见 <a href="/playground#connect" style="color:var(--fire2)">Playground → 接入文档</a>。
+        <h3>${D.overview.howTitle}</h3>
+        ${D.overview.howText}
       </div>
     </section>
 
@@ -180,43 +200,43 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
     <section class="pane" id="pane-keys">
       <div class="head">
         <div>
-          <h1>API Keys</h1>
-          <div class="sub">每个 Key 拥有独立子域名空间，AI 通过它发布站点。密钥仅在创建时显示一次。</div>
+          <h1>${D.keys.title}</h1>
+          <div class="sub">${D.keys.sub}</div>
         </div>
-        <button class="btn-primary" onclick="openCreate()">+ 新建 API Key</button>
+        <button class="btn-primary" onclick="openCreate()">${D.keys.btnCreate}</button>
       </div>
       <div id="list"></div>
     </section>
 
-    <!-- 部署应用 -->
+    <!-- deployments -->
     <section class="pane" id="pane-deploy">
       <div class="head"><div>
-        <h1>部署应用</h1>
-        <div class="sub">所有已发布的站点，按所属 API Key 分组，可直接管理。</div>
+        <h1>${D.deploy.title}</h1>
+        <div class="sub">${D.deploy.sub}</div>
       </div></div>
       <div id="deploy-list"></div>
     </section>
 
-    <!-- 账户 -->
+    <!-- account -->
     <section class="pane" id="pane-account">
       <div class="head"><div>
-        <h1>账户</h1>
-        <div class="sub">基本信息与安全设置。</div>
+        <h1>${D.account.title}</h1>
+        <div class="sub">${D.account.sub}</div>
       </div></div>
       <div class="card" style="margin-bottom:16px">
-        <h3>基本信息</h3>
+        <h3>${D.account.basicTitle}</h3>
         <div style="display:flex;gap:48px;flex-wrap:wrap;margin-top:8px">
-          <div><div style="font-size:11.5px;color:var(--dim)">用户名</div><div id="ac-user" style="font-size:14.5px;color:var(--txt);margin-top:3px">—</div></div>
-          <div><div style="font-size:11.5px;color:var(--dim)">注册时间</div><div id="ac-since" style="font-size:14.5px;color:var(--txt);margin-top:3px">—</div></div>
+          <div><div style="font-size:11.5px;color:var(--dim)">${D.account.labelUsername}</div><div id="ac-user" style="font-size:14.5px;color:var(--txt);margin-top:3px">${D._t.statEmpty}</div></div>
+          <div><div style="font-size:11.5px;color:var(--dim)">${D.account.labelCreatedAt}</div><div id="ac-since" style="font-size:14.5px;color:var(--txt);margin-top:3px">${D._t.statEmpty}</div></div>
         </div>
       </div>
       <div class="card">
-        <h3>修改密码</h3>
+        <h3>${D.account.pwTitle}</h3>
         <div class="err" id="pw-err" style="margin-top:12px"></div>
-        <div class="field" style="max-width:340px"><label>当前密码</label><input id="pw-cur" type="password" placeholder="当前密码"></div>
-        <div class="field" style="max-width:340px"><label>新密码</label><input id="pw-new" type="password" placeholder="至少 6 位"></div>
-        <div class="field" style="max-width:340px"><label>确认新密码</label><input id="pw-cf" type="password" placeholder="再次输入新密码"></div>
-        <button class="btn-primary" id="pw-btn" onclick="changePassword()">更新密码</button>
+        <div class="field" style="max-width:340px"><label>${D.account.labelCurrentPw}</label><input id="pw-cur" type="password" placeholder="${D.account.phCurrentPw}"></div>
+        <div class="field" style="max-width:340px"><label>${D.account.labelNewPw}</label><input id="pw-new" type="password" placeholder="${D.account.phNewPw}"></div>
+        <div class="field" style="max-width:340px"><label>${D.account.labelConfirmPw}</label><input id="pw-cf" type="password" placeholder="${D.account.phConfirmPw}"></div>
+        <button class="btn-primary" id="pw-btn" onclick="changePassword()">${D.account.btnUpdatePw}</button>
       </div>
     </section>
   </main>
@@ -226,19 +246,19 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 <div class="ov" id="ov-create">
   <div class="modal">
     <button class="x" onclick="closeModal('ov-create')">×</button>
-    <h2>新建 API Key</h2>
-    <div class="mdesc">创建一个独立的发布空间。</div>
+    <h2>${D.modal.createTitle}</h2>
+    <div class="mdesc">${D.modal.createDesc}</div>
     <div class="err" id="c-err"></div>
     <div class="field">
-      <label>名称 <span style="color:var(--dim)">(可选)</span></label>
-      <input id="c-label" placeholder="例如：产品落地页" maxlength="40">
+      <label>${D.modal.labelName} <span style="color:var(--dim)">${D.modal.nameOpt}</span></label>
+      <input id="c-label" placeholder="${D.modal.phName}" maxlength="40">
     </div>
     <div class="field">
-      <label>自定义 space_id <span style="color:var(--dim)">(可选，留空随机生成)</span></label>
-      <input id="c-space" placeholder="4–20 位，a-z 0-9 -" maxlength="20">
-      <div class="hint">将作为子域名：<code id="c-preview">&lt;space_id&gt;.${baseDomain}</code></div>
+      <label>${D.modal.labelSpaceId} <span style="color:var(--dim)">${D.modal.spaceIdOpt}</span></label>
+      <input id="c-space" placeholder="${D.modal.phSpaceId}" maxlength="20">
+      <div class="hint">${D.modal.spaceHint}<code id="c-preview">&lt;space_id&gt;.${baseDomain}</code></div>
     </div>
-    <button class="btn-primary" id="c-btn" onclick="createKey()">创建</button>
+    <button class="btn-primary" id="c-btn" onclick="createKey()">${D.modal.btnCreate}</button>
   </div>
 </div>
 
@@ -246,14 +266,14 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 <div class="ov" id="ov-reveal">
   <div class="modal reveal">
     <div class="r-ico">🔑</div>
-    <h2>API Key 已创建</h2>
+    <h2>${D.modal.revealTitle}</h2>
     <div class="mdesc" id="r-space"></div>
-    <div class="warn-once">⚠ 请立即复制保存，关闭后将无法再次查看完整密钥。</div>
+    <div class="warn-once">${D.modal.revealWarn}</div>
     <div class="tokbox">
       <code id="r-token"></code>
-      <button class="copy" onclick="copyTok()">复制</button>
+      <button class="copy" onclick="copyTok()">${D.modal.btnCopy}</button>
     </div>
-    <button class="btn-primary" style="margin-top:14px" onclick="closeReveal()">完成</button>
+    <button class="btn-primary" style="margin-top:14px" onclick="closeReveal()">${D.modal.btnDone}</button>
   </div>
 </div>
 
@@ -261,16 +281,16 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 <div class="ov" id="ov-space">
   <div class="modal">
     <button class="x" onclick="closeModal('ov-space')">×</button>
-    <h2>自定义 space_id</h2>
-    <div class="mdesc">space_id 是该 Key 所有子域名中固定的那一段。</div>
+    <h2>${D.modal.spaceTitle}</h2>
+    <div class="mdesc">${D.modal.spaceDesc}</div>
     <div class="err" id="s-err"></div>
     <div class="field">
-      <label>新 space_id</label>
-      <input id="s-input" placeholder="4–20 位，a-z 0-9 -" maxlength="20">
-      <div class="hint">子域名预览：<code id="s-preview">&lt;space_id&gt;.${baseDomain}</code></div>
+      <label>${D.modal.labelNewSpaceId}</label>
+      <input id="s-input" placeholder="${D.modal.phSpaceId}" maxlength="20">
+      <div class="hint">${D.modal.spacePreviewHint}<code id="s-preview">&lt;space_id&gt;.${baseDomain}</code></div>
     </div>
-    <div class="warn-once">⚠ 修改后,该 Key 已发布的所有 URL 立即改用新地址,旧链接失效。</div>
-    <button class="btn-primary" id="s-btn" onclick="saveSpaceId()">保存</button>
+    <div class="warn-once">${D.modal.spaceWarn}</div>
+    <button class="btn-primary" id="s-btn" onclick="saveSpaceId()">${D.modal.btnSave}</button>
   </div>
 </div>
 
@@ -279,11 +299,12 @@ input:focus{border-color:rgba(249,115,22,.5);box-shadow:0 0 0 3px var(--fire-dim
 <script>
 const $ = id => document.getElementById(id)
 const baseDomain = ${JSON.stringify(baseDomain)}
-const state = { keys: [], groups: [] }
+const _t = ${_t}
+const state = { keys: [], groups: [], me: null }
 
 async function api(path, opts) {
   const r = await fetch(path, { credentials: 'same-origin', ...opts })
-  if (r.status === 401) { location.href = '/'; throw new Error('unauth') }
+  if (r.status === 401) { location.href = '${lang === 'en' ? '/en' : '/'}'; throw new Error('unauth') }
   return r
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1600) }
@@ -300,10 +321,12 @@ function switchPane(name) {
 async function init() {
   try {
     const me = await (await api('/api/me')).json()
+    state.me = me
     $('uname').textContent = me.username
-    $('ov-user').textContent = me.username
+    $('ov-sub').textContent = _t.statEmpty.replace ? _t.statEmpty : ''
+    $('ov-sub').textContent = '${D.overview.subGreet}'.replace('{user}', me.username)
     $('ac-user').textContent = me.username
-    $('ac-since').textContent = me.created_at ? fmtDate(me.created_at) : '—'
+    $('ac-since').textContent = me.created_at ? fmtDate(me.created_at) : _t.statEmpty
   } catch { return }
   loadKeys()
   loadDeployments()
@@ -316,6 +339,18 @@ function renderOverview() {
   $('ov-keys').textContent = activeKeys
   $('ov-deps').textContent = deps
   $('ov-size').textContent = fmtSize(size)
+  // Usage bar (from /api/me aggregated stats)
+  const u = state.me?.usage
+  if (u && u.quota_bytes > 0) {
+    const pct = Math.min(100, u.size_bytes / u.quota_bytes * 100)
+    const fill = $('ov-size-fill')
+    fill.style.width = pct + '%'
+    fill.className = 'bar-fill' + (pct >= 95 ? ' red' : pct >= 80 ? ' yellow' : '')
+    $('ov-size-label').textContent = fmtSize(u.size_bytes) + ' / ' + fmtSize(u.quota_bytes)
+    $('ov-size-bar').style.display = ''
+  } else {
+    $('ov-size-bar').style.display = 'none'
+  }
 }
 
 async function loadKeys() {
@@ -324,23 +359,29 @@ async function loadKeys() {
   renderOverview()
   const list = $('list')
   if (!keys.length) {
-    list.innerHTML = '<div class="keys"><div class="empty"><div class="e-ico">🔑</div><p>还没有 API Key</p><button class="btn-primary" onclick="openCreate()">+ 创建第一个 Key</button></div></div>'
+    list.innerHTML = '<div class="keys"><div class="empty"><div class="e-ico">🔑</div><p>${D.keys.emptyTitle}</p><button class="btn-primary" onclick="openCreate()">${D.keys.emptyBtn}</button></div></div>'
     return
   }
   const rows = keys.map(k => {
     const on = k.status === 'active'
-    const actions = !on ? '<span class="badge-rev">已吊销</span>'
-      : '<button class="icon-btn" title="测试连接" onclick="testKey(\\'' + k.id + '\\',this)">⚡</button>' +
-        '<button class="icon-btn" title="自定义 space_id" data-id="' + k.id + '" data-sid="' + esc(k.space_id) + '" onclick="openSpaceEdit(this)">✎</button>' +
-        '<button class="icon-btn danger" title="吊销" data-id="' + k.id + '" data-label="' + esc(k.label || k.space_id) + '" onclick="revoke(this)">✕</button>'
+    const actions = !on ? '<span class="badge-rev">${D.keys.revokedBadge}</span>'
+      : '<button class="icon-btn" title="${D.keys.titleTest}" onclick="testKey(\\'' + k.id + '\\',this)">⚡</button>' +
+        '<button class="icon-btn" title="${D.keys.titleEdit}" data-id="' + k.id + '" data-sid="' + esc(k.space_id) + '" onclick="openSpaceEdit(this)">✎</button>' +
+        '<button class="icon-btn danger" title="${D.keys.titleRevoke}" data-id="' + k.id + '" data-label="' + esc(k.label || k.space_id) + '" onclick="revoke(this)">✕</button>'
+    const pct = on && k.quota_bytes > 0 ? Math.min(100, k.size_bytes / k.quota_bytes * 100) : -1
+    const barClass = pct >= 95 ? ' red' : pct >= 80 ? ' yellow' : ''
+    const usageBar = on && pct >= 0
+      ? '<div class="bar" style="margin-top:4px"><div class="bar-track" style="height:4px"><div class="bar-fill' + barClass + '" style="width:' + pct + '%"></div></div><span class="bar-label" style="font-size:10px">' + fmtSize(k.size_bytes) + ' / ' + fmtSize(k.quota_bytes) + '</span></div>'
+      : ''
     return '<div class="krow">' +
       '<div class="kmain">' +
         '<div class="klabel"><span class="dot ' + (on?'on':'off') + '"></span>' + esc(k.label || k.space_id) + '</div>' +
         (on ? '<a class="kurl" href="' + k.base_url + '" target="_blank" rel="noopener">' + k.base_url.replace('https://','') + '</a>'
             : '<span class="kurl">' + k.token_masked + '</span>') +
+        usageBar +
       '</div>' +
       '<div class="kmeta">' +
-        '<div class="kmcol"><div class="kmv">' + k.deployment_count + '</div><div class="kml">部署</div></div>' +
+        '<div class="kmcol"><div class="kmv">' + k.deployment_count + '</div><div class="kml">${D.keys.colDeploy}</div></div>' +
         '<div class="kmcol"><div class="ktoken">' + k.token_masked + '</div><div class="kml">' + fmtDate(k.created_at) + '</div></div>' +
       '</div>' +
       '<div class="kact">' + actions + '</div>' +
@@ -356,29 +397,29 @@ async function loadDeployments() {
   renderOverview()
   const el = $('deploy-list')
   if (!state.groups.length) {
-    el.innerHTML = '<div class="group"><div class="empty"><div class="e-ico">📦</div><p>还没有发布任何站点</p></div></div>'
+    el.innerHTML = '<div class="group"><div class="empty"><div class="e-ico">📦</div><p>${D.deploy.emptyTitle}</p></div></div>'
     return
   }
   el.innerHTML = state.groups.map(g => {
     const rows = g.deployments.map(d => {
       const badges =
-        (d.access === 'password' ? '<span class="bdg lock">🔒 密码</span>' : '') +
-        (d.pinned ? '<span class="bdg pin">📌 永久</span>' : '') +
+        (d.access === 'password' ? '<span class="bdg lock">${D.deploy.badgeLock}</span>' : '') +
+        (d.pinned ? '<span class="bdg pin">${D.deploy.badgePin}</span>' : '') +
         (d.spa ? '<span class="bdg">SPA</span>' : '')
-      const life = d.pinned ? '永久' : (d.expires_at ? '到 ' + fmtDate(d.expires_at) : '—')
+      const life = d.pinned ? '${D.deploy.lifeForever}' : (d.expires_at ? '${D.deploy.lifeUntil}'.replace('{date}', fmtDate(d.expires_at)) : _t.statEmpty)
       return '<div class="drow">' +
         '<div class="dmain">' +
           '<div class="dtitle">' + esc(d.title || d.did) + ' ' + badges + '</div>' +
           '<a class="durl" href="' + d.url + '" target="_blank" rel="noopener">' + esc(d.url.replace('https://','').replace(/\\/$/,'')) + '</a>' +
         '</div>' +
         '<div class="dmeta">' +
-          '<div><div class="dmv">' + fmtSize(d.size_bytes) + '</div><div class="dml">' + d.file_count + ' 文件</div></div>' +
+          '<div><div class="dmv">' + fmtSize(d.size_bytes) + '</div><div class="dml">' + '${D.deploy.fileCount}'.replace('{n}', d.file_count) + '</div></div>' +
           '<div><div class="dmv">' + fmtDateTime(d.created_at) + '</div><div class="dml">' + life + '</div></div>' +
         '</div>' +
         '<div class="dact">' +
-          '<button class="icon-btn" title="复制链接" data-url="' + d.url + '" onclick="copyUrl(this)">⧉</button>' +
-          '<button class="icon-btn" title="' + (d.pinned ? '取消永久' : '设为永久') + '" data-did="' + d.did + '" data-pin="' + (d.pinned ? '0' : '1') + '" onclick="togglePin(this)">📌</button>' +
-          '<button class="icon-btn danger" title="删除" data-did="' + d.did + '" data-name="' + esc(d.title || d.did) + '" onclick="delDeploy(this)">✕</button>' +
+          '<button class="icon-btn" title="${D.deploy.titleCopy}" data-url="' + d.url + '" onclick="copyUrl(this)">⧉</button>' +
+          '<button class="icon-btn" title="' + (d.pinned ? '${D.deploy.titleUnpin}' : '${D.deploy.titlePin}') + '" data-did="' + d.did + '" data-pin="' + (d.pinned ? '0' : '1') + '" onclick="togglePin(this)">📌</button>' +
+          '<button class="icon-btn danger" title="${D.deploy.titleDelete}" data-did="' + d.did + '" data-name="' + esc(d.title || d.did) + '" onclick="delDeploy(this)">✕</button>' +
         '</div>' +
       '</div>'
     }).join('')
@@ -386,25 +427,25 @@ async function loadDeployments() {
       '<div class="ghead">' +
         '<span class="gname">' + esc(g.label || g.space_id) + '</span>' +
         '<span class="gspace">' + esc(g.space_id) + '.' + baseDomain + '</span>' +
-        '<span class="gcount">' + g.deployments.length + ' 个部署</span>' +
+        '<span class="gcount">' + '${D.deploy.deployCount}'.replace('{n}', g.deployments.length) + '</span>' +
       '</div>' + rows +
     '</div>'
   }).join('')
 }
 
-function copyUrl(btn){ navigator.clipboard.writeText(btn.dataset.url).then(()=>toast('链接已复制')) }
+function copyUrl(btn){ navigator.clipboard.writeText(btn.dataset.url).then(()=>toast(_t.linkCopied)) }
 async function togglePin(btn){
   const did = btn.dataset.did, pin = btn.dataset.pin === '1'
   btn.disabled = true
   const r = await api('/api/deployments/' + encodeURIComponent(did) + '/pin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pinned: pin }) })
-  if (r.ok) { toast(pin ? '已设为永久' : '已取消永久'); loadKeys(); loadDeployments() }
-  else { toast('操作失败'); btn.disabled = false }
+  if (r.ok) { toast(pin ? _t.pinSet : _t.pinUnset); loadKeys(); loadDeployments() }
+  else { toast(_t.opFail); btn.disabled = false }
 }
 async function delDeploy(btn){
   const did = btn.dataset.did, name = btn.dataset.name
-  if (!confirm('确定删除「' + name + '」？\\n该站点及其文件将被永久删除，不可恢复。')) return
+  if (!confirm(_t.deleteConfirm.replace('{name}', name))) return
   const r = await api('/api/deployments/' + encodeURIComponent(did), { method:'DELETE' })
-  if (r.ok) { toast('已删除'); loadKeys(); loadDeployments() }
+  if (r.ok) { toast(_t.deleted); loadKeys(); loadDeployments() }
 }
 
 function openCreate() {
@@ -422,23 +463,23 @@ function closeModal(id) { $(id).classList.remove('show') }
 
 async function createKey() {
   const btn = $('c-btn'); const err = $('c-err')
-  err.style.display = 'none'; btn.disabled = true; btn.textContent = '创建中…'
+  err.style.display = 'none'; btn.disabled = true; btn.textContent = '${D.modal.btnCreating}'
   const body = { label: $('c-label').value.trim(), space_id: $('c-space').value.trim() }
   try {
     const r = await api('/api/keys', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
     const d = await r.json()
-    if (!r.ok) { err.textContent = d.error || '创建失败'; err.style.display = '' }
+    if (!r.ok) { err.textContent = d.error || _t.createFail; err.style.display = '' }
     else {
       closeModal('ov-create')
       $('r-token').textContent = d.token
       $('r-space').textContent = d.space_id + '.' + baseDomain
       $('ov-reveal').classList.add('show')
     }
-  } catch { err.textContent = '网络错误'; err.style.display = '' }
-  btn.disabled = false; btn.textContent = '创建'
+  } catch { err.textContent = _t.networkError; err.style.display = '' }
+  btn.disabled = false; btn.textContent = '${D.modal.btnCreate}'
 }
 function closeReveal() { closeModal('ov-reveal'); loadKeys() }
-function copyTok() { navigator.clipboard.writeText($('r-token').textContent).then(() => toast('已复制到剪贴板')) }
+function copyTok() { navigator.clipboard.writeText($('r-token').textContent).then(() => toast(_t.copied)) }
 
 let spaceEditId = null
 function openSpaceEdit(btn) {
@@ -456,47 +497,47 @@ $('s-input').addEventListener('input', e => {
 async function saveSpaceId() {
   const err = $('s-err'); err.style.display = 'none'
   const sid = $('s-input').value.trim()
-  const btn = $('s-btn'); btn.disabled = true; btn.textContent = '保存中…'
+  const btn = $('s-btn'); btn.disabled = true; btn.textContent = '${D.modal.btnSaving}'
   try {
     const r = await api('/api/keys/' + spaceEditId + '/space-id', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ space_id: sid }) })
     const d = await r.json()
-    if (r.ok) { closeModal('ov-space'); toast('space_id 已更新'); loadKeys(); loadDeployments() }
-    else { err.textContent = d.error || '修改失败'; err.style.display = '' }
-  } catch { err.textContent = '网络错误'; err.style.display = '' }
-  btn.disabled = false; btn.textContent = '保存'
+    if (r.ok) { closeModal('ov-space'); toast(_t.spaceUpdated); loadKeys(); loadDeployments() }
+    else { err.textContent = d.error || _t.saveFail; err.style.display = '' }
+  } catch { err.textContent = _t.networkError; err.style.display = '' }
+  btn.disabled = false; btn.textContent = '${D.modal.btnSave}'
 }
 
 async function revoke(btn) {
   const id = btn.dataset.id, name = btn.dataset.label
-  if (!confirm('确定吊销「' + name + '」？\\n该 Key 立即失效，其下所有已发布站点将无法访问。')) return
+  if (!confirm(_t.revokeConfirm.replace('{name}', name))) return
   const r = await api('/api/keys/' + id, { method:'DELETE' })
-  if (r.ok) { toast('已吊销'); loadKeys(); loadDeployments() }
+  if (r.ok) { toast(_t.revoked); loadKeys(); loadDeployments() }
 }
 async function testKey(id, btn) {
   const prev = btn.textContent; btn.textContent = '⏳'; btn.disabled = true
   try {
     const r = await api('/api/keys/' + id + '/test', { method:'POST' })
     const d = await r.json()
-    if (r.ok && d.ok) toast('✓ MCP 连接正常 · ' + d.deployment_count + ' 个部署')
-    else toast('✗ ' + (d.error || '连接失败'))
-  } catch { toast('✗ 测试失败') }
+    if (r.ok && d.ok) toast(_t.mcpOk.replace('{n}', d.deployment_count))
+    else toast(_t.mcpFail)
+  } catch { toast(_t.testFail) }
   btn.textContent = prev; btn.disabled = false
 }
 async function changePassword() {
   const err = $('pw-err'); err.style.display = 'none'
   const cur = $('pw-cur').value, nw = $('pw-new').value, cf = $('pw-cf').value
-  if (nw.length < 6) { err.textContent = '新密码至少 6 位'; err.style.display = ''; return }
-  if (nw !== cf) { err.textContent = '两次输入的新密码不一致'; err.style.display = ''; return }
-  const btn = $('pw-btn'); btn.disabled = true; btn.textContent = '更新中…'
+  if (nw.length < 6) { err.textContent = _t.pwTooShort; err.style.display = ''; return }
+  if (nw !== cf) { err.textContent = _t.pwMismatch; err.style.display = ''; return }
+  const btn = $('pw-btn'); btn.disabled = true; btn.textContent = _t.btnUpdating
   try {
     const r = await api('/api/account/password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ current: cur, new: nw }) })
     const d = await r.json()
-    if (r.ok) { toast('密码已更新'); $('pw-cur').value = ''; $('pw-new').value = ''; $('pw-cf').value = '' }
-    else { err.textContent = d.error || '更新失败'; err.style.display = '' }
-  } catch { err.textContent = '网络错误'; err.style.display = '' }
-  btn.disabled = false; btn.textContent = '更新密码'
+    if (r.ok) { toast(_t.pwUpdated); $('pw-cur').value = ''; $('pw-new').value = ''; $('pw-cf').value = '' }
+    else { err.textContent = d.error || _t.updateFail; err.style.display = '' }
+  } catch { err.textContent = _t.networkError; err.style.display = '' }
+  btn.disabled = false; btn.textContent = '${D.account.btnUpdatePw}'
 }
-async function logout() { await api('/api/logout', { method:'POST' }); location.href = '/' }
+async function logout() { await api('/api/logout', { method:'POST' }); location.href = '${lang === 'en' ? '/en' : '/'}' }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal('ov-create'); closeModal('ov-reveal'); closeModal('ov-space') } })
 init()

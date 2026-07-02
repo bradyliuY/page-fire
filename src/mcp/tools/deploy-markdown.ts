@@ -3,10 +3,12 @@ import type { Config } from '../../config.js'
 import { verifyBearer } from '../../auth.js'
 import { publish } from '../../core/publish.js'
 import { renderMarkdownPage, type MarkdownTheme } from '../../core/markdown.js'
+import { renderMarkdownSlides } from '../../core/slides.js'
 
 export interface DeployMarkdownArgs {
   markdown: string
   title?: string
+  mode?: 'article' | 'slide'
   theme?: MarkdownTheme
   did?: string
   access?: 'public' | 'password'
@@ -29,10 +31,13 @@ export async function deployMarkdown(
     throw { code: 'INVALID_CONTENT', message: 'markdown is required' }
   }
   if (Buffer.byteLength(args.markdown) > 5 * 1024 * 1024) {
-    throw { code: 'FILE_TOO_LARGE', message: 'markdown exceeds 5 MB limit' }
+    throw { code: 'FILE_TOO_LARGE', message: `Markdown 内容超过 5 MB 上限（当前 ${(Buffer.byteLength(args.markdown) / 1024 / 1024).toFixed(1)} MB）。大文件建议拆分成 deploy_docs 多页发布，或使用 deploy_dir 本地上传。` }
   }
 
-  const html = renderMarkdownPage(args.markdown, { title: args.title, theme: args.theme })
+  const mode = args.mode ?? 'article'
+  const html = mode === 'slide'
+    ? renderMarkdownSlides(args.markdown, { title: args.title, theme: args.theme })
+    : renderMarkdownPage(args.markdown, { title: args.title, theme: args.theme })
 
   return publish(db, config, token, {
     files: [{ path: 'index.html', content: html }],

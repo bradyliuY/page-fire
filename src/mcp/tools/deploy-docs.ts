@@ -34,7 +34,7 @@ export async function deployDocs(
   }
   const totalBytes = args.files.reduce((s, f) => s + Buffer.byteLength(f.markdown ?? ''), 0)
   if (totalBytes > 10 * 1024 * 1024) {
-    throw { code: 'FILE_TOO_LARGE', message: 'Markdown 总量超过 10 MB 限制' }
+    throw { code: 'FILE_TOO_LARGE', message: `Markdown 总量超过 10 MB 上限（当前 ${(totalBytes / 1024 / 1024).toFixed(1)} MB）。请减少页面数量或压缩内容后再试。` }
   }
 
   const htmlFiles = renderDocsSite(args.files, { title: args.title, theme: args.theme })

@@ -6,6 +6,7 @@ export const ALLOWED_EXTENSIONS = new Set([
   '.woff', '.woff2', '.ttf', '.eot',
   '.json', '.txt', '.md', '.xml', '.pdf', '.map',
   '.mp4', '.webm',
+  '.pptx', '.ppt', '.ppsx', '.pps', '.potx',
 ])
 
 export class ValidationError extends Error {
@@ -37,9 +38,13 @@ export function validateExtension(filename: string): void {
   }
 }
 
-export function validateFileSize(bytes: number, limit: number): void {
+export function validateFileSize(bytes: number, limit: number, fileName?: string): void {
   if (bytes > limit) {
-    throw new ValidationError('FILE_TOO_LARGE', `File size ${bytes} exceeds limit ${limit}`)
+    const label = fileName ? `"${fileName}"` : '文件'
+    throw new ValidationError(
+      'FILE_TOO_LARGE',
+      `${label} ${(bytes / 1024 / 1024).toFixed(1)} MB，超过 ${(limit / 1024 / 1024).toFixed(0)} MB 上限。`,
+    )
   }
 }
 

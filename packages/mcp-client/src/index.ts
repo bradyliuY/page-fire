@@ -31,7 +31,7 @@ import { extname } from 'node:path'
 import { parseCliArgs, collectFiles, TEXT_EXT, MAX_FILE_BYTES } from './utils.js'
 
 const DEFAULT_URL = 'https://mcp.pagefire.openhkt.com/mcp'
-const VERSION = '0.5.2'
+const VERSION = '0.5.3'
 
 const HELP = `pagefire v${VERSION}  (pagefire-mcp)
 
@@ -44,16 +44,19 @@ Commands:
                         directory  → static site (must contain index.html)
                         .md file   → rendered HTML page (Mermaid + Callout)
                         other file → served as index.html
+  deploy-markdown <path>   publish .md file (with --mode slide for slideshow)
+  deploy-presentation <path>  publish a PDF or PPTX file as a presentation
   deploy-docs <dir>   publish all .md files as a docs site with sidebar + TOC
   list                list all deployments for this token
   pin <did>           make a deployment permanent (removes TTL)
   delete <did>        delete a deployment and all its files
 
-Options (deploy / deploy-docs):
+Options (deploy / deploy-markdown / deploy-docs / deploy-presentation):
   --did=<id>         custom deployment ID; same id = update in place
   --title=<text>     page / site title
   --pin              make permanent (no expiry)
   --theme=<t>        light | dark | sepia  (default: light)
+  --mode=<m>         article | slide  (deploy-markdown only, default: article)
   --spa              SPA mode — 404 falls back to index.html  (deploy only)
   --access=<a>       public | password  (default: public)
   --password=<text>  required when --access=password
@@ -188,7 +191,7 @@ async function runLocalTool(name: string, args: any): Promise<any> {
 
 // ── CLI mode ──────────────────────────────────────────────────────────────────
 // Activated when called with a subcommand: npx pagefire-mcp deploy ./dist
-const CLI_CMDS = new Set(['deploy', 'deploy-docs', 'list', 'delete', 'pin'])
+const CLI_CMDS = new Set(['deploy', 'deploy-markdown', 'deploy-presentation', 'deploy-docs', 'list', 'delete', 'pin'])
 
 async function callRemote(name: string, args: Record<string, unknown>) {
   const initRes = await fetch(url, {
@@ -292,6 +295,36 @@ async function runCli(cmd: string, argv: string[]) {
       data = await postUpload({ files: [file], ...lifecycle, ...(flags.spa ? { spa: true } : {}) })
     }
 
+    const u = data?.url ?? data?.domain
+    process.stdout.write((u ?? JSON.stringify(data, null, 2)) + '\n')
+    return
+  }
+
+  if (cmd === 'deploy-markdown') {
+    const target = positional[0]; if (!target) fail('Usage: pagefire-mcp deploy-markdown <path> [--mode=article|slide]')
+    const content = await readFile(target, 'utf8').catch(() => fail(`File not found: ${target}`))
+    const mode = String(flags.mode ?? 'article')
+    process.stderr.write(`Publishing Markdown (mode=${mode}): ${target}\n`)
+    const data = parseMcpText(await callRemote('deploy_markdown', {
+      markdown: content, mode, theme: String(flags.theme ?? 'light'), ...lifecycle,
+    }))
+    const u = data?.url ?? data?.domain
+    process.stdout.write((u ?? JSON.stringify(data, null, 2)) + '\n')
+    return
+  }
+
+  if (cmd === 'deploy-presentation') {
+    const target = positional[0]; if (!target) fail('Usage: pagefire-mcp deploy-presentation <path.pdf|path.pptx>')
+    const ext = extname(target).toLowerCase()
+    if (ext !== '.pdf' && ext !== '.pptx') fail('Unsupported format. Use .pdf or .pptx files.')
+    const buf = await readFile(target).catch(() => fail(`File not found: ${target}`))
+    const b64 = buf.toString('base64')
+    const key = ext === '.pdf' ? 'pdf' : 'pptx'
+    process.stderr.write(`Publishing ${ext} presentation: ${target} (${(buf.length / 1024 / 1024).toFixed(1)} MB)\n`)
+    const data = parseMcpText(await callRemote('deploy_presentation', {
+      [key]: b64, title: String(flags.title ?? target.replace(/\.(pdf|pptx)$/, '')),
+      theme: String(flags.theme ?? 'light'), ...lifecycle,
+    }))
     const u = data?.url ?? data?.domain
     process.stdout.write((u ?? JSON.stringify(data, null, 2)) + '\n')
     return

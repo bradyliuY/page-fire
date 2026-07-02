@@ -341,6 +341,7 @@ function pick(p){
 
 const EXAMPLES = {
   deploy_markdown: { markdown: _t.exMarkdownContent, title: _t.exMarkdownTitle, theme: 'light' },
+  deploy_presentation: { pdf: '', title: _t.exPresentationTitle, theme: 'light' },
   deploy_page:     { html: _t.exPageHtml, title: _t.exPageTitle },
   deploy_docs:     { title: _t.exDocsTitle, theme: 'light', files: [
     { path: 'index.md', markdown: _t.exDocsIndex },
@@ -360,6 +361,7 @@ const UPLOAD = {
   deploy_zip:      { accept: '.zip',               multiple:false, label: _t.uploadLabels['deploy_zip'] },
   deploy_docs:     { accept: '.md,.markdown',      multiple:true,  label: _t.uploadLabels['deploy_docs'] },
   deploy_files:    { accept: '.html,.htm,.css,.js,.json,.svg,.txt,.md', multiple:true, label: _t.uploadLabels['deploy_files'] },
+  deploy_presentation: { accept: '.pdf,.pptx,.ppt', multiple:false, label: _t.uploadLabels['deploy_presentation'] },
 }
 
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1900) }
@@ -423,6 +425,12 @@ async function onFile(input){
     else if(t==='deploy_page'){ const txt=await readText(files[0]); setArgsObj({ html:txt, title:files[0].name }) }
     else if(t==='deploy_markdown'){ const txt=await readText(files[0]); setArgsObj({ markdown:txt, title:files[0].name.replace(/\\.(md|markdown|txt)$/,''), theme:'light' }) }
     else if(t==='deploy_docs'){ const arr=await Promise.all(files.map(async f=>({ path:f.name, markdown:await readText(f) }))); setArgsObj({ title:_t.exDocsTitle, theme:'light', files:arr }) }
+    else if(t==='deploy_presentation'){
+      const b64=await readB64(files[0]); const isPdf=/\.pdf$/i.test(files[0].name)
+      const obj={title:files[0].name.replace(/\.(pdf|pptx|ppt)$/,''), theme:'light'}
+      isPdf ? (obj.pdf=b64) : (obj.pptx=b64)
+      setArgsObj(obj)
+    }
     else if(t==='deploy_files'){
       const isBin = f => /\.(png|jpg|jpeg|gif|ico|woff2?|ttf|eot|pdf)$/i.test(f.name)
       const arr=await Promise.all(files.map(async f=>isBin(f)
