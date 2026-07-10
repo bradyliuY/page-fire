@@ -228,12 +228,8 @@ export function handleRequest(
     return
   }
 
-  // SPA fallback: serve index.html for unknown paths so client-side routing works
-  if (deployment.spa && !existsSync(filePath)) {
-    filePath = join(deployDir, 'index.html')
-  }
-
   // Default PageFire favicon for deployed pages that don't ship their own
+  // Must run before the SPA fallback so that SPA mode doesn't swallow it
   if ((requestedPath === 'favicon.ico' || requestedPath === 'favicon.png') && !existsSync(filePath)) {
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'public, max-age=86400')
@@ -241,6 +237,11 @@ export function handleRequest(
     res.statusCode = 200
     res.end(FAVICON_PNG)
     return
+  }
+
+  // SPA fallback: serve index.html for unknown paths so client-side routing works
+  if (deployment.spa && !existsSync(filePath)) {
+    filePath = join(deployDir, 'index.html')
   }
 
   serveFile(res, filePath)
