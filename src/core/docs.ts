@@ -9,6 +9,66 @@ export interface DocInput { path: string; markdown: string }
 
 interface NavItem { href: string; label: string; mdPath: string }
 
+// Extract parent directory from a Markdown path, or empty string for root.
+function dirName(mdPath: string): string {
+  const idx = mdPath.lastIndexOf('/')
+  return idx > 0 ? mdPath.slice(0, idx) : ''
+}
+
+// Render sidebar nav with hierarchical grouping by subdirectory.
+function renderNav(nav: NavItem[], activeMdPath: string): string {
+  // Group by parent directory (preserving nav order within each group)
+  const groups = new Map<string, { label: string; items: NavItem[] }>()
+  const rootItems: NavItem[] = []
+  const seen = new Set<string>()
+
+  for (const item of nav) {
+    const dir = dirName(item.mdPath)
+    if (dir) {
+      if (!seen.has(dir)) {
+        seen.add(dir)
+        groups.set(dir, { label: dir.split('/').pop() || dir, items: [] })
+      }
+      groups.get(dir)!.items.push(item)
+    } else {
+      rootItems.push(item)
+    }
+  }
+
+  const parts: string[] = []
+
+  for (const item of rootItems) {
+    const active = item.mdPath === activeMdPath ? ' class="active"' : ''
+    parts.push(`<a href="${escapeHtml(item.href)}"${active}>${escapeHtml(item.label)}</a>`)
+  }
+
+  for (const [, g] of groups) {
+    parts.push(
+      `<div class="nav-dir"><div class="nav-dir-label">${escapeHtml(g.label)}</div>`,
+    )
+    for (const item of g.items) {
+      const active = item.mdPath === activeMdPath ? ' class="active"' : ''
+      parts.push(
+        `<a href="${escapeHtml(item.href)}"${active} class="nav-sub">${escapeHtml(item.label)}</a>`,
+      )
+    }
+    parts.push('</div>')
+  }
+
+  return parts.join('\n')
+}
+
+// Render prev / next page navigation buttons.
+function navPrevNext(nav: NavItem[], idx: number): string {
+  const prev = idx > 0
+    ? `<a href="${escapeHtml(nav[idx - 1].href)}">← ${escapeHtml(nav[idx - 1].label)}</a>`
+    : '<span class="nav-disabled"></span>'
+  const next = idx < nav.length - 1
+    ? `<a href="${escapeHtml(nav[idx + 1].href)}" style="text-align:right">${escapeHtml(nav[idx + 1].label)} →</a>`
+    : '<span class="nav-disabled"></span>'
+  return prev + next
+}
+
 /**
  * Build a multi-page Markdown documentation site with left nav sidebar + right TOC.
  * Pure transform: Markdown inputs → static HTML FileEntry[] (no I/O),
@@ -52,10 +112,13 @@ export function renderDocsSite(
     .sort((a, b) => (a.mdPath === entryPath ? -1 : b.mdPath === entryPath ? 1 : 0))
     .map((p) => ({ href: '/' + p.htmlPath, label: p.label, mdPath: p.mdPath }))
 
-  const files: FileEntry[] = pages.map((p) => ({
-    path: p.htmlPath,
-    content: renderPage(p.markdown, p.mdPath, p.label, siteTitle, theme, nav, entryPath),
-  }))
+  const files: FileEntry[] = pages.map((p) => {
+    const idx = nav.findIndex((n) => n.mdPath === p.mdPath)
+    return {
+      path: p.htmlPath,
+      content: renderPage(p.markdown, p.mdPath, p.label, siteTitle, theme, nav, idx, entryPath),
+    }
+  })
 
   // If the entry is not index.md, generate a redirect index.html so the root URL works.
   if (entryPath !== 'index.md') {
@@ -73,17 +136,14 @@ export function renderDocsSite(
 
 function renderPage(
   markdown: string, mdPath: string, pageLabel: string,
-  siteTitle: string, theme: MarkdownTheme, nav: NavItem[], entryPath: string,
+  siteTitle: string, theme: MarkdownTheme, nav: NavItem[], navIndex: number, entryPath: string,
 ): string {
   const headings = extractHeadings(markdown)
   const rawBody = renderMarkdownBody(markdown, /* rewriteMdLinks */ true)
   const body = injectHeadingIds(rawBody, headings)
   const toc = renderTocPanel(headings, 1280)
 
-  const navHtml = nav.map((n) => {
-    const active = n.mdPath === mdPath ? ' class="active"' : ''
-    return `<a href="${escapeHtml(n.href)}"${active}>${escapeHtml(n.label)}</a>`
-  }).join('\n')
+  const navHtml = renderNav(nav, mdPath)
   const docTitle = mdPath === entryPath ? siteTitle : `${pageLabel} · ${siteTitle}`
 
   return `<!doctype html>
@@ -168,6 +228,13 @@ pre[data-lang]::before{content:attr(data-lang);display:block;text-align:right;fo
 .doc-footer{margin-top:48px;padding-top:22px;border-top:1px solid var(--bdr);
   color:var(--muted);font-size:12.5px}
 .doc-footer a{color:var(--accent)}
+.nav-prev-next{display:flex;justify-content:space-between;gap:16px;margin-top:32px;padding-top:20px;border-top:1px solid var(--bdr)}
+.nav-prev-next a{font-size:14px;font-weight:600;padding:10px 16px;border-radius:9px;background:var(--table-alt);color:var(--fg);text-decoration:none;transition:.12s;max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-prev-next a:hover{background:var(--bdr);text-decoration:none}
+.nav-prev-next .nav-disabled{visibility:hidden}
+.nav-dir{margin:8px 0 4px}
+.nav-dir-label{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:2px 10px;margin-bottom:2px}
+.sidebar nav a.nav-sub{padding-left:20px;font-size:13px}
 /* mobile */
 .menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:30;width:40px;height:40px;
   border-radius:9px;border:1px solid var(--bdr);background:var(--bg);color:var(--fg);
@@ -211,6 +278,7 @@ ${navHtml}
   <article class="md">
 ${body}
   </article>
+  <div class="nav-prev-next">${navPrevNext(nav, navIndex)}</div>
   <div class="doc-footer">由 <a href="https://pagefire.openhkt.com">PageFire</a> 渲染发布 · Docs</div>
 </main>
 ${toc}
