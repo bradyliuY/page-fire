@@ -1,4 +1,4 @@
-import { join, resolve } from 'path'
+import { join, resolve, extname } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import type { IncomingMessage, ServerResponse } from 'http'
@@ -239,8 +239,11 @@ export function handleRequest(
     return
   }
 
-  // SPA fallback: serve index.html for unknown paths so client-side routing works
-  if (deployment.spa && !existsSync(filePath)) {
+  // SPA fallback: serve index.html for unknown paths so client-side routing works.
+  // Only applies to extensionless paths (SPA routes like /about) to avoid
+  // swallowing static assets (chart.min.js, favicon.ico, etc.) with HTML content.
+  const ext = extname(requestedPath)
+  if (deployment.spa && !existsSync(filePath) && (ext === '' || ext === '.html' || ext === '.htm')) {
     filePath = join(deployDir, 'index.html')
   }
 
