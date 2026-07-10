@@ -208,7 +208,7 @@ export function handleRequest(
 
   // Resolve file path
   const deployDir = join(sitesDir, String(deployment.token_id), deployment.did)
-  const rawPath = url === '/' || url === '' ? 'index.html' : url.split('?')[0]
+  const rawPath = url === '/' || url === '' ? 'index.html' : url.split('?')[0].replace(/^\//, '')
   let requestedPath: string
   try {
     requestedPath = decodeURIComponent(rawPath)
@@ -234,7 +234,7 @@ export function handleRequest(
   }
 
   // Default PageFire favicon for deployed pages that don't ship their own
-  if ((requestedPath === '/favicon.ico' || requestedPath === '/favicon.png') && !existsSync(filePath)) {
+  if ((requestedPath === 'favicon.ico' || requestedPath === 'favicon.png') && !existsSync(filePath)) {
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'public, max-age=86400')
     res.setHeader('Content-Length', FAVICON_PNG.length)
