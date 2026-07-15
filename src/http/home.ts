@@ -90,15 +90,15 @@ code{font-family:'SF Mono',ui-monospace,'Fira Code',Consolas,monospace}
 /* nav */
 nav{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bdr);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(10,10,11,.78)}
 .nav-i{display:flex;align-items:center;justify-content:space-between;height:60px}
-.logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:650;color:var(--txt);letter-spacing:-.2px}
+.logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:650;color:var(--txt);letter-spacing:-.2px}
 .flame{width:28px;height:28px;background:var(--fire-dim);border:1px solid rgba(249,115,22,.25);border-radius:8px;display:grid;place-items:center;font-size:14px;flex-shrink:0}
 .nav-r{display:flex;align-items:center;gap:6px}
-.nav-r a{color:var(--muted);font-size:13.5px;padding:7px 12px;border-radius:8px;transition:.15s;cursor:pointer}
+.nav-r a{color:var(--muted);font-size:15px;padding:7px 12px;border-radius:8px;transition:.15s;cursor:pointer}
 .nav-r a:hover{color:var(--txt);background:var(--sur)}
 .nav-login{border:1px solid var(--bdr)}
 .nav-reg{background:#fafafa !important;color:#0a0a0b !important;font-weight:600}
 .nav-reg:hover{background:#e4e4e7 !important}
-.nav-lang{border:1px solid var(--bdr);font-size:12px !important;padding:5px 10px !important}
+.nav-lang{border:1px solid var(--bdr);font-size:13px !important;padding:5px 10px !important}
 .nav-gh{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;color:var(--muted);transition:.15s;padding:0 !important}
 .nav-gh:hover{color:var(--txt) !important;background:var(--sur) !important}
 
