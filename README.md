@@ -1,4 +1,9 @@
 <p align="center">
+  <a href="README.md">中文</a> &nbsp;·&nbsp;
+  <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
   <img src="brand/pagefire-logo.png" height="80" alt="PageFire">
 </p>
 

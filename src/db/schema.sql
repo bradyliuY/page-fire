@@ -57,7 +57,9 @@ CREATE TABLE IF NOT EXISTS deployments (
   file_count  INTEGER NOT NULL DEFAULT 0,
   spa         INTEGER NOT NULL DEFAULT 0,
   created_at  INTEGER NOT NULL,
-  updated_at  INTEGER NOT NULL
+  updated_at  INTEGER NOT NULL,
+  views       INTEGER NOT NULL DEFAULT 0,
+  author      TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_deployments_token_id ON deployments(token_id);
 CREATE INDEX IF NOT EXISTS idx_deployments_expires_at ON deployments(expires_at) WHERE pinned = 0;

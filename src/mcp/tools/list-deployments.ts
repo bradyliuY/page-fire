@@ -14,6 +14,8 @@ export function listDeploymentsTool(args: { include_expired?: boolean }, authHea
     title: d.title,
     access: d.access,
     pinned: d.pinned === 1,
+    views: d.views,
+    author: d.author,
     expires_at: d.expires_at ? new Date(d.expires_at).toISOString() : null,
     size_bytes: d.size_bytes,
     file_count: d.file_count,

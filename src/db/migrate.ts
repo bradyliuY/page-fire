@@ -27,6 +27,8 @@ export function openDb(dbPath: string): Database.Database {
   // Column migrations — safe to run on existing DBs (errors mean column already exists)
   const colMigrations = [
     'ALTER TABLE deployments ADD COLUMN spa INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE deployments ADD COLUMN views INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE deployments ADD COLUMN author TEXT',
     'ALTER TABLE tokens ADD COLUMN token_enc TEXT',
     'ALTER TABLE tokens ADD COLUMN user_id TEXT',
   ]

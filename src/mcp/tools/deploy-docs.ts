@@ -8,6 +8,7 @@ import type { MarkdownTheme } from '../../core/markdown.js'
 export interface DeployDocsArgs {
   files: Array<{ path: string; markdown: string }>
   title?: string
+  author?: string
   theme?: MarkdownTheme
   did?: string
   access?: 'public' | 'password'
@@ -43,6 +44,7 @@ export async function deployDocs(
     files: htmlFiles,
     did: args.did,
     title: args.title,
+    author: args.author ?? null,
     access: args.access,
     password: args.password,
     ttl_days: args.ttl_days,

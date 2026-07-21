@@ -12,6 +12,7 @@ export async function deployZip(
   args: {
     zip_base64: string
     title?: string
+    author?: string
     did?: string
     access?: string
     password?: string
@@ -52,7 +53,7 @@ export async function deployZip(
     did, isUpdate, existing,
     fileCount: result.fileCount, sizeBytes: result.sizeBytes,
     opts: {
-      did: args.did, title: args.title, access: args.access,
+      did: args.did, title: args.title, author: args.author ?? null, access: args.access,
       password: args.password, ttl_days: args.ttl_days, pin: args.pin, spa: args.spa, ip,
     },
   })

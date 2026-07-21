@@ -173,6 +173,7 @@ export async function startMcpServer(
       {
         html: z.string().describe('Full HTML content to publish (UTF-8, max 10 MB)'),
         title: z.string().optional().describe('Human-readable title stored in the DB'),
+        author: z.string().optional().describe('Author name displayed on the page'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates that deployment in place — the URL never changes. Omit for a random one-off URL.'),
         access: z
           .enum(['public', 'password'])
@@ -217,6 +218,7 @@ export async function startMcpServer(
       {
         zip_base64: z.string().describe('Base64-encoded ZIP archive (max 200 MB uncompressed, 500 files)'),
         title: z.string().optional().describe('Human-readable title stored in the DB'),
+        author: z.string().optional().describe('Author name displayed on the page'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates that site in place — the URL never changes.'),
         access: z
           .enum(['public', 'password'])
@@ -273,6 +275,7 @@ export async function startMcpServer(
           .min(1)
           .describe('Array of files to deploy; must include index.html at root'),
         title: z.string().optional().describe('Human-readable title stored in the DB'),
+        author: z.string().optional().describe('Author name displayed on the page'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates that site in place — the URL never changes.'),
         access: z
           .enum(['public', 'password'])
@@ -317,6 +320,7 @@ export async function startMcpServer(
       {
         markdown: z.string().describe('Markdown source (GFM supported: tables, task lists, code fences). Max 5 MB.'),
         title: z.string().optional().describe('Page title (defaults to the first # heading).'),
+        author: z.string().optional().describe('Author name displayed on the page'),
         theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Theme — "light" (default), "dark", or "sepia".'),
         mode: z.enum(['article', 'slide']).optional().describe('Rendering mode — "article" (default) for a styled reading page, "slide" for a remark.js presentation with keyboard arrow navigation.'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates the page in place — the URL never changes.'),
@@ -347,6 +351,7 @@ export async function startMcpServer(
           markdown: z.string().describe('Markdown source for this page (GFM).'),
         })).min(1).describe('Markdown pages. No index.md required — entry is resolved automatically (index.md → README.md → first file). Max 200 pages, 10 MB total.'),
         title: z.string().optional().describe('Site title shown in the sidebar header.'),
+        author: z.string().optional().describe('Author name displayed on the page'),
         theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Reading theme — "light" (default), "dark", or "sepia".'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates the docs site in place — the URL never changes.'),
         access: z.enum(['public', 'password']).optional().describe('Access control — "public" (default) or "password".'),
@@ -374,6 +379,7 @@ export async function startMcpServer(
         pdf: z.string().optional().describe('Base64-encoded PDF file (max 50 MB). Mutually exclusive with pptx.'),
         pptx: z.string().optional().describe('Base64-encoded PPTX file (max 50 MB). Mutually exclusive with pdf. Text and images are extracted and rendered as slides.'),
         title: z.string().optional().describe('Presentation title (defaults to first slide heading for PPTX, or filename for PDF).'),
+        author: z.string().optional().describe('Author name displayed on the page'),
         theme: z.enum(['light', 'dark', 'sepia']).optional().describe('Slide theme — "light" (default), "dark", or "sepia".'),
         did: z.string().optional().describe('Optional site alias (3–32 chars, [a-z0-9], no hyphens). Reusing the same did updates in place — the URL never changes.'),
         access: z.enum(['public', 'password']).optional().describe('Access control — "public" (default) or "password".'),

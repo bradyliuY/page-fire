@@ -12,6 +12,7 @@ export interface DeployPresentationArgs {
   /** Base64-encoded PPTX file (mutually exclusive with pdf). */
   pptx?: string
   title?: string
+  author?: string
   theme?: MarkdownTheme
   did?: string
   access?: 'public' | 'password'
@@ -58,6 +59,7 @@ export async function deployPresentation(
       files,
       did: args.did,
       title,
+      author: args.author ?? null,
       access: args.access,
       password: args.password,
       ttl_days: args.ttl_days,

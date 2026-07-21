@@ -6,6 +6,7 @@ import { publish } from '../../core/publish.js'
 export interface DeployPageArgs {
   html: string
   title?: string
+  author?: string
   did?: string
   access?: 'public' | 'password'
   password?: string
@@ -35,6 +36,7 @@ export async function deployPage(
     files: [{ path: 'index.html', content: args.html }],
     did: args.did,
     title: args.title,
+    author: args.author ?? null,
     access: args.access,
     password: args.password,
     ttl_days: args.ttl_days,

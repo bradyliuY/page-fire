@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type Database from 'better-sqlite3'
-import { serve404, serve401, serveFile } from './serve.js'
+import { serve404, serve401, serveFile, serveHtmlWithCounter } from './serve.js'
+import { ViewCounter } from './counter.js'
 import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
 import { hashToken } from '../auth.js'
 import { renderHome } from './home.js'
@@ -36,6 +37,7 @@ export function handleRequest(
   sitesDir: string,
   baseDomain: string,
   requireInvite = false,
+  counter?: ViewCounter,
 ): void {
   const host = (req.headers['host'] ?? '').split(':')[0]
   const url = req.url ?? '/'
@@ -147,6 +149,8 @@ export function handleRequest(
     return
   }
 
+  const scheme = baseDomain === 'localhost' ? 'http' : 'https'
+
   // Parse subdomain: <did>-<space_id>.baseDomain or <space_id>.baseDomain
   // Legacy format <did>--<space_id> is also supported for backward compatibility
   const suffix = `.${baseDomain}`
@@ -239,12 +243,52 @@ export function handleRequest(
     return
   }
 
+  // ── View counter endpoint ──────────────────────────────────────────────
+  if (requestedPath === '_pf/counter' && counter) {
+    const method = req.method ?? 'GET'
+    const origin = req.headers['origin'] as string | undefined
+    // CORS for same-origin only (safe for the deployment's own subdomain)
+    if (origin) {
+      const allowed = `${scheme}://${host}`
+      if (origin === allowed || origin === `${scheme}://${host.split(':')[0]}`) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+      }
+    }
+    if (method === 'OPTIONS') {
+      res.writeHead(204); res.end()
+      return
+    }
+    const views = method === 'POST'
+      ? counter.increment(deployment.did)
+      : counter.getViews(deployment.did)
+    const body = Buffer.from(JSON.stringify({ views }), 'utf8')
+    for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Content-Length', body.length)
+    res.statusCode = 200
+    res.end(body)
+    return
+  }
+
   // SPA fallback: serve index.html for unknown paths so client-side routing works.
   // Only applies to extensionless paths (SPA routes like /about) to avoid
   // swallowing static assets (chart.min.js, favicon.ico, etc.) with HTML content.
   const ext = extname(requestedPath)
   if (deployment.spa && !existsSync(filePath) && (ext === '' || ext === '.html' || ext === '.htm')) {
     filePath = join(deployDir, 'index.html')
+  }
+
+  // Serve HTML files with view counter injection (when counter is enabled)
+  if (counter && (ext === '.html' || ext === '.htm')) {
+    serveHtmlWithCounter(res, filePath, {
+      views: counter.getViews(deployment.did),
+      created_at: deployment.created_at,
+      updated_at: deployment.updated_at,
+      author: deployment.author ?? token.label,
+    })
+    return
   }
 
   serveFile(res, filePath)

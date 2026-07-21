@@ -14,6 +14,7 @@ export interface PublishOpts {
   files: FileEntry[]
   did?: string                 // custom alias / update target; random when omitted
   title?: string | null
+  author?: string | null
   access?: string
   password?: string
   ttl_days?: number
@@ -124,16 +125,19 @@ export function finalizeDeployment(
     : null
   const spa = opts.spa ?? (existing ? existing.spa === 1 : false)
   const title = opts.title ?? (existing ? existing.title : null)
+  const author = opts.author !== undefined ? opts.author : (existing ? existing.author : null)
 
   if (isUpdate) {
     updateDeployment(db, did, {
       size_bytes: sizeBytes, file_count: fileCount, title,
       access, pass_hash, pinned: pinned ? 1 : 0, expires_at, spa: spa ? 1 : 0,
+      author,
     })
   } else {
     createDeployment(db, {
       token_id: token.id, did, domain, title, access, pass_hash,
       pinned, expires_at, size_bytes: sizeBytes, file_count: fileCount, spa,
+      author,
     })
   }
 

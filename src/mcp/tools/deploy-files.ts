@@ -7,6 +7,7 @@ export async function deployFilesTool(
   args: {
     files: Array<{ path: string; content: string; encoding?: string }>
     title?: string
+    author?: string
     did?: string
     access?: string
     password?: string
@@ -38,6 +39,7 @@ export async function deployFilesTool(
     files: bufFiles,
     did: args.did,
     title: args.title,
+    author: args.author ?? null,
     access: args.access,
     password: args.password,
     ttl_days: args.ttl_days,
