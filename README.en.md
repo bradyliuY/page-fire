@@ -10,14 +10,14 @@
 <h3 align="center">PageFire</h3>
 
 <p align="center">
-  Give AI a "publish" button — one sentence, content goes live on its own HTTPS subdomain in seconds<br>
+  Give AI a "publish" superpower — one sentence, and your content becomes an HTTPS subdomain page in seconds<br>
   Self-hosted &nbsp;·&nbsp; Multi-tenant &nbsp;·&nbsp; MCP-native &nbsp;·&nbsp; Zero deploy workflow
 </p>
 
 <p align="center">
   <a href="https://pagefire.openhkt.com"><b>Live Demo</b></a> &nbsp;·&nbsp;
   <a href="packages/mcp-client/README.md">CLI Docs</a> &nbsp;·&nbsp;
-  <a href="docs/DEPLOY.md"><b>中文版</b></a> &nbsp;·&nbsp;
+  <a href="docs/DEPLOY.md">Deploy Guide</a> &nbsp;·&nbsp;
   <a href="https://www.npmjs.com/package/pagefire-mcp">npm</a>
 </p>
 
@@ -39,13 +39,13 @@
 
 ---
 
-> Give Claude, Cursor, and other AI clients a superpower: right from the chat, one sentence turns your content into a live HTTPS page on its own subdomain — done in seconds, no deploy tooling required.
+> Give Claude, Cursor, and other AI clients a "publish" superpower — right from the chat, one sentence turns your content into a live HTTPS subdomain page in seconds, with zero deploy overhead.
 >
-> Try the hosted version: **[pagefire.openhkt.com](https://pagefire.openhkt.com)** (sign up, get an API key) &nbsp;·&nbsp; Or self-host on your own server.
+> **Use the hosted version directly at [pagefire.openhkt.com](https://pagefire.openhkt.com)** (register and get an API Key), or self-host on your own server.
 
 <p align="center">
   <a href="https://pagefire.openhkt.com">
-    <img src=".github/assets/screenshot.png" width="860" alt="PageFire screenshot">
+    <img src=".github/assets/screenshot.png" width="860" alt="PageFire landing page screenshot">
   </a>
 </p>
 
@@ -53,15 +53,15 @@
 
 ## Key Features
 
-- **MCP-native** — 10 MCP tools so AI can publish HTML / Markdown / ZIP / entire directories in a single chat message
-- **Instant publish** — sub-second turnaround, returns a shareable HTTPS subdomain link automatically
-- **Markdown rendering** — full GFM, including Callout alerts, Mermaid diagrams, code language labels, collapsible sections
-- **Multi-page docs** — `deploy_docs_dir` generates a full documentation site with sidebar nav + per-page table of contents
-- **Directory deploy** — `deploy_dir` supports `.pagefireignore` files and `exclude` patterns (`.gitignore`-style)
-- **Access control** — public or password-protected, switchable at any time
-- **Lifecycle management** — 7-day default expiry, pin permanently, or delete anytime
-- **Pure static hosting** — server never executes user code; security isolation by design
-- **Self-hosted** — runs on your own Linux server, full data control
+- **MCP-native**: 10 MCP tools — publish HTML, Markdown, ZIP, or an entire directory with one sentence in an AI conversation
+- **Instant publish**: Ready in seconds with an auto-generated shareable HTTPS subdomain URL
+- **Markdown rendering**: Full GFM support with Callout blocks, Mermaid diagrams, code language labels, collapsible sections, and more
+- **Multi-page docs**: `deploy_docs_dir` generates a full documentation site with left sidebar navigation and per-page table of contents
+- **Directory deploy**: `deploy_dir` supports `.pagefireignore` files and `exclude` parameters (`.gitignore`-style)
+- **Access control**: Public or password-protected, switchable at any time
+- **Lifecycle management**: Default 7-day expiry, can be pinned permanently, delete anytime
+- **Pure static hosting**: Server never executes user code — secure isolation by design
+- **Self-hosted**: Run on your own Linux server with full data control
 
 ---
 
@@ -71,17 +71,17 @@
 
 - Node.js ≥ 20 + pnpm
 - Linux server (nginx handles TLS termination; co-exists with existing services)
-- Domain + wildcard DNS (`*.pagefire.yourdomain.com A <server-ip>`)
+- Domain name + wildcard DNS (`*.pagefire.yourdomain.com A <server-ip>`)
 
-### Install & Start
+### Install & Launch
 
 ```bash
 git clone https://github.com/bradyliuY/page-fire.git
 cd page-fire
 pnpm install
 pnpm build
-node scripts/download-mermaid.mjs   # download mermaid for offline Markdown charts
-cp .env.example .env                # edit .env with your domain etc.
+node scripts/download-mermaid.mjs   # Download mermaid for offline Markdown diagrams
+cp .env.example .env                # Edit .env with your domain and config
 pnpm start
 ```
 
@@ -99,30 +99,30 @@ pnpm start
 ### Create a Token
 
 ```bash
-node dist/cli/index.js token create --slug mytoken --label "My space"
+node dist/cli/index.js token create --slug mytoken --label "My Space"
 node dist/cli/index.js token list
 ```
 
-For the full deployment guide (DNS / wildcard cert / nginx / PM2), see [docs/DEPLOY.md](docs/DEPLOY.md) (Chinese).
+For the full deployment guide (DNS / wildcard certs / nginx / PM2), see [docs/DEPLOY.md](docs/DEPLOY.md) (Chinese).
 
 ---
 
 ## Usage
 
-PageFire has three modes, all sharing the same API key:
+PageFire offers three usage modes, all sharing the same API Key:
 
-- **Web Console** — Zero-config in the browser, sign up and use, great for manual publishing & management. Visit the root domain.
-- **CLI** — `pagefire deploy` from your terminal or CI pipeline, great for automation.
-- **MCP Client** — Publish from your chat in Claude / Cursor — ideal for AI workflows.
+- **Web Console** — zero-config browser interface, register and use. Great for manual publishing and management. Visit the root domain.
+- **CLI** — run `pagefire deploy` directly in terminal or CI scripts. Perfect for automation pipelines.
+- **MCP Client** — publish with one sentence in Claude, Cursor, or other AI conversations. Ideal for AI workflows.
 
 ---
 
 ## CLI (Terminal / CI)
 
-The `pagefire-mcp` npm package provides the `pagefire` command:
+The `pagefire` command is provided by the `pagefire-mcp` npm package:
 
 ```bash
-# Global install (one-time, always available)
+# Install globally (one-time, always available)
 npm install -g pagefire-mcp
 
 # Or run without installing (handy for CI)
@@ -134,15 +134,15 @@ export PAGEFIRE_TOKEN=pf_your_token
 
 pagefire deploy ./dist              # Deploy a directory
 pagefire deploy README.md           # Deploy Markdown (auto-rendered)
-pagefire deploy-docs ./docs --pin   # Deploy a multi-page doc site
+pagefire deploy-docs ./docs --pin   # Deploy multi-page docs site
 pagefire list                       # List all deployments
 pagefire pin mysite                 # Pin permanently
-pagefire delete mysite              # Delete
+pagefire delete mysite              # Delete a deployment
 ```
 
-Common options: `--did=<id>` (custom ID, overwrites existing) `--pin` (permanent) `--spa` (SPA mode) `--theme=dark`
+Common options: `--did=<id>` (custom ID, overwrite on re-deploy), `--pin` (permanent), `--spa` (SPA mode), `--theme=dark`
 
-Full CLI docs at [packages/mcp-client/README.md](packages/mcp-client/README.md).
+Full CLI reference at [packages/mcp-client/README.md](packages/mcp-client/README.md).
 
 ---
 
@@ -164,7 +164,7 @@ Full CLI docs at [packages/mcp-client/README.md](packages/mcp-client/README.md).
 }
 ```
 
-**Option 2: HTTP direct**
+**Option 2: Direct HTTP**
 
 ```json
 {
@@ -178,63 +178,63 @@ Full CLI docs at [packages/mcp-client/README.md](packages/mcp-client/README.md).
 }
 ```
 
-> If HTTP direct gives you a **Failed to connect** error (common with the Bun runtime or corporate DPI), switch to Option 1 — the npm connector proxies through your local Node.js and bypasses fingerprint blocking.
+> If direct HTTP fails with **Failed to connect** (common with the Bun runtime or corporate DPI networks), switch to Option 1 — the npm connector proxies through local Node.js, bypassing fingerprint inspection.
 
-Once configured, just chat:
+Once configured, just say it in conversation:
 
 ```
-Turn this product intro into a webpage and pin it permanently.
-Package this React app as a ZIP, deploy it with SPA mode.
-Turn docs/ into a multi-page documentation site, dark theme.
+Publish this product intro as a webpage and pin it permanently.
+Package this React app as a ZIP and deploy with SPA mode.
+Turn the docs/ directory into a multi-page documentation site, dark theme.
 ```
 
 ---
 
-## MCP Tools
+## MCP Tool Reference
 
 | Tool | Description |
 |------|-------------|
 | `deploy_page` | Publish a single HTML string |
-| `deploy_markdown` | Publish Markdown (auto-rendered, Mermaid / Callout supported) |
-| `deploy_docs_dir` | Publish local Markdown directory → multi-page docs site |
+| `deploy_markdown` | Publish Markdown (auto-rendered, supports Mermaid / Callout) |
+| `deploy_docs_dir` | Publish a local Markdown directory → multi-page docs site |
 | `deploy_dir` | Publish a local directory (supports `.pagefireignore`) |
 | `deploy_files` | Publish a multi-file site (index.html + assets) |
-| `deploy_zip` | Publish a ZIP archive (base64-encoded) |
+| `deploy_zip` | Publish a ZIP archive (base64 encoded) |
 | `list_deployments` | List all deployments |
 | `get_deployment` | View deployment details |
-| `pin_deployment` | Pin a deployment permanently |
+| `pin_deployment` | Pin a deployment as permanent |
 | `delete_deployment` | Delete a deployment |
-| `set_access` | Toggle public/password protection |
+| `set_access` | Toggle public / password protection |
 
 ---
 
 ## Markdown Features
 
-`deploy_markdown` and `deploy_docs_dir` support full GFM, plus these extras:
+`deploy_markdown` and `deploy_docs_dir` support full GFM with these additional enhancements:
 
-**Callout alerts** (GitHub / Obsidian style)
+**Callout blocks** (GitHub / Obsidian style)
 
 ```markdown
-> [!NOTE]   Note
-> [!TIP]    Tip
-> [!WARNING]   Warning
-> [!IMPORTANT]  Important
-> [!ABSTRACT]  Abstract
+> [!NOTE]    Notes
+> [!TIP]     Tips
+> [!WARNING]  Warnings
+> [!IMPORTANT] Important
+> [!ABSTRACT] Abstract
 > [!EXAMPLE]  Example
-> [!QUOTE]   Quote
+> [!QUOTE]    Quote
 ```
 
-**Mermaid diagrams** (self-hosted, no external CDN)
+**Mermaid diagrams** (self-hosted, no external CDN dependency)
 
 ````markdown
 ```mermaid
 graph TD
   A[User says one sentence] --> B[AI calls MCP]
-  B --> C[Returns HTTPS link]
+  B --> C[HTTPS URL returned]
 ```
 ````
 
-**Other**: code language labels, `<mark>` highlights, `<kbd>` keys, `<details>` collapse, task list checkboxes.
+**Other features**: code language labels, `<mark>` highlight, `<kbd>` keys, `<details>` collapsible sections, task list checkboxes.
 
 Three themes: `light` (default), `dark`, `sepia`.
 
@@ -246,20 +246,20 @@ Three themes: `light` (default), `dark`, `sepia`.
 pnpm test             # Run all tests
 pnpm test:unit        # Unit tests only
 pnpm test:integration # Integration tests only
-pnpm dev              # tsx watch dev mode
+pnpm dev              # tsx watch development mode
 ```
 
 ### Project Structure
 
 ```
 src/
-├── index.ts          # Entry point (MCP + HTTP in one process)
-├── config.ts         # Environment variable loader
+├── index.ts          # Process entry (MCP + HTTP in one process)
+├── config.ts         # Environment variable config
 ├── cli/              # CLI commands (token management, gc)
-├── core/             # Business logic (publish, validation, zip, markdown)
-├── db/               # SQLite layer (schema, repo, migration)
-├── http/             # HTTP static server, dashboard, REST API
-└── mcp/              # MCP server & tool definitions
+├── core/             # Core business logic (deploy, validate, zip, markdown rendering)
+├── db/               # SQLite data layer (schema, repo, migrate)
+├── http/             # HTTP static service, dashboard, REST API
+└── mcp/              # MCP Server and tool definitions
 packages/
 └── mcp-client/       # pagefire-mcp npm connector package
 ```
@@ -268,17 +268,17 @@ packages/
 
 ## Security
 
-- **Server never executes user code**: HTML/JS runs only in the visitor's browser
-- **Token keys never appear in URLs**: domains use opaque random `space_id` mappings; DB stores only hashes
-- **Atomic uploads**: write tmp → validate (path traversal / Zip Slip / zip bomb / SVG sanitize) → rename
-- **MCP binding on 127.0.0.1**: only exposed through nginx proxy with mandatory Bearer auth
+- **Server never executes user code**: HTML/JS only runs in the visitor's browser
+- **Token keys never appear in URLs**: Domains use opaque random `space_id` mappings; DB stores only hashes
+- **Atomic uploads**: write to tmp → validate (path traversal / Zip Slip / zip bomb / SVG sanitize) → rename
+- **MCP bound to 127.0.0.1**: Only exposed through nginx reverse proxy; mandatory Bearer auth
 
-Architecture & security model at [docs/design.md](docs/design.md) (Chinese).
+Architecture and security model at [docs/design.md](docs/design.md) (Chinese).
 
 ---
 
 ## License
 
-MIT © [OpenHKT](https://github.com/bradyliuY) — unrestricted use for self-hosting.
+MIT © [OpenHKT](https://github.com/bradyliuY) — Unlimited use for self-hosting.
 
-Commercial multi-tenant cloud service (you are the operator, your users are tenants) requires a commercial license, see [LICENSE.COMMERCIAL](LICENSE.COMMERCIAL).
+Providing a commercial multi-tenant cloud service based on this project (i.e., you are the operator, your users are the tenants) requires a commercial license. See [LICENSE.COMMERCIAL](LICENSE.COMMERCIAL).
