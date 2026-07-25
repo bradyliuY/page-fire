@@ -291,6 +291,7 @@ export function handleRequest(
       og_image: deployment.og_image,
       wechat_app_id: token.wechat_app_id,
       logo_url: `${scheme}://${baseDomain}/logo.png`,
+      page_url: `${scheme}://${deployment.domain}/`,
     })
     return
   }

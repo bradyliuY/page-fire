@@ -103,6 +103,7 @@ export interface PageMeta {
   og_image?: string | null
   wechat_app_id?: string | null
   logo_url?: string           // platform logo for fallback
+  page_url?: string           // full URL of this page (e.g. https://mysite.pagefire.openhkt.com/)
 }
 
 function fmtDate(ms: number): string {
@@ -124,17 +125,25 @@ function extractFirstImage(html: string): string | null {
   let match: RegExpExecArray | null
   while ((match = imgRegex.exec(html)) !== null) {
     const src = match[1] ?? match[2] ?? match[3]
-    if (
-      src &&
-      !src.startsWith('data:') &&
-      !src.startsWith('blob:') &&
-      !src.includes('favicon') &&
-      (src.startsWith('http://') || src.startsWith('https://'))  // absolute URL only
-    ) {
+    if (src && !src.startsWith('data:') && !src.startsWith('blob:') && !src.includes('favicon')) {
       return src
     }
   }
   return null
+}
+
+/**
+ * Resolve an image src to an absolute URL, using the page's own URL as base.
+ * Handles: absolute, protocol-relative (//), root-relative (/), and relative paths.
+ */
+function resolveOgImageUrl(src: string, pageUrl?: string): string {
+  if (src.startsWith('http://') || src.startsWith('https://')) return src
+  if (!pageUrl) return src  // can't resolve without a base
+  try {
+    return new URL(src, pageUrl).href
+  } catch {
+    return src
+  }
 }
 
 /**
@@ -167,12 +176,17 @@ function injectHeadMeta(html: string, meta: PageMeta): string {
   if (!hasOgTag) {
     // Resolve values: explicit → auto-detect from HTML → platform logo fallback
     const ogTitle = meta.title || extractTitle(result) || null
-    const ogImage = meta.og_image || extractFirstImage(result) || meta.logo_url || null
+    const rawImage = meta.og_image || extractFirstImage(result) || meta.logo_url || null
+    const ogImage = rawImage ? resolveOgImageUrl(rawImage, meta.page_url) : null
     const ogDesc = meta.author ? `由 ${meta.author} 发布` : null
 
     if (ogTitle || ogImage) {
       const tags: string[] = []
       tags.push('  <meta property="og:type" content="website" />')
+      tags.push('  <meta property="og:locale" content="zh_CN" />')
+      if (meta.page_url) {
+        tags.push(`  <meta property="og:url" content="${escapeHtmlAttr(meta.page_url)}" />`)
+      }
       if (ogTitle) {
         tags.push(`  <meta property="og:title" content="${escapeHtmlAttr(ogTitle)}" />`)
         tags.push(`  <meta name="twitter:title" content="${escapeHtmlAttr(ogTitle)}" />`)
