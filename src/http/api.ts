@@ -286,6 +286,7 @@ export async function handleApiRequest(
         spa: d.spa === 1,
         views: d.views,
         author: d.author,
+        og_image: d.og_image,
         size_bytes: d.size_bytes,
         file_count: d.file_count,
         expires_at: d.expires_at ? new Date(d.expires_at).toISOString() : null,

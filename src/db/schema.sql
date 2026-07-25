@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS tokens (
   status            TEXT NOT NULL DEFAULT 'active',
   quota_deployments INTEGER NOT NULL DEFAULT 100,
   quota_bytes       INTEGER NOT NULL DEFAULT 209715200,
+  wechat_app_id     TEXT,
   created_at        INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_tokens_user_id ON tokens(user_id);
@@ -56,10 +57,11 @@ CREATE TABLE IF NOT EXISTS deployments (
   size_bytes  INTEGER NOT NULL DEFAULT 0,
   file_count  INTEGER NOT NULL DEFAULT 0,
   spa         INTEGER NOT NULL DEFAULT 0,
-  created_at  INTEGER NOT NULL,
-  updated_at  INTEGER NOT NULL,
-  views       INTEGER NOT NULL DEFAULT 0,
-  author      TEXT
+  created_at    INTEGER NOT NULL,
+  updated_at    INTEGER NOT NULL,
+  views         INTEGER NOT NULL DEFAULT 0,
+  author        TEXT,
+  og_image      TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_deployments_token_id ON deployments(token_id);
 CREATE INDEX IF NOT EXISTS idx_deployments_expires_at ON deployments(expires_at) WHERE pinned = 0;

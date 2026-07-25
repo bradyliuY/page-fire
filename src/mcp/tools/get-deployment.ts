@@ -18,6 +18,7 @@ export function getDeploymentTool(args: { did: string }, authHeader: string | un
     pinned: d.pinned === 1,
     views: d.views,
     author: d.author,
+    og_image: d.og_image,
     expires_at: d.expires_at ? new Date(d.expires_at).toISOString() : null,
     size_bytes: d.size_bytes,
     file_count: d.file_count,

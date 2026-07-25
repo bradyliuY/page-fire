@@ -99,11 +99,113 @@ export interface PageMeta {
   created_at?: number
   updated_at?: number
   author?: string | null
+  title?: string | null
+  og_image?: string | null
+  wechat_app_id?: string | null
+  logo_url?: string           // platform logo for fallback
 }
 
 function fmtDate(ms: number): string {
   const d = new Date(ms)
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+}
+
+function escapeHtmlAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * Auto-detect the first meaningful image from HTML content.
+ * Skips data: URIs, SVGs, and tiny icons (favicons etc.).
+ */
+function extractFirstImage(html: string): string | null {
+  // Match src="...", src='...', or src=... (unquoted)
+  const imgRegex = /<img[^>]+src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>"']+))[^>]*>/gi
+  let match: RegExpExecArray | null
+  while ((match = imgRegex.exec(html)) !== null) {
+    const src = match[1] ?? match[2] ?? match[3]
+    if (src && !src.startsWith('data:') && !src.startsWith('blob:') && !src.includes('favicon')) {
+      return src
+    }
+  }
+  return null
+}
+
+/**
+ * Auto-detect page title from <title> or first <h1>.
+ */
+function extractTitle(html: string): string | null {
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  if (titleMatch) return titleMatch[1].trim()
+  const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)
+  if (h1Match) return h1Match[1].trim()
+  return null
+}
+
+/**
+ * Inject OG meta tags and/or WeChat JS-SDK into HTML before </head>.
+ *
+ * OG tag resolution priority (high → low):
+ *   1. Explicit meta values (from deploy params)
+ *   2. Auto-detected from HTML content (<img>, <title>, <h1>)
+ *   3. Not injected (the page defines its own, or nothing useful found)
+ *
+ * Only injects if the page doesn't already define any OG tags (user's own tags take precedence).
+ */
+function injectHeadMeta(html: string, meta: PageMeta): string {
+  let result = html
+
+  // ── OG / Twitter Card meta tags ────────────────────────────────────
+  // Skip OG injection if the page already defines its own OG tags
+  const hasOgTag = /<meta\s+[^>]*property="og:/i.test(result)
+  if (!hasOgTag) {
+    // Resolve values: explicit → auto-detect from HTML → platform logo fallback
+    const ogTitle = meta.title || extractTitle(result) || null
+    const ogImage = meta.og_image || extractFirstImage(result) || meta.logo_url || null
+    const ogDesc = meta.author ? `由 ${meta.author} 发布` : null
+
+    if (ogTitle || ogImage) {
+      const tags: string[] = []
+      tags.push('  <meta property="og:type" content="website" />')
+      if (ogTitle) {
+        tags.push(`  <meta property="og:title" content="${escapeHtmlAttr(ogTitle)}" />`)
+        tags.push(`  <meta name="twitter:title" content="${escapeHtmlAttr(ogTitle)}" />`)
+      }
+      if (ogImage) {
+        tags.push(`  <meta property="og:image" content="${escapeHtmlAttr(ogImage)}" />`)
+        tags.push(`  <meta name="twitter:image" content="${escapeHtmlAttr(ogImage)}" />`)
+      }
+      if (ogDesc) {
+        tags.push(`  <meta property="og:description" content="${escapeHtmlAttr(ogDesc)}" />`)
+        tags.push(`  <meta name="twitter:description" content="${escapeHtmlAttr(ogDesc)}" />`)
+      }
+      tags.push('  <meta name="twitter:card" content="summary_large_image" />')
+
+      const block = '\n' + tags.join('\n') + '\n'
+      const headIdx = result.indexOf('</head>')
+      if (headIdx !== -1) {
+        result = result.slice(0, headIdx) + block + result.slice(headIdx)
+      }
+    }
+  }
+
+  // ── WeChat JS-SDK ──────────────────────────────────────────────────
+  if (meta.wechat_app_id) {
+    const wxBlock = `\n<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>\n`
+    const wxHeadIdx = result.indexOf('</head>')
+    if (wxHeadIdx !== -1) {
+      result = result.slice(0, wxHeadIdx) + wxBlock + result.slice(wxHeadIdx)
+    } else {
+      const bodyIdx = result.lastIndexOf('</body>')
+      if (bodyIdx !== -1) {
+        result = result.slice(0, bodyIdx) + wxBlock + result.slice(bodyIdx)
+      } else {
+        result += wxBlock
+      }
+    }
+  }
+
+  return result
 }
 
 function buildMetaBarParts(m: PageMeta): string[] {
@@ -145,6 +247,9 @@ export function serveHtmlWithCounter(
     serve404(res)
     return
   }
+
+  // Inject OG meta tags + WeChat JS-SDK (before any counter injection)
+  html = injectHeadMeta(html, meta)
 
   const label = meta.views.toLocaleString()
   const counterSpan = `<span id="pf-cnt">👁 ${label}</span>`

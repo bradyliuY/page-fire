@@ -287,6 +287,10 @@ export function handleRequest(
       created_at: deployment.created_at,
       updated_at: deployment.updated_at,
       author: deployment.author ?? token.label,
+      title: deployment.title,
+      og_image: deployment.og_image,
+      wechat_app_id: token.wechat_app_id,
+      logo_url: `${scheme}://${baseDomain}/logo.png`,
     })
     return
   }

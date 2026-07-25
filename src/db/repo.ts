@@ -6,16 +6,17 @@ import { randomUUID, randomBytes } from 'crypto'
 export interface TokenRow {
   id: string; slug: string; space_id: string; token_hash: string
   label: string | null; user_id: string | null; status: string
-  quota_deployments: number; quota_bytes: number; created_at: number
+  quota_deployments: number; quota_bytes: number; wechat_app_id: string | null; created_at: number
 }
 
-export function createToken(db: Database.Database, fields: Omit<TokenRow, 'id' | 'created_at' | 'user_id'> & { user_id?: string | null }): TokenRow {
+export function createToken(db: Database.Database, fields: Omit<TokenRow, 'id' | 'created_at' | 'user_id' | 'wechat_app_id'> & { user_id?: string | null; wechat_app_id?: string | null }): TokenRow {
   const id = randomUUID()
   const created_at = Date.now()
   const user_id = fields.user_id ?? null
-  db.prepare(`INSERT INTO tokens (id,slug,space_id,token_hash,label,user_id,status,quota_deployments,quota_bytes,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id, fields.slug, fields.space_id, fields.token_hash, fields.label ?? null, user_id, fields.status, fields.quota_deployments, fields.quota_bytes, created_at)
-  return { id, created_at, user_id, ...fields }
+  const wechat_app_id = fields.wechat_app_id ?? null
+  db.prepare(`INSERT INTO tokens (id,slug,space_id,token_hash,label,user_id,status,quota_deployments,quota_bytes,wechat_app_id,created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(id, fields.slug, fields.space_id, fields.token_hash, fields.label ?? null, user_id, fields.status, fields.quota_deployments, fields.quota_bytes, wechat_app_id, created_at)
+  return { id, created_at, user_id, wechat_app_id, ...fields }
 }
 
 // ── User-scoped API key management ────────────────────────────────────────────
@@ -92,7 +93,8 @@ export interface DeploymentRow {
   id: string; token_id: string; did: string; domain: string
   title: string | null; access: string; pass_hash: string | null
   pinned: number; expires_at: number | null; size_bytes: number
-  file_count: number; spa: number; views: number; author: string | null; created_at: number; updated_at: number
+  file_count: number; spa: number; views: number; author: string | null
+  og_image: string | null; created_at: number; updated_at: number
 }
 
 export interface CreateDeploymentFields {
@@ -100,6 +102,7 @@ export interface CreateDeploymentFields {
   access?: string; pass_hash?: string | null; pinned?: boolean
   expires_at?: number | null; size_bytes: number; file_count: number
   spa?: boolean; views?: number; author?: string | null
+  og_image?: string | null
 }
 
 export function createDeployment(db: Database.Database, fields: CreateDeploymentFields): DeploymentRow {
@@ -111,10 +114,11 @@ export function createDeployment(db: Database.Database, fields: CreateDeployment
     pass_hash: fields.pass_hash ?? null, pinned: fields.pinned ? 1 : 0,
     expires_at: fields.expires_at ?? null, size_bytes: fields.size_bytes,
     file_count: fields.file_count, spa: fields.spa ? 1 : 0, views: fields.views ?? 0,
-    author: fields.author ?? null, created_at: now, updated_at: now,
+    author: fields.author ?? null, og_image: fields.og_image ?? null,
+    created_at: now, updated_at: now,
   }
-  db.prepare(`INSERT INTO deployments (id,token_id,did,domain,title,access,pass_hash,pinned,expires_at,size_bytes,file_count,spa,views,author,created_at,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(row.id, row.token_id, row.did, row.domain, row.title, row.access, row.pass_hash, row.pinned, row.expires_at, row.size_bytes, row.file_count, row.spa, row.views, row.author, row.created_at, row.updated_at)
+  db.prepare(`INSERT INTO deployments (id,token_id,did,domain,title,access,pass_hash,pinned,expires_at,size_bytes,file_count,spa,views,author,og_image,created_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(row.id, row.token_id, row.did, row.domain, row.title, row.access, row.pass_hash, row.pinned, row.expires_at, row.size_bytes, row.file_count, row.spa, row.views, row.author, row.og_image, row.created_at, row.updated_at)
   return row
 }
 
@@ -156,7 +160,7 @@ export function getDeploymentForUser(db: Database.Database, did: string, userId:
   `).get(did, userId) as DeploymentRow | undefined
 }
 
-export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count' | 'title' | 'spa' | 'author'>>): void {
+export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count' | 'title' | 'spa' | 'author' | 'og_image'>>): void {
   const sets = Object.keys(updates).map(k => `${k} = ?`).join(', ')
   const values = [...Object.values(updates), Date.now(), did]
   db.prepare(`UPDATE deployments SET ${sets}, updated_at = ? WHERE did = ?`).run(...values)
