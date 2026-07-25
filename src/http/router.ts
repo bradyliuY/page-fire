@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type Database from 'better-sqlite3'
-import { serve404, serve401, serveFile, serveHtmlWithCounter, serveWebpAsPng } from './serve.js'
+import { serve404, serve401, serveFile, serveHtmlWithCounter } from './serve.js'
 import { ViewCounter } from './counter.js'
 import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
 import { hashToken } from '../auth.js'
@@ -297,15 +297,6 @@ export async function handleRequest(
       site_name: baseDomain,
     })
     return
-  }
-
-  // Convert .webp to PNG for WeChat (X5 kernel can't save webp directly)
-  if (ext === '.webp') {
-    const ua = (req.headers['user-agent'] ?? '').toLowerCase()
-    if (ua.includes('micromessenger')) {
-      await serveWebpAsPng(res, filePath)
-      return
-    }
   }
 
   serveFile(res, filePath)
