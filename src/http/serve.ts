@@ -319,27 +319,28 @@ function injectHeadMeta(html: string, meta: PageMeta): string {
     const signApi = escapeJsStr(meta.wechat_sign_api)
     const script = `
 <script>
-(function(){var ua=navigator.userAgent;
+(function(){var ua=navigator.userAgent,dbg=location.search.indexOf('wx_debug=1')>=0;
 if(!/MicroMessenger/i.test(ua))return;
-// vConsole - mobile debug panel
-var vc=document.createElement('script');vc.src='https://unpkg.com/vconsole@3/dist/vconsole.min.js';
+// vConsole (only in debug mode: add ?wx_debug=1 to URL)
+if(dbg){var vc=document.createElement('script');vc.src='https://unpkg.com/vconsole@3/dist/vconsole.min.js';
 vc.onload=function(){window.vConsole=new window.VConsole()};
-document.head.appendChild(vc);
-// WeChat share
+document.head.appendChild(vc)};
+var log=dbg?function(m){console.log('[pf-wx]',m)}:function(){};
+var warn=dbg?function(m){console.warn('[pf-wx]',m)}:function(){};
 var url=location.href.split('#')[0];
-console.log('[pf-wx] fetching signature for:',url);
+log('fetching signature for:'+url);
 fetch('${signApi}?url='+encodeURIComponent(url)).then(function(r){return r.json()}).then(function(res){
-console.log('[pf-wx] sign response:',res);
-if(res.code!==200&&res.code!==0){console.warn('[pf-wx] sign failed:',res);return}
+log('sign response:'+JSON.stringify(res));
+if(res.code!==200&&res.code!==0){warn('sign failed:'+JSON.stringify(res));return}
 var s=document.createElement('script');s.src='https://res.wx.qq.com/open/js/jweixin-1.6.0.js';
-s.onload=function(){console.log('[pf-wx] jweixin loaded');
-wx.config({debug:true,appId:res.data.appId,timestamp:res.data.timestamp,nonceStr:res.data.nonceStr,signature:res.data.signature,jsApiList:['updateAppMessageShareData','updateTimelineShareData']});
-console.log('[pf-wx] wx.config called');
-wx.ready(function(){console.log('[pf-wx] wx.ready');
+s.onload=function(){log('jweixin loaded');
+wx.config({debug:dbg,appId:res.data.appId,timestamp:res.data.timestamp,nonceStr:res.data.nonceStr,signature:res.data.signature,jsApiList:['updateAppMessageShareData','updateTimelineShareData']});
+log('wx.config called');
+wx.ready(function(){log('wx.ready');
 var link=location.href.split('#')[0];
-wx.updateAppMessageShareData({title:'${shareTitle}',desc:'${shareDesc}',link:link,imgUrl:'${shareImg}',success:function(){console.log('[pf-wx] updateAppMessageShareData success')}});
-wx.updateTimelineShareData({title:'${shareTitle}',link:link,imgUrl:'${shareImg}',success:function(){console.log('[pf-wx] updateTimelineShareData success')}})});
-wx.error(function(err){console.error('[pf-wx] wx.config error:',err)})};
+wx.updateAppMessageShareData({title:'${shareTitle}',desc:'${shareDesc}',link:link,imgUrl:'${shareImg}',success:function(){log('updateAppMessageShareData success')}});
+wx.updateTimelineShareData({title:'${shareTitle}',link:link,imgUrl:'${shareImg}',success:function(){log('updateTimelineShareData success')}})});
+wx.error(function(err){warn('wx.config error:'+JSON.stringify(err))})};
 document.head.appendChild(s)})})();
 </script>\n`
     const bodyIdx = result.lastIndexOf('</body>')
