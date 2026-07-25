@@ -249,8 +249,10 @@ var url=location.href.split('#')[0];
 fetch('${signApi}?url='+encodeURIComponent(url)).then(function(r){return r.json()}).then(function(res){
 if(res.code!==200&&res.code!==0)return;
 var s=document.createElement('script');s.src='https://res.wx.qq.com/open/js/jweixin-1.6.0.js';
-s.onload=function(){wx.config({debug:false,appId:res.data.appId,timestamp:res.data.timestamp,nonceStr:res.data.nonceStr,signature:res.data.signature,jsApiList:['updateAppMessageShareData','updateTimelineShareData']});
-wx.ready(function(){var d={title:'${shareTitle}',desc:'${shareDesc}',link:location.href,imgUrl:'${shareImg}',success:function(){}};wx.updateAppMessageShareData(d);wx.updateTimelineShareData(d)})};
+s.onload=function(){wx.config({appId:res.data.appId,timestamp:res.data.timestamp,nonceStr:res.data.nonceStr,signature:res.data.signature,jsApiList:['updateAppMessageShareData','updateTimelineShareData']});
+wx.ready(function(){var link=location.href.split('#')[0];
+wx.updateAppMessageShareData({title:'${shareTitle}',desc:'${shareDesc}',link:link,imgUrl:'${shareImg}',success:function(){}});
+wx.updateTimelineShareData({title:'${shareTitle}',link:link,imgUrl:'${shareImg}',success:function(){}})})};
 document.head.appendChild(s)})})();
 </script>\n`
     const bodyIdx = result.lastIndexOf('</body>')
