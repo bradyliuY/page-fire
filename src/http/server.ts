@@ -18,7 +18,7 @@ export function startHttpServer(
           const handled = await handleApiRequest(req, res, db, config)
           if (handled) return
         }
-        handleRequest(req, res, db, config.sites, config.baseDomain, config.requireInvite, counter)
+        handleRequest(req, res, db, config.sites, config.baseDomain, config.requireInvite, counter, config.wechatSignApi)
       } catch (err) {
         console.error('[http] Unhandled error:', err)
         if (!res.headersSent) { res.writeHead(500); res.end('Internal Server Error') }

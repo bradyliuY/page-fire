@@ -102,6 +102,7 @@ export interface PageMeta {
   title?: string | null
   og_image?: string | null
   wechat_app_id?: string | null
+  wechat_sign_api?: string    // WeChat JS-SDK signature API endpoint
   logo_url?: string           // platform logo for fallback
   page_url?: string           // full URL of this page (e.g. https://mysite.pagefire.openhkt.com/)
   site_name?: string          // site/brand name for og:site_name
@@ -114,6 +115,10 @@ function fmtDate(ms: number): string {
 
 function escapeHtmlAttr(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function escapeJsStr(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')
 }
 
 /**
@@ -171,54 +176,51 @@ function extractTitle(html: string): string | null {
 function injectHeadMeta(html: string, meta: PageMeta): string {
   let result = html
 
-  // ── OG / Twitter Card meta tags ────────────────────────────────────
-  // Skip OG injection if the page already defines its own OG tags
+  // ── Resolve OG values: explicit → auto-detect from HTML → platform logo fallback ──
   const hasOgTag = /<meta\s+[^>]*property="og:/i.test(result)
-  if (!hasOgTag) {
-    // Resolve values: explicit → auto-detect from HTML → platform logo fallback
-    const ogTitle = meta.title || extractTitle(result) || null
-    const rawImage = meta.og_image || extractFirstImage(result) || meta.logo_url || null
-    const ogImage = rawImage ? resolveOgImageUrl(rawImage, meta.page_url) : null
-    const ogDesc = meta.author ? `由 ${meta.author} 发布` : null
-    const isLogoFallback = !!meta.logo_url && ogImage === meta.logo_url
+  const ogTitle = meta.title || (hasOgTag ? null : extractTitle(result)) || null
+  const rawImage = meta.og_image || (hasOgTag ? null : extractFirstImage(result)) || meta.logo_url || null
+  const ogImage = rawImage ? resolveOgImageUrl(rawImage, meta.page_url) : null
+  const ogDesc = meta.author ? `由 ${meta.author} 发布` : null
+  const isLogoFallback = !!meta.logo_url && ogImage === meta.logo_url
 
-    if (ogTitle || ogImage) {
-      const tags: string[] = []
-      tags.push('  <meta property="og:type" content="website" />')
-      tags.push('  <meta property="og:locale" content="zh_CN" />')
-      if (meta.page_url) {
-        tags.push(`  <meta property="og:url" content="${escapeHtmlAttr(meta.page_url)}" />`)
+  // ── OG / Twitter Card meta tags ────────────────────────────────────
+  if (!hasOgTag && (ogTitle || ogImage)) {
+    const tags: string[] = []
+    tags.push('  <meta property="og:type" content="website" />')
+    tags.push('  <meta property="og:locale" content="zh_CN" />')
+    if (meta.page_url) {
+      tags.push(`  <meta property="og:url" content="${escapeHtmlAttr(meta.page_url)}" />`)
+    }
+    if (meta.site_name) {
+      tags.push(`  <meta property="og:site_name" content="${escapeHtmlAttr(meta.site_name)}" />`)
+    }
+    if (ogTitle) {
+      tags.push(`  <meta property="og:title" content="${escapeHtmlAttr(ogTitle)}" />`)
+      tags.push(`  <meta name="twitter:title" content="${escapeHtmlAttr(ogTitle)}" />`)
+    }
+    if (ogImage) {
+      tags.push(`  <meta property="og:image" content="${escapeHtmlAttr(ogImage)}" />`)
+      if (isLogoFallback) {
+        tags.push('  <meta property="og:image:width" content="300" />')
+        tags.push('  <meta property="og:image:height" content="98" />')
       }
-      if (meta.site_name) {
-        tags.push(`  <meta property="og:site_name" content="${escapeHtmlAttr(meta.site_name)}" />`)
-      }
-      if (ogTitle) {
-        tags.push(`  <meta property="og:title" content="${escapeHtmlAttr(ogTitle)}" />`)
-        tags.push(`  <meta name="twitter:title" content="${escapeHtmlAttr(ogTitle)}" />`)
-      }
-      if (ogImage) {
-        tags.push(`  <meta property="og:image" content="${escapeHtmlAttr(ogImage)}" />`)
-        if (isLogoFallback) {
-          tags.push('  <meta property="og:image:width" content="300" />')
-          tags.push('  <meta property="og:image:height" content="98" />')
-        }
-        tags.push(`  <meta name="twitter:image" content="${escapeHtmlAttr(ogImage)}" />`)
-      }
-      if (ogDesc) {
-        tags.push(`  <meta property="og:description" content="${escapeHtmlAttr(ogDesc)}" />`)
-        tags.push(`  <meta name="twitter:description" content="${escapeHtmlAttr(ogDesc)}" />`)
-      }
-      tags.push('  <meta name="twitter:card" content="summary_large_image" />')
+      tags.push(`  <meta name="twitter:image" content="${escapeHtmlAttr(ogImage)}" />`)
+    }
+    if (ogDesc) {
+      tags.push(`  <meta property="og:description" content="${escapeHtmlAttr(ogDesc)}" />`)
+      tags.push(`  <meta name="twitter:description" content="${escapeHtmlAttr(ogDesc)}" />`)
+    }
+    tags.push('  <meta name="twitter:card" content="summary_large_image" />')
 
-      const block = '\n' + tags.join('\n') + '\n'
-      const headIdx = result.indexOf('</head>')
-      if (headIdx !== -1) {
-        result = result.slice(0, headIdx) + block + result.slice(headIdx)
-      }
+    const block = '\n' + tags.join('\n') + '\n'
+    const headIdx = result.indexOf('</head>')
+    if (headIdx !== -1) {
+      result = result.slice(0, headIdx) + block + result.slice(headIdx)
     }
   }
 
-  // ── WeChat JS-SDK ──────────────────────────────────────────────────
+  // ── WeChat JS-SDK script tag ───────────────────────────────────────
   if (meta.wechat_app_id) {
     const wxBlock = `\n<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>\n`
     const wxHeadIdx = result.indexOf('</head>')
@@ -231,6 +233,31 @@ function injectHeadMeta(html: string, meta: PageMeta): string {
       } else {
         result += wxBlock
       }
+    }
+  }
+
+  // ── WeChat share card auto-config (via signature API) ──────────────
+  if (meta.wechat_sign_api && (ogTitle || ogImage)) {
+    const shareTitle = escapeJsStr(ogTitle || '')
+    const shareDesc = escapeJsStr(ogDesc || '')
+    const shareImg = escapeJsStr(ogImage || '')
+    const signApi = escapeJsStr(meta.wechat_sign_api)
+    const script = `
+<script>
+(function(){var ua=navigator.userAgent;if(!/MicroMessenger/i.test(ua))return;
+var url=location.href.split('#')[0];
+fetch('${signApi}?url='+encodeURIComponent(url)).then(function(r){return r.json()}).then(function(res){
+if(res.code!==200&&res.code!==0)return;
+var s=document.createElement('script');s.src='https://res.wx.qq.com/open/js/jweixin-1.6.0.js';
+s.onload=function(){wx.config({debug:false,appId:res.data.appId,timestamp:res.data.timestamp,nonceStr:res.data.nonceStr,signature:res.data.signature,jsApiList:['updateAppMessageShareData','updateTimelineShareData']});
+wx.ready(function(){var d={title:'${shareTitle}',desc:'${shareDesc}',link:location.href,imgUrl:'${shareImg}',success:function(){}};wx.updateAppMessageShareData(d);wx.updateTimelineShareData(d)})};
+document.head.appendChild(s)})})();
+</script>\n`
+    const bodyIdx = result.lastIndexOf('</body>')
+    if (bodyIdx !== -1) {
+      result = result.slice(0, bodyIdx) + script + result.slice(bodyIdx)
+    } else {
+      result += script
     }
   }
 

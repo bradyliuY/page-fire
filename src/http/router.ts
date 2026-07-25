@@ -38,6 +38,7 @@ export function handleRequest(
   baseDomain: string,
   requireInvite = false,
   counter?: ViewCounter,
+  wechatSignApi?: string,
 ): void {
   const host = (req.headers['host'] ?? '').split(':')[0]
   const url = req.url ?? '/'
@@ -290,6 +291,7 @@ export function handleRequest(
       title: deployment.title,
       og_image: deployment.og_image,
       wechat_app_id: token.wechat_app_id,
+      wechat_sign_api: wechatSignApi,
       logo_url: `${scheme}://${baseDomain}/logo.png`,
       page_url: `${scheme}://${deployment.domain}/`,
       site_name: baseDomain,

@@ -22,6 +22,7 @@ export interface Config {
   rateLimit: number
   tokenEncKey: string   // 32-byte hex for AES-256-GCM token encryption
   requireInvite: boolean // if true, registration requires a valid invite code
+  wechatSignApi?: string // WeChat JS-SDK signature API endpoint (e.g. https://domain.com/api/jssdk-signature)
 }
 
 export const config: Config = {
@@ -34,4 +35,5 @@ export const config: Config = {
   rateLimit: parseInt(process.env.PAGEFIRE_RATE_LIMIT ?? '30'),
   tokenEncKey: process.env.PAGEFIRE_TOKEN_ENC_KEY ?? '0'.repeat(64), // must be overridden in production
   requireInvite: process.env.PAGEFIRE_REQUIRE_INVITE === 'true',
+  wechatSignApi: process.env.WECHAT_SIGN_API || undefined,
 }
