@@ -176,10 +176,47 @@ function extractTitle(html: string): string | null {
 function injectHeadMeta(html: string, meta: PageMeta): string {
   let result = html
 
+  // ── Fix relative og:image paths in existing user OG tags ─────────────
+  // e.g. <meta property="og:image" content="../img.jpg"> → absolute URL
+  if (meta.page_url) {
+    const metaTagRegex = /<meta[^>]*\/?>/gi
+    let mt: RegExpExecArray | null
+    while ((mt = metaTagRegex.exec(result)) !== null) {
+      const tag = mt[0]
+      const isOgImage = /\bproperty\s*=\s*(?:"og:image"|'og:image')/i.test(tag)
+      if (!isOgImage) continue
+      const contentMatch = tag.match(/content\s*=\s*(?:"([^"]+)"|'([^']+)')/i)
+      if (!contentMatch) continue
+      const content = contentMatch[1] ?? contentMatch[2] ?? ''
+      if (content.startsWith('http://') || content.startsWith('https://') || !content) continue
+      const resolved = resolveOgImageUrl(content, meta.page_url)
+      if (resolved === content) continue
+      const quote = contentMatch[0].includes(`"${content}"`) ? '"' : "'"
+      const fixed = tag.replace(`${quote}${content}${quote}`, `${quote}${resolved}${quote}`)
+      result = result.slice(0, mt.index) + fixed + result.slice(mt.index + tag.length)
+      metaTagRegex.lastIndex = mt.index + fixed.length
+    }
+  }
+
+  // ── Extract og:image from user's own (now-resolved) OG tags ──────
+  function getExistingOgImage(h: string): string | null {
+    const metaTagRegex = /<meta[^>]*\/?>/gi
+    let mt: RegExpExecArray | null
+    while ((mt = metaTagRegex.exec(h)) !== null) {
+      const tag = mt[0]
+      const isOgImage = /\bproperty\s*=\s*(?:"og:image"|'og:image')/i.test(tag)
+      if (!isOgImage) continue
+      const cm = tag.match(/content\s*=\s*(?:"([^"]+)"|'([^']+)')/i)
+      if (cm) return cm[1] ?? cm[2] ?? null
+    }
+    return null
+  }
+
   // ── Resolve OG values: explicit → auto-detect from HTML → platform logo fallback ──
   const hasOgTag = /<meta\s+[^>]*property="og:/i.test(result)
   const ogTitle = meta.title || (hasOgTag ? null : extractTitle(result)) || null
-  const rawImage = meta.og_image || (hasOgTag ? null : extractFirstImage(result)) || meta.logo_url || null
+  const existingOgImage = hasOgTag ? getExistingOgImage(result) : null
+  const rawImage = meta.og_image || existingOgImage || (hasOgTag ? null : extractFirstImage(result)) || meta.logo_url || null
   const ogImage = rawImage ? resolveOgImageUrl(rawImage, meta.page_url) : null
   const ogDesc = meta.author ? `由 ${meta.author} 发布` : null
   const isLogoFallback = !!meta.logo_url && ogImage === meta.logo_url
