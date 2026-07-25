@@ -124,7 +124,13 @@ function extractFirstImage(html: string): string | null {
   let match: RegExpExecArray | null
   while ((match = imgRegex.exec(html)) !== null) {
     const src = match[1] ?? match[2] ?? match[3]
-    if (src && !src.startsWith('data:') && !src.startsWith('blob:') && !src.includes('favicon')) {
+    if (
+      src &&
+      !src.startsWith('data:') &&
+      !src.startsWith('blob:') &&
+      !src.includes('favicon') &&
+      (src.startsWith('http://') || src.startsWith('https://'))  // absolute URL only
+    ) {
       return src
     }
   }
