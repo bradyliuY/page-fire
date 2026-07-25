@@ -33,6 +33,7 @@ export function openDb(dbPath: string): Database.Database {
     'ALTER TABLE tokens ADD COLUMN user_id TEXT',
     'ALTER TABLE tokens ADD COLUMN wechat_app_id TEXT',
     'ALTER TABLE deployments ADD COLUMN og_image TEXT',
+    'ALTER TABLE deployments ADD COLUMN description TEXT',
   ]
   for (const stmt of colMigrations) {
     try { db.prepare(stmt).run() } catch { /* column already exists */ }

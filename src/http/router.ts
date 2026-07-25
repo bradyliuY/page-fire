@@ -289,6 +289,7 @@ export async function handleRequest(
       updated_at: deployment.updated_at,
       author: deployment.author ?? token.label,
       title: deployment.title,
+      description: deployment.description,
       og_image: deployment.og_image,
       wechat_app_id: token.wechat_app_id,
       wechat_sign_api: wechatSignApi,

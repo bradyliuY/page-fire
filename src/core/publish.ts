@@ -14,6 +14,7 @@ export interface PublishOpts {
   files: FileEntry[]
   did?: string                 // custom alias / update target; random when omitted
   title?: string | null
+  description?: string | null
   author?: string | null
   og_image?: string | null
   access?: string
@@ -128,18 +129,19 @@ export function finalizeDeployment(
   const title = opts.title ?? (existing ? existing.title : null)
   const author = opts.author !== undefined ? opts.author : (existing ? existing.author : null)
   const og_image = opts.og_image !== undefined ? opts.og_image : (existing ? existing.og_image : null)
+  const description = opts.description !== undefined ? opts.description : (existing ? existing.description : null)
 
   if (isUpdate) {
     updateDeployment(db, did, {
       size_bytes: sizeBytes, file_count: fileCount, title,
       access, pass_hash, pinned: pinned ? 1 : 0, expires_at, spa: spa ? 1 : 0,
-      author, og_image,
+      author, og_image, description,
     })
   } else {
     createDeployment(db, {
       token_id: token.id, did, domain, title, access, pass_hash,
       pinned, expires_at, size_bytes: sizeBytes, file_count: fileCount, spa,
-      author, og_image,
+      author, og_image, description,
     })
   }
 

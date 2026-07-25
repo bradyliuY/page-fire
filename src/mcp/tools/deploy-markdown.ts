@@ -8,6 +8,7 @@ import { renderMarkdownSlides } from '../../core/slides.js'
 export interface DeployMarkdownArgs {
   markdown: string
   title?: string
+  description?: string
   author?: string
   mode?: 'article' | 'slide'
   theme?: MarkdownTheme
@@ -44,6 +45,7 @@ export async function deployMarkdown(
     files: [{ path: 'index.html', content: html }],
     did: args.did,
     title: args.title,
+    description: args.description,
     author: args.author ?? null,
     access: args.access,
     password: args.password,

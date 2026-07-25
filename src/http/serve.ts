@@ -100,6 +100,7 @@ export interface PageMeta {
   updated_at?: number
   author?: string | null
   title?: string | null
+  description?: string | null    // explicit description from deployment params
   og_image?: string | null
   wechat_app_id?: string | null
   wechat_sign_api?: string    // WeChat JS-SDK signature API endpoint
@@ -164,6 +165,63 @@ function extractTitle(html: string): string | null {
 }
 
 /**
+ * Auto-detect <meta name="description" content="..."> from page HTML.
+ * Matches both name="description" and name='description'.
+ */
+function extractMetaDescription(html: string): string | null {
+  const re = /<meta\s+[^>]*name\s*=\s*(?:"description"|'description')[^>]*content\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*\/?>/i
+  const m = html.match(re)
+  if (m) return (m[1] ?? m[2] ?? '').trim() || null
+  // Also try reversed attribute order (content=... name=description)
+  const re2 = /<meta\s+[^>]*content\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*name\s*=\s*(?:"description"|'description')[^>]*\/?>/i
+  const m2 = html.match(re2)
+  if (m2) return (m2[1] ?? m2[2] ?? '').trim() || null
+  return null
+}
+
+/** Strip HTML tags, decode common entities, and return clean text. */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Find the first meaningful <p> within <body>, excluding nav/menu/footer areas.
+ * Caps at ~160 chars, truncates at a word boundary.
+ */
+function extractFirstParagraph(html: string): string | null {
+  // Locate <body> first so we skip <head> content
+  const bodyStart = html.search(/<body[\s>]/i)
+  if (bodyStart === -1) return null
+  const bodyHtml = html.slice(bodyStart)
+
+  const pRe = /<p(?:\s+[^>]*)?>([\s\S]*?)<\/p>/gi
+  let m: RegExpExecArray | null
+  while ((m = pRe.exec(bodyHtml)) !== null) {
+    const text = stripHtml(m[1]).trim()
+    // Skip empty, too short (< 15 chars), or likely nav/UI text
+    if (text.length < 15) continue
+    // Skip if it looks like a nav/menu/footer/button
+    if (/^(导航|菜单|首页|上一页|下一页|返回|加载|menu|nav|footer|home|back|loading)/i.test(text)) continue
+    // Truncate at ~157 chars at a word boundary
+    if (text.length <= 160) return text
+    const truncated = text.slice(0, 157)
+    const lastSpace = truncated.lastIndexOf(' ')
+    return lastSpace > 80 ? truncated.slice(0, lastSpace) + '…' : truncated + '…'
+  }
+  return null
+}
+
+/**
  * Inject OG meta tags and/or WeChat JS-SDK into HTML before </head>.
  *
  * OG tag resolution priority (high → low):
@@ -212,13 +270,16 @@ function injectHeadMeta(html: string, meta: PageMeta): string {
     return null
   }
 
-  // ── Resolve OG values: explicit → auto-detect from HTML → platform logo fallback ──
+  // ── Resolve OG values: explicit → auto-detect from HTML → platform defaults ──
   const hasOgTag = /<meta\s+[^>]*property="og:/i.test(result)
   const ogTitle = meta.title || (hasOgTag ? null : extractTitle(result)) || null
   const existingOgImage = hasOgTag ? getExistingOgImage(result) : null
   const rawImage = meta.og_image || existingOgImage || (hasOgTag ? null : extractFirstImage(result)) || meta.logo_url || null
   const ogImage = rawImage ? resolveOgImageUrl(rawImage, meta.page_url) : null
-  const ogDesc = meta.author ? `由 ${meta.author} 发布` : null
+  const ogDesc = meta.description
+    || (hasOgTag ? null : extractMetaDescription(result))
+    || (hasOgTag ? null : extractFirstParagraph(result))
+    || (hasOgTag ? null : '由 PageFire 发布')
   const isLogoFallback = !!meta.logo_url && ogImage === meta.logo_url
 
   // ── OG / Twitter Card meta tags ────────────────────────────────────

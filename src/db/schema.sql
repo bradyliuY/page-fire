@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS deployments (
   updated_at    INTEGER NOT NULL,
   views         INTEGER NOT NULL DEFAULT 0,
   author        TEXT,
-  og_image      TEXT
+  og_image      TEXT,
+  description   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_deployments_token_id ON deployments(token_id);
 CREATE INDEX IF NOT EXISTS idx_deployments_expires_at ON deployments(expires_at) WHERE pinned = 0;

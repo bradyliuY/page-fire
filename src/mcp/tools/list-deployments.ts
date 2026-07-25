@@ -17,6 +17,7 @@ export function listDeploymentsTool(args: { include_expired?: boolean }, authHea
     views: d.views,
     author: d.author,
     og_image: d.og_image,
+    description: d.description,
     expires_at: d.expires_at ? new Date(d.expires_at).toISOString() : null,
     size_bytes: d.size_bytes,
     file_count: d.file_count,
