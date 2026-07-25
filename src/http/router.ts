@@ -292,6 +292,7 @@ export function handleRequest(
       wechat_app_id: token.wechat_app_id,
       logo_url: `${scheme}://${baseDomain}/logo.png`,
       page_url: `${scheme}://${deployment.domain}/`,
+      site_name: baseDomain,
     })
     return
   }

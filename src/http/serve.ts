@@ -104,6 +104,7 @@ export interface PageMeta {
   wechat_app_id?: string | null
   logo_url?: string           // platform logo for fallback
   page_url?: string           // full URL of this page (e.g. https://mysite.pagefire.openhkt.com/)
+  site_name?: string          // site/brand name for og:site_name
 }
 
 function fmtDate(ms: number): string {
@@ -179,6 +180,7 @@ function injectHeadMeta(html: string, meta: PageMeta): string {
     const rawImage = meta.og_image || extractFirstImage(result) || meta.logo_url || null
     const ogImage = rawImage ? resolveOgImageUrl(rawImage, meta.page_url) : null
     const ogDesc = meta.author ? `由 ${meta.author} 发布` : null
+    const isLogoFallback = !!meta.logo_url && ogImage === meta.logo_url
 
     if (ogTitle || ogImage) {
       const tags: string[] = []
@@ -187,12 +189,19 @@ function injectHeadMeta(html: string, meta: PageMeta): string {
       if (meta.page_url) {
         tags.push(`  <meta property="og:url" content="${escapeHtmlAttr(meta.page_url)}" />`)
       }
+      if (meta.site_name) {
+        tags.push(`  <meta property="og:site_name" content="${escapeHtmlAttr(meta.site_name)}" />`)
+      }
       if (ogTitle) {
         tags.push(`  <meta property="og:title" content="${escapeHtmlAttr(ogTitle)}" />`)
         tags.push(`  <meta name="twitter:title" content="${escapeHtmlAttr(ogTitle)}" />`)
       }
       if (ogImage) {
         tags.push(`  <meta property="og:image" content="${escapeHtmlAttr(ogImage)}" />`)
+        if (isLogoFallback) {
+          tags.push('  <meta property="og:image:width" content="300" />')
+          tags.push('  <meta property="og:image:height" content="98" />')
+        }
         tags.push(`  <meta name="twitter:image" content="${escapeHtmlAttr(ogImage)}" />`)
       }
       if (ogDesc) {
