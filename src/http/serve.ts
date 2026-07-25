@@ -319,15 +319,27 @@ function injectHeadMeta(html: string, meta: PageMeta): string {
     const signApi = escapeJsStr(meta.wechat_sign_api)
     const script = `
 <script>
-(function(){var ua=navigator.userAgent;if(!/MicroMessenger/i.test(ua))return;
+(function(){var ua=navigator.userAgent;
+if(!/MicroMessenger/i.test(ua))return;
+// vConsole - mobile debug panel
+var vc=document.createElement('script');vc.src='https://unpkg.com/vconsole@3/dist/vconsole.min.js';
+vc.onload=function(){window.vConsole=new window.VConsole()};
+document.head.appendChild(vc);
+// WeChat share
 var url=location.href.split('#')[0];
+console.log('[pf-wx] fetching signature for:',url);
 fetch('${signApi}?url='+encodeURIComponent(url)).then(function(r){return r.json()}).then(function(res){
-if(res.code!==200&&res.code!==0)return;
+console.log('[pf-wx] sign response:',res);
+if(res.code!==200&&res.code!==0){console.warn('[pf-wx] sign failed:',res);return}
 var s=document.createElement('script');s.src='https://res.wx.qq.com/open/js/jweixin-1.6.0.js';
-s.onload=function(){wx.config({appId:res.data.appId,timestamp:res.data.timestamp,nonceStr:res.data.nonceStr,signature:res.data.signature,jsApiList:['updateAppMessageShareData','updateTimelineShareData']});
-wx.ready(function(){var link=location.href.split('#')[0];
-wx.updateAppMessageShareData({title:'${shareTitle}',desc:'${shareDesc}',link:link,imgUrl:'${shareImg}',success:function(){}});
-wx.updateTimelineShareData({title:'${shareTitle}',link:link,imgUrl:'${shareImg}',success:function(){}})})};
+s.onload=function(){console.log('[pf-wx] jweixin loaded');
+wx.config({debug:true,appId:res.data.appId,timestamp:res.data.timestamp,nonceStr:res.data.nonceStr,signature:res.data.signature,jsApiList:['updateAppMessageShareData','updateTimelineShareData']});
+console.log('[pf-wx] wx.config called');
+wx.ready(function(){console.log('[pf-wx] wx.ready');
+var link=location.href.split('#')[0];
+wx.updateAppMessageShareData({title:'${shareTitle}',desc:'${shareDesc}',link:link,imgUrl:'${shareImg}',success:function(){console.log('[pf-wx] updateAppMessageShareData success')}});
+wx.updateTimelineShareData({title:'${shareTitle}',link:link,imgUrl:'${shareImg}',success:function(){console.log('[pf-wx] updateTimelineShareData success')}})});
+wx.error(function(err){console.error('[pf-wx] wx.config error:',err)})};
 document.head.appendChild(s)})})();
 </script>\n`
     const bodyIdx = result.lastIndexOf('</body>')
