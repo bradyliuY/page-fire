@@ -3,6 +3,44 @@ import { extname } from 'path'
 import type { ServerResponse } from 'http'
 import { SECURITY_HEADERS } from './headers.js'
 import { sanitizeSvg } from '../core/svg.js'
+import sharp from 'sharp'
+
+// Simple LRU-ish cache for WebP→PNG conversions (keyed by file path + mtime)
+const webpCache = new Map<string, { buf: Buffer; ts: number }>()
+const WEBP_CACHE_MAX = 50
+
+/**
+ * Convert a .webp file to PNG on-the-fly using sharp.
+ * Caches result per (filePath + mtime) to avoid re-encoding on every request.
+ */
+export async function serveWebpAsPng(res: ServerResponse, filePath: string): Promise<void> {
+  try {
+    const stat = statSync(filePath)
+    const cacheKey = `${filePath}@${stat.mtimeMs}`
+    const cached = webpCache.get(cacheKey)
+    let buf: Buffer
+    if (cached) {
+      buf = cached.buf
+    } else {
+      buf = await sharp(filePath).png().toBuffer()
+      // Evict oldest if over limit
+      if (webpCache.size >= WEBP_CACHE_MAX) {
+        const firstKey = webpCache.keys().next().value
+        if (firstKey) webpCache.delete(firstKey)
+      }
+      webpCache.set(cacheKey, { buf, ts: Date.now() })
+    }
+    for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Content-Length', buf.length)
+    res.statusCode = 200
+    res.end(buf)
+  } catch (err) {
+    console.error('[serve] webp→png error:', err)
+    // Fallback: serve original webp
+    serveFile(res, filePath)
+  }
+}
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

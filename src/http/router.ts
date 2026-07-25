@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type Database from 'better-sqlite3'
-import { serve404, serve401, serveFile, serveHtmlWithCounter } from './serve.js'
+import { serve404, serve401, serveFile, serveHtmlWithCounter, serveWebpAsPng } from './serve.js'
 import { ViewCounter } from './counter.js'
 import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
 import { hashToken } from '../auth.js'
@@ -30,7 +30,7 @@ function getLang(path: string): 'zh' | 'en' {
   return (path === '/en' || path === '/en/' || path.startsWith('/en/')) ? 'en' : 'zh'
 }
 
-export function handleRequest(
+export async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
   db: Database.Database,
@@ -39,7 +39,7 @@ export function handleRequest(
   requireInvite = false,
   counter?: ViewCounter,
   wechatSignApi?: string,
-): void {
+): Promise<void> {
   const host = (req.headers['host'] ?? '').split(':')[0]
   const url = req.url ?? '/'
   const path = url.split('?')[0]
@@ -297,6 +297,15 @@ export function handleRequest(
       site_name: baseDomain,
     })
     return
+  }
+
+  // Convert .webp to PNG for WeChat (X5 kernel can't save webp directly)
+  if (ext === '.webp') {
+    const ua = (req.headers['user-agent'] ?? '').toLowerCase()
+    if (ua.includes('micromessenger')) {
+      await serveWebpAsPng(res, filePath)
+      return
+    }
   }
 
   serveFile(res, filePath)
