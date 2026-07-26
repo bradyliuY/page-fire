@@ -84,6 +84,15 @@ export async function handleRequest(
     return
   }
 
+  // WeChat webview verification file
+  if (path === '/hXvfiH7OHs.txt') {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.statusCode = 200
+    res.end('226ebfa4533c3b83094f717737cf4ffe')
+    return
+  }
+
   // Health check (internal only)
   if (url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
