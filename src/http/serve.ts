@@ -35,6 +35,10 @@ export function serveFile(res: ServerResponse, filePath: string, forceDownload =
   }
   const ext = extname(filePath).toLowerCase()
 
+  // CORS: allow cross-origin image loading (needed by WeChat WKWebView
+  // long-press save, which internally uses canvas and requires CORS headers).
+  res.setHeader('Access-Control-Allow-Origin', '*')
+
   if (ext === '.svg') {
     try {
       const raw = readFileSync(filePath, 'utf8')
