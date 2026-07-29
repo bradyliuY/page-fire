@@ -17,6 +17,7 @@ export interface DeployMarkdownArgs {
   password?: string
   ttl_days?: number
   pin?: boolean
+  content_security_policy?: string
 }
 
 export async function deployMarkdown(
@@ -51,6 +52,7 @@ export async function deployMarkdown(
     password: args.password,
     ttl_days: args.ttl_days,
     pin: args.pin,
+    content_security_policy: args.content_security_policy,
     ip,
   })
 }

@@ -20,6 +20,7 @@ export async function deployZip(
     ttl_days?: number
     pin?: boolean
     spa?: boolean
+    content_security_policy?: string
   },
   authHeader: string | undefined,
   db: Database.Database,
@@ -55,7 +56,7 @@ export async function deployZip(
     fileCount: result.fileCount, sizeBytes: result.sizeBytes,
     opts: {
       did: args.did, title: args.title, description: args.description, author: args.author ?? null, access: args.access,
-      password: args.password, ttl_days: args.ttl_days, pin: args.pin, spa: args.spa, ip,
+      password: args.password, ttl_days: args.ttl_days, pin: args.pin, spa: args.spa, content_security_policy: args.content_security_policy, ip,
     },
   })
 }

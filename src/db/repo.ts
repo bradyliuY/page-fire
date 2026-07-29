@@ -94,7 +94,7 @@ export interface DeploymentRow {
   title: string | null; access: string; pass_hash: string | null
   pinned: number; expires_at: number | null; size_bytes: number
   file_count: number; spa: number; views: number; author: string | null
-  og_image: string | null; description: string | null; created_at: number; updated_at: number
+  og_image: string | null; description: string | null; content_security_policy: string | null; created_at: number; updated_at: number
 }
 
 export interface CreateDeploymentFields {
@@ -104,6 +104,7 @@ export interface CreateDeploymentFields {
   spa?: boolean; views?: number; author?: string | null
   og_image?: string | null
   description?: string | null
+  content_security_policy?: string | null
 }
 
 export function createDeployment(db: Database.Database, fields: CreateDeploymentFields): DeploymentRow {
@@ -117,10 +118,11 @@ export function createDeployment(db: Database.Database, fields: CreateDeployment
     file_count: fields.file_count, spa: fields.spa ? 1 : 0, views: fields.views ?? 0,
     author: fields.author ?? null, og_image: fields.og_image ?? null,
     description: fields.description ?? null,
+    content_security_policy: fields.content_security_policy ?? null,
     created_at: now, updated_at: now,
   }
-  db.prepare(`INSERT INTO deployments (id,token_id,did,domain,title,access,pass_hash,pinned,expires_at,size_bytes,file_count,spa,views,author,og_image,description,created_at,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(row.id, row.token_id, row.did, row.domain, row.title, row.access, row.pass_hash, row.pinned, row.expires_at, row.size_bytes, row.file_count, row.spa, row.views, row.author, row.og_image, row.description, row.created_at, row.updated_at)
+  db.prepare(`INSERT INTO deployments (id,token_id,did,domain,title,access,pass_hash,pinned,expires_at,size_bytes,file_count,spa,views,author,og_image,description,content_security_policy,created_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(row.id, row.token_id, row.did, row.domain, row.title, row.access, row.pass_hash, row.pinned, row.expires_at, row.size_bytes, row.file_count, row.spa, row.views, row.author, row.og_image, row.description, row.content_security_policy, row.created_at, row.updated_at)
   return row
 }
 
@@ -162,7 +164,7 @@ export function getDeploymentForUser(db: Database.Database, did: string, userId:
   `).get(did, userId) as DeploymentRow | undefined
 }
 
-export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count' | 'title' | 'spa' | 'author' | 'og_image' | 'description'>>): void {
+export function updateDeployment(db: Database.Database, did: string, updates: Partial<Pick<DeploymentRow, 'pinned' | 'expires_at' | 'access' | 'pass_hash' | 'size_bytes' | 'file_count' | 'title' | 'spa' | 'author' | 'og_image' | 'description' | 'content_security_policy'>>): void {
   const sets = Object.keys(updates).map(k => `${k} = ?`).join(', ')
   const values = [...Object.values(updates), Date.now(), did]
   db.prepare(`UPDATE deployments SET ${sets}, updated_at = ? WHERE did = ?`).run(...values)

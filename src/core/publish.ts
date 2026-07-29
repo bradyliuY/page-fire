@@ -17,6 +17,7 @@ export interface PublishOpts {
   description?: string | null
   author?: string | null
   og_image?: string | null
+  content_security_policy?: string | null
   access?: string
   password?: string
   ttl_days?: number
@@ -130,18 +131,19 @@ export function finalizeDeployment(
   const author = opts.author !== undefined ? opts.author : (existing ? existing.author : null)
   const og_image = opts.og_image !== undefined ? opts.og_image : (existing ? existing.og_image : null)
   const description = opts.description !== undefined ? opts.description : (existing ? existing.description : null)
+  const content_security_policy = opts.content_security_policy !== undefined ? opts.content_security_policy : (existing ? existing.content_security_policy : null)
 
   if (isUpdate) {
     updateDeployment(db, did, {
       size_bytes: sizeBytes, file_count: fileCount, title,
       access, pass_hash, pinned: pinned ? 1 : 0, expires_at, spa: spa ? 1 : 0,
-      author, og_image, description,
+      author, og_image, description, content_security_policy,
     })
   } else {
     createDeployment(db, {
       token_id: token.id, did, domain, title, access, pass_hash,
       pinned, expires_at, size_bytes: sizeBytes, file_count: fileCount, spa,
-      author, og_image, description,
+      author, og_image, description, content_security_policy,
     })
   }
 

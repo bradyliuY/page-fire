@@ -290,6 +290,8 @@ export async function handleRequest(
     filePath = join(deployDir, 'index.html')
   }
 
+  const cspOverride = deployment.content_security_policy
+
   // Serve HTML files with view counter injection (when counter is enabled)
   if (counter && (ext === '.html' || ext === '.htm')) {
     serveHtmlWithCounter(res, filePath, {
@@ -305,9 +307,9 @@ export async function handleRequest(
       logo_url: `${scheme}://${baseDomain}/logo.png`,
       page_url: `${scheme}://${deployment.domain}/`,
       site_name: baseDomain,
-    })
+    }, cspOverride)
     return
   }
 
-  serveFile(res, filePath)
+  serveFile(res, filePath, false, cspOverride)
 }

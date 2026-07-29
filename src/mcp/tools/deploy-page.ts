@@ -14,6 +14,7 @@ export interface DeployPageArgs {
   ttl_days?: number
   pin?: boolean
   spa?: boolean
+  content_security_policy?: string
 }
 
 export async function deployPage(
@@ -44,6 +45,7 @@ export async function deployPage(
     ttl_days: args.ttl_days,
     pin: args.pin,
     spa: args.spa,
+    content_security_policy: args.content_security_policy,
     ip,
   })
 }

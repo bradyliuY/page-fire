@@ -94,7 +94,7 @@ function readUploadBody(req: IncomingMessage): Promise<any> {
 async function handleUpload(
   body: any, token: NonNullable<ReturnType<typeof verifyBearer>>, db: Database.Database, config: Config, ip?: string,
 ) {
-  const { files, render, did, title, theme, access, password, ttl_days, pin, spa } = body ?? {}
+  const { files, render, did, title, theme, access, password, ttl_days, pin, spa, content_security_policy } = body ?? {}
   if (!Array.isArray(files) || files.length === 0) {
     throw { code: 'INVALID_CONTENT', message: 'files is required' }
   }
@@ -104,7 +104,7 @@ async function handleUpload(
       markdown: f.encoding === 'base64' ? Buffer.from(f.content, 'base64').toString('utf8') : String(f.content),
     }))
     const htmlFiles = renderDocsSite(pages, { title, theme })
-    return publish(db, config, token, { files: htmlFiles, did, title, access, password, ttl_days, pin, ip })
+    return publish(db, config, token, { files: htmlFiles, did, title, access, password, ttl_days, pin, ip, content_security_policy })
   }
   const bufFiles: FileEntry[] = files.map((f: any) => ({
     path: String(f.path),
@@ -113,7 +113,7 @@ async function handleUpload(
   if (!bufFiles.some((f) => f.path === 'index.html' || f.path === './index.html')) {
     throw { code: 'MISSING_INDEX', message: 'files must include index.html at the root' }
   }
-  return publish(db, config, token, { files: bufFiles, did, title, access, password, ttl_days, pin, spa, ip })
+  return publish(db, config, token, { files: bufFiles, did, title, access, password, ttl_days, pin, spa, ip, content_security_policy })
 }
 
 export async function startMcpServer(
@@ -199,6 +199,10 @@ export async function startMcpServer(
           .boolean()
           .optional()
           .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
+        content_security_policy: z
+          .string()
+          .optional()
+          .describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs (e.g. "default-src \'self\'; connect-src \'self\' https://api.example.com; ...").'),
       },
       { title: '发布 HTML 页面', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -245,6 +249,10 @@ export async function startMcpServer(
           .boolean()
           .optional()
           .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
+        content_security_policy: z
+          .string()
+          .optional()
+          .describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
       },
       { title: '发布 ZIP 包', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -303,6 +311,10 @@ export async function startMcpServer(
           .boolean()
           .optional()
           .describe('Enable SPA mode — unknown paths fall back to index.html for client-side routing (default false)'),
+        content_security_policy: z
+          .string()
+          .optional()
+          .describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
       },
       { title: '发布多文件站点', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -332,6 +344,7 @@ export async function startMcpServer(
         password: z.string().optional().describe('Passphrase required when access="password".'),
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
+        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
       },
       { title: '发布 Markdown', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -363,6 +376,7 @@ export async function startMcpServer(
         password: z.string().optional().describe('Passphrase required when access="password".'),
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
+        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
       },
       { title: '发布文档站', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -392,6 +406,7 @@ export async function startMcpServer(
         password: z.string().optional().describe('Passphrase required when access="password".'),
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
+        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
       },
       { title: '发布演示文稿', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {

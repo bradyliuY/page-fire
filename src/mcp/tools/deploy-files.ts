@@ -15,6 +15,7 @@ export async function deployFilesTool(
     ttl_days?: number
     pin?: boolean
     spa?: boolean
+    content_security_policy?: string
   },
   authHeader: string | undefined,
   db: Database.Database,
@@ -47,6 +48,7 @@ export async function deployFilesTool(
     ttl_days: args.ttl_days,
     pin: args.pin,
     spa: args.spa,
+    content_security_policy: args.content_security_policy,
     ip,
   })
 }

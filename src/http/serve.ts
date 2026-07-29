@@ -4,6 +4,15 @@ import type { ServerResponse } from 'http'
 import { SECURITY_HEADERS } from './headers.js'
 import { sanitizeSvg } from '../core/svg.js'
 
+/**
+ * Build security headers for a response, optionally overriding the default CSP
+ * with a per-deployment custom policy.
+ */
+export function buildSecurityHeaders(cspOverride?: string | null): Record<string, string> {
+  if (!cspOverride) return SECURITY_HEADERS
+  return { ...SECURITY_HEADERS, 'Content-Security-Policy': cspOverride }
+}
+
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.htm': 'text/html; charset=utf-8',
@@ -28,7 +37,7 @@ const MIME: Record<string, string> = {
   '.pps': 'application/vnd.ms-powerpoint',
 }
 
-export function serveFile(res: ServerResponse, filePath: string, forceDownload = false): void {
+export function serveFile(res: ServerResponse, filePath: string, forceDownload = false, cspOverride?: string | null): void {
   if (!existsSync(filePath)) {
     serve404(res)
     return
@@ -39,12 +48,14 @@ export function serveFile(res: ServerResponse, filePath: string, forceDownload =
   // long-press save, which internally uses canvas and requires CORS headers).
   res.setHeader('Access-Control-Allow-Origin', '*')
 
+  const headers = buildSecurityHeaders(cspOverride)
+
   if (ext === '.svg') {
     try {
       const raw = readFileSync(filePath, 'utf8')
       const clean = sanitizeSvg(raw)
       if (!clean) {
-        for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
         res.setHeader('Content-Type', 'image/svg+xml')
         res.setHeader('Content-Disposition', 'attachment; filename="image.svg"')
         res.statusCode = 200
@@ -52,7 +63,7 @@ export function serveFile(res: ServerResponse, filePath: string, forceDownload =
         return
       }
       const buf = Buffer.from(clean, 'utf8')
-      for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+      for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
       res.setHeader('Content-Type', 'image/svg+xml')
       res.setHeader('Content-Length', buf.length)
       res.statusCode = 200
@@ -68,7 +79,7 @@ export function serveFile(res: ServerResponse, filePath: string, forceDownload =
   const stat = statSync(filePath)
   if (stat.isDirectory()) { serve404(res); return }   // never stream a directory → would throw EISDIR
 
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
   res.setHeader('Content-Type', mime)
   res.setHeader('Content-Length', stat.size)
   if (forceDownload) res.setHeader('Content-Disposition', 'attachment')
@@ -404,6 +415,7 @@ export function serveHtmlWithCounter(
   res: ServerResponse,
   filePath: string,
   meta: PageMeta,
+  cspOverride?: string | null,
 ): void {
   if (!existsSync(filePath)) { serve404(res); return }
 
@@ -512,7 +524,8 @@ export function serveHtmlWithCounter(
   }
 
   const buf = Buffer.from(result, 'utf8')
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+  const headers = buildSecurityHeaders(cspOverride)
+  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.setHeader('Content-Length', buf.length)
   res.statusCode = 200

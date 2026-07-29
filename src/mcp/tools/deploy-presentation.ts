@@ -20,6 +20,7 @@ export interface DeployPresentationArgs {
   password?: string
   ttl_days?: number
   pin?: boolean
+  content_security_policy?: string
 }
 
 export async function deployPresentation(
@@ -66,6 +67,7 @@ export async function deployPresentation(
       password: args.password,
       ttl_days: args.ttl_days,
       pin: args.pin,
+      content_security_policy: args.content_security_policy,
       ip,
     })
   }
@@ -93,6 +95,7 @@ export async function deployPresentation(
     password: args.password,
     ttl_days: args.ttl_days,
     pin: args.pin,
+    content_security_policy: args.content_security_policy,
     ip,
   })
 }
