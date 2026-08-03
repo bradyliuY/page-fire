@@ -11,7 +11,7 @@ import { renderHome } from './home.js'
 import { renderDashboard } from './dashboard.js'
 import { renderPlayground } from './playground.js'
 import { SECURITY_HEADERS } from './headers.js'
-import { LOGO_PNG, FAVICON_PNG, FAVICON_32_PNG, APPLE_TOUCH_ICON_PNG } from './assets.js'
+import { LOGO_PNG, FAVICON_PNG, FAVICON_32_PNG, APPLE_TOUCH_ICON_PNG, FAVICON_ICO } from './assets.js'
 
 // Self-hosted mermaid: served from same origin so no CDN dependency / CSP needed.
 const MERMAID_ASSET = fileURLToPath(new URL('../assets/mermaid.min.js', import.meta.url))
@@ -26,23 +26,26 @@ let cachedDashKey: string | null = null
 let cachedPlayBuf: Buffer | null = null
 let cachedPlayKey: string | null = null
 
+interface AssetDef { buf: Buffer; type: string }
+
 // Brand assets served on the root domain (logo + favicon family), base64-embedded, long-cached.
-const BRAND_ASSETS: Record<string, Buffer> = {
-  '/logo.png': LOGO_PNG,
-  '/favicon.ico': FAVICON_PNG,
-  '/favicon.png': FAVICON_PNG,
-  '/favicon-64.png': FAVICON_PNG,
-  '/favicon-32.png': FAVICON_32_PNG,
-  '/apple-touch-icon.png': APPLE_TOUCH_ICON_PNG,
+// /favicon.ico is a real ICO (image/x-icon) so crawlers probing it directly (e.g. Google faviconV2) accept it.
+const BRAND_ASSETS: Record<string, AssetDef> = {
+  '/logo.png': { buf: LOGO_PNG, type: 'image/png' },
+  '/favicon.ico': { buf: FAVICON_ICO, type: 'image/x-icon' },
+  '/favicon.png': { buf: FAVICON_PNG, type: 'image/png' },
+  '/favicon-64.png': { buf: FAVICON_PNG, type: 'image/png' },
+  '/favicon-32.png': { buf: FAVICON_32_PNG, type: 'image/png' },
+  '/apple-touch-icon.png': { buf: APPLE_TOUCH_ICON_PNG, type: 'image/png' },
 }
 
 // Default PageFire favicon for deployed pages that don't ship their own.
 // Covers tab favicons only; apple-touch-icon is intentionally first-party only.
-const DEFAULT_PAGE_FAVICONS: Record<string, Buffer> = {
-  'favicon.ico': FAVICON_PNG,
-  'favicon.png': FAVICON_PNG,
-  'favicon-64.png': FAVICON_PNG,
-  'favicon-32.png': FAVICON_32_PNG,
+const DEFAULT_PAGE_FAVICONS: Record<string, AssetDef> = {
+  'favicon.ico': { buf: FAVICON_ICO, type: 'image/x-icon' },
+  'favicon.png': { buf: FAVICON_PNG, type: 'image/png' },
+  'favicon-64.png': { buf: FAVICON_PNG, type: 'image/png' },
+  'favicon-32.png': { buf: FAVICON_32_PNG, type: 'image/png' },
 }
 
 function getLang(path: string): 'zh' | 'en' {
@@ -123,13 +126,13 @@ export async function handleRequest(
   if (host === baseDomain) {
     // Brand assets (logo + favicon family), base64-embedded, long-cached (ignore any query string)
     const assetPath = url.split('?')[0]
-    const brandBuf = BRAND_ASSETS[assetPath]
-    if (brandBuf) {
-      res.setHeader('Content-Type', 'image/png')
+    const brand = BRAND_ASSETS[assetPath]
+    if (brand) {
+      res.setHeader('Content-Type', brand.type)
       res.setHeader('Cache-Control', 'public, max-age=604800')
-      res.setHeader('Content-Length', brandBuf.length)
+      res.setHeader('Content-Length', brand.buf.length)
       res.statusCode = 200
-      res.end(brandBuf)
+      res.end(brand.buf)
       return
     }
     // Dashboard shell (auth enforced client-side via /api/me + httpOnly session cookie)
@@ -265,11 +268,11 @@ export async function handleRequest(
   // Must run before the SPA fallback so that SPA mode doesn't swallow it
   const defaultIcon = DEFAULT_PAGE_FAVICONS[requestedPath]
   if (defaultIcon && !existsSync(filePath)) {
-    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Content-Type', defaultIcon.type)
     res.setHeader('Cache-Control', 'public, max-age=86400')
-    res.setHeader('Content-Length', defaultIcon.length)
+    res.setHeader('Content-Length', defaultIcon.buf.length)
     res.statusCode = 200
-    res.end(defaultIcon)
+    res.end(defaultIcon.buf)
     return
   }
 
