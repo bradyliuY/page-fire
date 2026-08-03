@@ -1,6 +1,7 @@
 import { join, resolve, extname } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
+import { timingSafeEqual } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type Database from 'better-sqlite3'
 import { serve404, serve401, serveFile, serveHtmlWithCounter } from './serve.js'
@@ -12,6 +13,9 @@ import { renderDashboard } from './dashboard.js'
 import { renderPlayground } from './playground.js'
 import { SECURITY_HEADERS } from './headers.js'
 import { LOGO_PNG, FAVICON_PNG, FAVICON_32_PNG, APPLE_TOUCH_ICON_PNG, FAVICON_ICO } from './assets.js'
+import { config } from '../config.js'
+import { renderLoginPage, sanitizeNextPath } from './login.js'
+import { sessionKey, parseSessionCookie, verifySessionToken, buildSetCookie, buildClearCookie } from './session.js'
 
 // Self-hosted mermaid: served from same origin so no CDN dependency / CSP needed.
 const MERMAID_ASSET = fileURLToPath(new URL('../assets/mermaid.min.js', import.meta.url))
@@ -47,6 +51,59 @@ const DEFAULT_PAGE_FAVICONS: Record<string, AssetDef> = {
   'favicon-64.png': { buf: FAVICON_PNG, type: 'image/png' },
   'favicon-32.png': { buf: FAVICON_32_PNG, type: 'image/png' },
   'apple-touch-icon.png': { buf: APPLE_TOUCH_ICON_PNG, type: 'image/png' },
+}
+
+// HMAC key for password-gate session cookies, derived once from the server secret.
+let sessionKeyBuf: Buffer | null = null
+function getSessionKey(): Buffer {
+  if (!sessionKeyBuf) sessionKeyBuf = sessionKey(config.tokenEncKey)
+  return sessionKeyBuf
+}
+
+// Simple in-memory login rate limiter (per client IP): 10 failures per 5 minutes.
+const LOGIN_WINDOW_MS = 5 * 60 * 1000
+const LOGIN_MAX_FAILS = 10
+const loginFails = new Map<string, number[]>()
+function loginRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const arr = (loginFails.get(ip) ?? []).filter(t => now - t < LOGIN_WINDOW_MS)
+  return arr.length >= LOGIN_MAX_FAILS
+}
+function recordLoginFail(ip: string): void {
+  const now = Date.now()
+  const arr = (loginFails.get(ip) ?? []).filter(t => now - t < LOGIN_WINDOW_MS)
+  arr.push(now)
+  loginFails.set(ip, arr)
+}
+
+/** Read a small request body (form posts). Rejects over the limit. */
+function readBody(req: IncomingMessage, limit = 65536): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    let size = 0
+    req.on('data', (c: Buffer) => {
+      size += c.length
+      if (size > limit) { reject(new Error('body too large')); req.destroy(); return }
+      chunks.push(c)
+    })
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    req.on('error', reject)
+  })
+}
+
+/** Constant-time compare of two pre-hashed hex strings. */
+function hashEquals(a: string, b: string): boolean {
+  const ab = Buffer.from(a, 'utf8')
+  const bb = Buffer.from(b, 'utf8')
+  return ab.length === bb.length && timingSafeEqual(ab, bb)
+}
+
+/** A request that should show the login gate instead of a bare 401. */
+function isPageRequest(p: string): boolean {
+  if (p.startsWith('_pf/')) return false
+  if (p === 'favicon.ico' || p === 'favicon.png' || p === 'favicon-32.png' || p === 'favicon-64.png') return false
+  const ext = extname(p)
+  return p === 'index.html' || ext === '.html' || ext === '.htm' || ext === ''
 }
 
 function getLang(path: string): 'zh' | 'en' {
@@ -234,16 +291,8 @@ export async function handleRequest(
     return
   }
 
-  // Password check
-  if (deployment.access === 'password' && deployment.pass_hash) {
-    const supplied = req.headers['x-passphrase'] as string | undefined
-    if (!supplied || hashToken(supplied) !== deployment.pass_hash) {
-      serve401(res)
-      return
-    }
-  }
-
-  // Resolve file path
+  // Resolve file path (before the access gate so login/logout handling and
+  // page-vs-asset detection can run)
   const deployDir = join(sitesDir, String(deployment.token_id), deployment.did)
   const rawPath = url === '/' || url === '' ? 'index.html' : url.split('?')[0].replace(/^\//, '')
   let requestedPath: string
@@ -263,6 +312,68 @@ export async function handleRequest(
   if (!resolve(filePath).startsWith(resolve(deployDir))) {
     serve404(res)
     return
+  }
+
+  const isProtected = deployment.access === 'password' && !!deployment.pass_hash
+
+  // ── Password-gate endpoints ─────────────────────────────────────────────
+  // Login: POST /_pf/login (form: password + next). Rate-limited per IP.
+  if (isProtected && requestedPath === '_pf/login' && req.method === 'POST') {
+    const ip = req.socket.remoteAddress ?? 'unknown'
+    if (loginRateLimited(ip)) {
+      res.statusCode = 429
+      res.end('Too Many Requests')
+      return
+    }
+    const body = await readBody(req).catch(() => '')
+    const form = new URLSearchParams(body)
+    const password = form.get('password') ?? ''
+    const next = sanitizeNextPath(form.get('next'))
+    if (!password || !hashEquals(hashToken(password), deployment.pass_hash!)) {
+      recordLoginFail(ip)
+      res.writeHead(302, { Location: `/?error=1&next=${encodeURIComponent(next)}` })
+      res.end()
+      return
+    }
+    res.writeHead(302, {
+      Location: next,
+      'Set-Cookie': buildSetCookie(deployment.did, getSessionKey(), scheme === 'https'),
+    })
+    res.end()
+    return
+  }
+
+  // Logout: POST /_pf/logout
+  if (isProtected && requestedPath === '_pf/logout' && req.method === 'POST') {
+    res.writeHead(302, { Location: '/', 'Set-Cookie': buildClearCookie(scheme === 'https') })
+    res.end()
+    return
+  }
+
+  // ── Password gate: API header (X-Passphrase) OR signed session cookie ───
+  if (isProtected) {
+    const supplied = req.headers['x-passphrase'] as string | undefined
+    const headerOk = !!supplied && hashEquals(hashToken(supplied), deployment.pass_hash!)
+    const cookieOk = verifySessionToken(parseSessionCookie(req.headers.cookie), deployment.did, getSessionKey())
+    if (!headerOk && !cookieOk) {
+      // Page requests get the branded login gate; other assets just get 401.
+      if (isPageRequest(requestedPath)) {
+        const query = new URLSearchParams(url.split('?')[1] ?? '')
+        const hadError = query.get('error') === '1'
+        const qNext = query.get('next')
+        const next = qNext ? sanitizeNextPath(qNext) : (requestedPath === 'index.html' ? '/' : '/' + requestedPath)
+        const body = renderLoginPage({ error: hadError, next })
+        const buf = Buffer.from(body, 'utf8')
+        for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+        res.setHeader('Content-Type', 'text/html; charset=utf-8')
+        res.setHeader('Content-Length', buf.length)
+        res.statusCode = 200
+        res.end(buf)
+        return
+      }
+      serve401(res)
+      return
+    }
   }
 
   // Default PageFire favicon for deployed pages that don't ship their own
