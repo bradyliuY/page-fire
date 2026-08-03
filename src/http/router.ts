@@ -39,13 +39,14 @@ const BRAND_ASSETS: Record<string, AssetDef> = {
   '/apple-touch-icon.png': { buf: APPLE_TOUCH_ICON_PNG, type: 'image/png' },
 }
 
-// Default PageFire favicon for deployed pages that don't ship their own.
-// Covers tab favicons only; apple-touch-icon is intentionally first-party only.
+// Default favicon family for deployed pages that don't ship their own.
+// Mirrors the root-domain set so the links injected by serve.ts resolve here.
 const DEFAULT_PAGE_FAVICONS: Record<string, AssetDef> = {
   'favicon.ico': { buf: FAVICON_ICO, type: 'image/x-icon' },
   'favicon.png': { buf: FAVICON_PNG, type: 'image/png' },
   'favicon-64.png': { buf: FAVICON_PNG, type: 'image/png' },
   'favicon-32.png': { buf: FAVICON_32_PNG, type: 'image/png' },
+  'apple-touch-icon.png': { buf: APPLE_TOUCH_ICON_PNG, type: 'image/png' },
 }
 
 function getLang(path: string): 'zh' | 'en' {

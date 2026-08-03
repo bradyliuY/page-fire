@@ -237,6 +237,31 @@ function extractFirstParagraph(html: string): string | null {
 }
 
 /**
+ * Default favicon family injected into deployed pages that don't ship their own.
+ * Paths are root-relative so they resolve on the page's own subdomain, where the
+ * router serves the PageFire default (favicon-32/64/ico + apple-touch-icon).
+ */
+const FAVICON_BLOCK = `  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`
+
+/**
+ * Inject the default favicon family + theme-color before </head>.
+ * A page that already declares any icon link keeps its own — never overridden.
+ */
+export function injectFaviconLinks(html: string): string {
+  if (/<link\b[^>]*rel\s*=\s*(["'])[^"']*icon[^"']*\1/i.test(html)) return html
+  const headIdx = html.indexOf('</head>')
+  if (headIdx === -1) return html
+  const themeColor = /<meta\b[^>]*name\s*=\s*(["'])theme-color\1/i.test(html)
+    ? ''
+    : '\n  <meta name="theme-color" content="#0a0a0b">'
+  const block = '\n' + FAVICON_BLOCK + themeColor + '\n'
+  return html.slice(0, headIdx) + block + html.slice(headIdx)
+}
+
+/**
  * Inject OG meta tags and/or WeChat JS-SDK into HTML before </head>.
  *
  * OG tag resolution priority (high → low):
@@ -247,7 +272,7 @@ function extractFirstParagraph(html: string): string | null {
  * Only injects if the page doesn't already define any OG tags (user's own tags take precedence).
  */
 function injectHeadMeta(html: string, meta: PageMeta): string {
-  let result = html
+  let result = injectFaviconLinks(html)
 
   // ── Fix relative og:image paths in existing user OG tags ─────────────
   // e.g. <meta property="og:image" content="../img.jpg"> → absolute URL
