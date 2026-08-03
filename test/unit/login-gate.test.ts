@@ -23,6 +23,7 @@ describe('sanitizeNextPath', () => {
     expect(sanitizeNextPath(null)).toBe('/')
     expect(sanitizeNextPath('')).toBe('/')
     expect(sanitizeNextPath('https://evil.com')).toBe('/')
+    expect(sanitizeNextPath('//evil.com')).toBe('/')
     expect(sanitizeNextPath('/../etc/passwd')).toBe('/')
     expect(sanitizeNextPath('/foo\nbar')).toBe('/')
   })

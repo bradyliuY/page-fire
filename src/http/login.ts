@@ -8,10 +8,14 @@
  * path so the visitor lands back where they started after authenticating.
  */
 
-/** Keep only safe relative paths for the post-login redirect target. */
+/**
+ * Keep only safe relative paths for the post-login redirect target.
+ * Rejects `//...` (protocol-relative open redirect) and anything that isn't a
+ * plain same-origin path.
+ */
 export function sanitizeNextPath(raw: string | null | undefined): string {
   if (!raw) return '/'
-  if (!raw.startsWith('/')) return '/'
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/'
   if (raw.includes('..') || raw.includes('\0') || raw.includes('\r') || raw.includes('\n')) return '/'
   if (!/^[a-zA-Z0-9_\-./%]+$/.test(raw)) return '/'
   return raw

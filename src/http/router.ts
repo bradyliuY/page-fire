@@ -98,6 +98,22 @@ function hashEquals(a: string, b: string): boolean {
   return ab.length === bb.length && timingSafeEqual(ab, bb)
 }
 
+/**
+ * Real client IP. nginx (the only proxy) appends $remote_addr to
+ * X-Forwarded-For, so the last entry is the peer nginx actually saw and is
+ * not spoofable by the client. Falls back to the socket address (localhost
+ * in dev). Using the real IP keeps the login rate limiter per-client instead
+ * of lumping everyone behind nginx into one shared bucket.
+ */
+function clientIp(req: IncomingMessage): string {
+  const fwd = req.headers['x-forwarded-for']
+  if (typeof fwd === 'string' && fwd) {
+    const parts = fwd.split(',').map(s => s.trim()).filter(Boolean)
+    if (parts.length) return parts[parts.length - 1]
+  }
+  return req.socket.remoteAddress ?? 'unknown'
+}
+
 /** A request that should show the login gate instead of a bare 401. */
 function isPageRequest(p: string): boolean {
   if (p.startsWith('_pf/')) return false
@@ -319,7 +335,7 @@ export async function handleRequest(
   // ── Password-gate endpoints ─────────────────────────────────────────────
   // Login: POST /_pf/login (form: password + next). Rate-limited per IP.
   if (isProtected && requestedPath === '_pf/login' && req.method === 'POST') {
-    const ip = req.socket.remoteAddress ?? 'unknown'
+    const ip = clientIp(req)
     if (loginRateLimited(ip)) {
       res.statusCode = 429
       res.end('Too Many Requests')
@@ -365,6 +381,7 @@ export async function handleRequest(
         const body = renderLoginPage({ error: hadError, next })
         const buf = Buffer.from(body, 'utf8')
         for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
+        res.setHeader('Cache-Control', 'no-store')
         res.setHeader('Content-Type', 'text/html; charset=utf-8')
         res.setHeader('Content-Length', buf.length)
         res.statusCode = 200
