@@ -54,7 +54,11 @@ export function renderHome(baseDomain: string, requireInvite = false, lang: 'zh'
 <link rel="alternate" hreflang="zh" href="https://${baseDomain}/">
 <link rel="alternate" hreflang="en" href="https://${baseDomain}/en">
 <link rel="alternate" hreflang="x-default" href="https://${baseDomain}/">
-<link rel="icon" type="image/png" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0a0a0b">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PageFire">
 <meta property="og:url" content="${canonicalUrl}">

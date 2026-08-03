@@ -12,7 +12,11 @@ export function renderDashboard(baseDomain: string, lang: 'zh' | 'en' = 'zh'): s
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${D.overview.title} — PageFire</title>
-<link rel="icon" type="image/png" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0a0a0b">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{

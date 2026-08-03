@@ -11,7 +11,7 @@ import { renderHome } from './home.js'
 import { renderDashboard } from './dashboard.js'
 import { renderPlayground } from './playground.js'
 import { SECURITY_HEADERS } from './headers.js'
-import { LOGO_PNG, FAVICON_PNG } from './assets.js'
+import { LOGO_PNG, FAVICON_PNG, FAVICON_32_PNG, APPLE_TOUCH_ICON_PNG } from './assets.js'
 
 // Self-hosted mermaid: served from same origin so no CDN dependency / CSP needed.
 const MERMAID_ASSET = fileURLToPath(new URL('../assets/mermaid.min.js', import.meta.url))
@@ -25,6 +25,25 @@ let cachedDashBuf: Buffer | null = null
 let cachedDashKey: string | null = null
 let cachedPlayBuf: Buffer | null = null
 let cachedPlayKey: string | null = null
+
+// Brand assets served on the root domain (logo + favicon family), base64-embedded, long-cached.
+const BRAND_ASSETS: Record<string, Buffer> = {
+  '/logo.png': LOGO_PNG,
+  '/favicon.ico': FAVICON_PNG,
+  '/favicon.png': FAVICON_PNG,
+  '/favicon-64.png': FAVICON_PNG,
+  '/favicon-32.png': FAVICON_32_PNG,
+  '/apple-touch-icon.png': APPLE_TOUCH_ICON_PNG,
+}
+
+// Default PageFire favicon for deployed pages that don't ship their own.
+// Covers tab favicons only; apple-touch-icon is intentionally first-party only.
+const DEFAULT_PAGE_FAVICONS: Record<string, Buffer> = {
+  'favicon.ico': FAVICON_PNG,
+  'favicon.png': FAVICON_PNG,
+  'favicon-64.png': FAVICON_PNG,
+  'favicon-32.png': FAVICON_32_PNG,
+}
 
 function getLang(path: string): 'zh' | 'en' {
   return (path === '/en' || path === '/en/' || path.startsWith('/en/')) ? 'en' : 'zh'
@@ -102,15 +121,15 @@ export async function handleRequest(
 
   // Root domain → serve product homepage / dashboard
   if (host === baseDomain) {
-    // Brand assets (logo + favicon), base64-embedded, long-cached (ignore any query string)
+    // Brand assets (logo + favicon family), base64-embedded, long-cached (ignore any query string)
     const assetPath = url.split('?')[0]
-    if (assetPath === '/logo.png' || assetPath === '/favicon.ico' || assetPath === '/favicon.png') {
-      const buf = assetPath === '/logo.png' ? LOGO_PNG : FAVICON_PNG
+    const brandBuf = BRAND_ASSETS[assetPath]
+    if (brandBuf) {
       res.setHeader('Content-Type', 'image/png')
       res.setHeader('Cache-Control', 'public, max-age=604800')
-      res.setHeader('Content-Length', buf.length)
+      res.setHeader('Content-Length', brandBuf.length)
       res.statusCode = 200
-      res.end(buf)
+      res.end(brandBuf)
       return
     }
     // Dashboard shell (auth enforced client-side via /api/me + httpOnly session cookie)
@@ -244,12 +263,13 @@ export async function handleRequest(
 
   // Default PageFire favicon for deployed pages that don't ship their own
   // Must run before the SPA fallback so that SPA mode doesn't swallow it
-  if ((requestedPath === 'favicon.ico' || requestedPath === 'favicon.png') && !existsSync(filePath)) {
+  const defaultIcon = DEFAULT_PAGE_FAVICONS[requestedPath]
+  if (defaultIcon && !existsSync(filePath)) {
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'public, max-age=86400')
-    res.setHeader('Content-Length', FAVICON_PNG.length)
+    res.setHeader('Content-Length', defaultIcon.length)
     res.statusCode = 200
-    res.end(FAVICON_PNG)
+    res.end(defaultIcon)
     return
   }
 
