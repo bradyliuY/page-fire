@@ -37,13 +37,27 @@ function checkRateLimit(tokenId: string, limit: number): void {
 }
 
 
+/** MCP tool-arg JSON body cap — guards the 1.8 GB box from OOM now that nginx allows big uploads. */
+const MAX_MCP_BODY = 70 * 1024 * 1024
+
 function readBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve) => {
-    let body = ''
-    req.on('data', (chunk) => { body += chunk })
-    req.on('end', () => {
-      try { resolve(JSON.parse(body)) } catch { resolve({}) }
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    let size = 0
+    req.on('data', (c: Buffer) => {
+      size += c.length
+      if (size > MAX_MCP_BODY) {
+        reject(Object.assign(new Error('请求体过大，超过 70 MB 上限。大文件请用本地上传方式（deploy_dir）。'), { code: 'PAYLOAD_TOO_LARGE' }))
+        req.destroy()
+        return
+      }
+      chunks.push(c)
     })
+    req.on('end', () => {
+      const raw = Buffer.concat(chunks).toString('utf8')
+      try { resolve(raw ? JSON.parse(raw) : {}) } catch { resolve({}) }
+    })
+    req.on('error', reject)
   })
 }
 
@@ -202,7 +216,7 @@ export async function startMcpServer(
         content_security_policy: z
           .string()
           .optional()
-          .describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs (e.g. "default-src \'self\'; connect-src \'self\' https://api.example.com; ...").'),
+          .describe('Custom Content-Security-Policy. Merged with the platform minimum (script-src/style-src \'unsafe-inline\' and connect-src \'self\' are always enforced so the view counter keeps working). Allows specific external APIs, e.g. "connect-src \'self\' https://api.example.com".'),
       },
       { title: '发布 HTML 页面', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -252,7 +266,7 @@ export async function startMcpServer(
         content_security_policy: z
           .string()
           .optional()
-          .describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
+          .describe('Custom Content-Security-Policy. Merged with the platform minimum (script-src/style-src \'unsafe-inline\' and connect-src \'self\' are always enforced so the view counter keeps working).'),
       },
       { title: '发布 ZIP 包', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -314,7 +328,7 @@ export async function startMcpServer(
         content_security_policy: z
           .string()
           .optional()
-          .describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
+          .describe('Custom Content-Security-Policy. Merged with the platform minimum (script-src/style-src \'unsafe-inline\' and connect-src \'self\' are always enforced so the view counter keeps working).'),
       },
       { title: '发布多文件站点', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -344,7 +358,7 @@ export async function startMcpServer(
         password: z.string().optional().describe('Passphrase required when access="password".'),
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
-        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
+        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy. Merged with the platform minimum (script-src/style-src \'unsafe-inline\' and connect-src \'self\' are always enforced so the view counter keeps working).'),
       },
       { title: '发布 Markdown', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -376,7 +390,7 @@ export async function startMcpServer(
         password: z.string().optional().describe('Passphrase required when access="password".'),
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
-        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
+        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy. Merged with the platform minimum (script-src/style-src \'unsafe-inline\' and connect-src \'self\' are always enforced so the view counter keeps working).'),
       },
       { title: '发布文档站', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -406,7 +420,7 @@ export async function startMcpServer(
         password: z.string().optional().describe('Passphrase required when access="password".'),
         ttl_days: z.number().int().min(1).max(365).optional().describe('Days until expiry (default 7); ignored when pin=true.'),
         pin: z.boolean().optional().describe('Pin so it never expires (default false).'),
-        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy header. Overrides the default. Allows deployed pages to fetch from specific external APIs.'),
+        content_security_policy: z.string().optional().describe('Custom Content-Security-Policy. Merged with the platform minimum (script-src/style-src \'unsafe-inline\' and connect-src \'self\' are always enforced so the view counter keeps working).'),
       },
       { title: '发布演示文稿', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       async (args) => {
@@ -543,8 +557,9 @@ export async function startMcpServer(
       await transport.handleRequest(req, res, body)
     } catch (err: any) {
       if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: err?.message ?? 'Internal server error' }))
+        const status = err?.code === 'PAYLOAD_TOO_LARGE' ? 413 : 500
+        res.writeHead(status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: err?.message ?? 'Internal server error', code: err?.code ?? 'INTERNAL_ERROR' }))
       }
     }
   })

@@ -5,7 +5,7 @@ import { hashToken } from '../auth.js'
 import { generateDid } from './ids.js'
 import { checkQuota } from './quota.js'
 import { deployFiles, type FileEntry } from './deploy.js'
-import { validateCustomDid } from './validate.js'
+import { validateCustomDid, validateContentSecurityPolicy } from './validate.js'
 import {
   createDeployment, getDeploymentByDid, updateDeployment, insertAuditLog,
 } from '../db/repo.js'
@@ -69,6 +69,7 @@ export function publish(
   db: Database.Database, config: Config, token: TokenRow, opts: PublishOpts,
 ): PublishResult {
   const { did, isUpdate, existing } = resolveTarget(db, token, opts.did)
+  validateContentSecurityPolicy(opts.content_security_policy)
 
   // Per-file 10 MB ceiling — guards every shared deploy path (page/files/docs/upload).
   // Larger payloads should go through the local-upload flow, not inline tool args.

@@ -7,6 +7,7 @@ import { verifyBearer } from '../../auth.js'
 import { checkQuota } from '../../core/quota.js'
 import { extractZip } from '../../core/zip.js'
 import { resolveTarget, finalizeDeployment } from '../../core/publish.js'
+import { validateContentSecurityPolicy } from '../../core/validate.js'
 
 export async function deployZip(
   args: {
@@ -29,6 +30,7 @@ export async function deployZip(
 ) {
   const token = verifyBearer(authHeader, db)
   if (!token) throw { code: 'UNAUTHORIZED', message: 'Invalid or missing Bearer token' }
+  validateContentSecurityPolicy(args.content_security_policy)
 
   // Pre-check quota with 0 new bytes (validates token is not over existing limit)
   checkQuota(db, token.id, 0)

@@ -1,17 +1,8 @@
 import { createReadStream, statSync, existsSync, readFileSync } from 'fs'
 import { extname } from 'path'
 import type { ServerResponse } from 'http'
-import { SECURITY_HEADERS } from './headers.js'
+import { SECURITY_HEADERS, buildSecurityHeaders } from './headers.js'
 import { sanitizeSvg } from '../core/svg.js'
-
-/**
- * Build security headers for a response, optionally overriding the default CSP
- * with a per-deployment custom policy.
- */
-export function buildSecurityHeaders(cspOverride?: string | null): Record<string, string> {
-  if (!cspOverride) return SECURITY_HEADERS
-  return { ...SECURITY_HEADERS, 'Content-Security-Policy': cspOverride }
-}
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

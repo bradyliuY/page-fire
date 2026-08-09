@@ -48,6 +48,22 @@ export function validateFileSize(bytes: number, limit: number, fileName?: string
   }
 }
 
+const MAX_CSP_LENGTH = 2000
+
+export function validateContentSecurityPolicy(csp: string | null | undefined): void {
+  if (csp == null) return
+  const trimmed = csp.trim()
+  if (!trimmed) return
+  if (trimmed.length > MAX_CSP_LENGTH) {
+    throw new ValidationError('INVALID_CSP', `Content-Security-Policy 超过 ${MAX_CSP_LENGTH} 字符上限`)
+  }
+  // Control characters are invalid in HTTP header values and would make
+  // res.setHeader throw ERR_INVALID_CHAR → 500. Reject them at publish time.
+  if (/[\x00-\x1f\x7f]/.test(trimmed)) {
+    throw new ValidationError('INVALID_CSP', 'Content-Security-Policy 不能包含控制字符（换行/制表/NUL 等）')
+  }
+}
+
 const SPACE_ID_RE = /^[a-z0-9][a-z0-9-]{2,18}[a-z0-9]$/
 const SPACE_ID_RESERVED = new Set([
   'www', 'api', 'mcp', 'admin', 'root', 'mail', 'ftp', 'smtp', 'imap',
