@@ -19,11 +19,30 @@ export interface Config {
   httpPort: number
   mcpPort: number
   baseDomain: string
+  baseDomains: string[]  // all accepted domains; [0] === baseDomain
   rateLimit: number
   tokenEncKey: string   // 32-byte hex for AES-256-GCM token encryption
   requireInvite: boolean // if true, registration requires a valid invite code
   wechatSignApi?: string // WeChat JS-SDK signature API endpoint (e.g. https://domain.com/api/jssdk-signature)
 }
+
+// Parse PAGEFIRE_BASE_DOMAIN — a single domain or a comma-separated list.
+// First entry is the primary domain used for generated URLs; all entries are
+// accepted by the router. Lowercased, deduped, order preserved.
+export function parseBaseDomains(raw: string): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const part of raw.split(',')) {
+    const d = part.trim().toLowerCase()
+    if (d && !seen.has(d)) {
+      seen.add(d)
+      out.push(d)
+    }
+  }
+  return out
+}
+
+const baseDomains = parseBaseDomains(process.env.PAGEFIRE_BASE_DOMAIN ?? 'localhost')
 
 export const config: Config = {
   db: process.env.PAGEFIRE_DB ?? './dev-data/pagefire.db',
@@ -31,7 +50,8 @@ export const config: Config = {
   httpHost: process.env.PAGEFIRE_HTTP_HOST ?? '127.0.0.1',
   httpPort: parseInt(process.env.PAGEFIRE_HTTP_PORT ?? '4000'),
   mcpPort: parseInt(process.env.PAGEFIRE_MCP_PORT ?? '4100'),
-  baseDomain: process.env.PAGEFIRE_BASE_DOMAIN ?? 'localhost',
+  baseDomain: baseDomains[0] ?? 'localhost',
+  baseDomains: baseDomains.length ? baseDomains : ['localhost'],
   rateLimit: parseInt(process.env.PAGEFIRE_RATE_LIMIT ?? '30'),
   tokenEncKey: process.env.PAGEFIRE_TOKEN_ENC_KEY ?? '0'.repeat(64), // must be overridden in production
   requireInvite: process.env.PAGEFIRE_REQUIRE_INVITE === 'true',

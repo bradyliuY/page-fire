@@ -12,6 +12,7 @@ import { renderHome } from './home.js'
 import { renderDashboard } from './dashboard.js'
 import { renderPlayground } from './playground.js'
 import { SECURITY_HEADERS } from './headers.js'
+import { resolveBaseDomain } from './base-domain.js'
 import { LOGO_PNG, FAVICON_PNG, FAVICON_32_PNG, APPLE_TOUCH_ICON_PNG, FAVICON_ICO } from './assets.js'
 import { config } from '../config.js'
 import { renderLoginPage, sanitizeNextPath } from './login.js'
@@ -131,7 +132,7 @@ export async function handleRequest(
   res: ServerResponse,
   db: Database.Database,
   sitesDir: string,
-  baseDomain: string,
+  baseDomains: string[],
   requireInvite = false,
   counter?: ViewCounter,
   wechatSignApi?: string,
@@ -196,8 +197,13 @@ export async function handleRequest(
     return
   }
 
+  // Which configured domain (if any) does this host belong to?
+  // `apex` doubles as the display domain: every apex-hosted page renders with
+  // its own domain so links stay self-consistent on each domain.
+  const apex = resolveBaseDomain(host, baseDomains)
+
   // Root domain → serve product homepage / dashboard
-  if (host === baseDomain) {
+  if (apex && host === apex) {
     // Brand assets (logo + favicon family), base64-embedded, long-cached (ignore any query string)
     const assetPath = url.split('?')[0]
     const brand = BRAND_ASSETS[assetPath]
@@ -212,9 +218,9 @@ export async function handleRequest(
     // Dashboard shell (auth enforced client-side via /api/me + httpOnly session cookie)
     if (url === '/dashboard' || url.startsWith('/dashboard?') || url === '/en/dashboard' || url.startsWith('/en/dashboard?')) {
       const lang = getLang(path)
-      const dashKey = `${baseDomain}:${lang}`
+      const dashKey = `${apex}:${lang}`
       if (cachedDashKey !== dashKey) {
-        cachedDashBuf = Buffer.from(renderDashboard(baseDomain, lang), 'utf8')
+        cachedDashBuf = Buffer.from(renderDashboard(apex, lang), 'utf8')
         cachedDashKey = dashKey
       }
       const buf = cachedDashBuf!
@@ -228,9 +234,9 @@ export async function handleRequest(
     // Playground (auth enforced client-side via /api/me; deploys proxied through /api/playground)
     if (url === '/playground' || url.startsWith('/playground?') || url === '/en/playground' || url.startsWith('/en/playground?')) {
       const lang = getLang(path)
-      const playKey = `${baseDomain}:${lang}`
+      const playKey = `${apex}:${lang}`
       if (cachedPlayKey !== playKey) {
-        cachedPlayBuf = Buffer.from(renderPlayground(baseDomain, lang), 'utf8')
+        cachedPlayBuf = Buffer.from(renderPlayground(apex, lang), 'utf8')
         cachedPlayKey = playKey
       }
       const buf = cachedPlayBuf!
@@ -242,9 +248,9 @@ export async function handleRequest(
       return
     }
     const lang = getLang(path)
-    const homeKey = `${baseDomain}:${requireInvite}:${lang}`
+    const homeKey = `${apex}:${requireInvite}:${lang}`
     if (!homeCache.has(homeKey)) {
-      homeCache.set(homeKey, Buffer.from(renderHome(baseDomain, requireInvite, lang), 'utf8'))
+      homeCache.set(homeKey, Buffer.from(renderHome(apex, requireInvite, lang), 'utf8'))
     }
     const buf = homeCache.get(homeKey)!
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v)
@@ -255,16 +261,16 @@ export async function handleRequest(
     return
   }
 
-  const scheme = baseDomain === 'localhost' ? 'http' : 'https'
+  const scheme = baseDomains.includes('localhost') ? 'http' : 'https'
 
-  // Parse subdomain: <did>-<space_id>.baseDomain or <space_id>.baseDomain
+  // Not one of ours → 404. Otherwise strip the matched domain to get the
+  // subdomain: <did>-<space_id> or <space_id>
   // Legacy format <did>--<space_id> is also supported for backward compatibility
-  const suffix = `.${baseDomain}`
-  if (!host.endsWith(suffix)) {
+  if (!apex) {
     serve404(res)
     return
   }
-  const sub = host.slice(0, host.length - suffix.length)
+  const sub = host.slice(0, host.length - apex.length - 1)
 
   let did: string | null = null
   let spaceId: string
@@ -456,9 +462,9 @@ export async function handleRequest(
       og_image: deployment.og_image,
       wechat_app_id: token.wechat_app_id,
       wechat_sign_api: wechatSignApi,
-      logo_url: `${scheme}://${baseDomain}/logo.png`,
+      logo_url: `${scheme}://${apex}/logo.png`,
       page_url: `${scheme}://${deployment.domain}/`,
-      site_name: baseDomain,
+      site_name: apex,
     }, cspOverride)
     return
   }
