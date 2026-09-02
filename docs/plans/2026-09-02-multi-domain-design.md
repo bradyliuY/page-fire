@@ -30,7 +30,8 @@
    凭据持久化到 acme.sh → 恢复全自动续期。
 4. **nginx**(只追加,不动 Luminar 既有块):镜像现有两块,`*.pagefire.hkting.com pagefire.hkting.com` → 4000,
    `mcp.pagefire.hkting.com` → 4100(Streamable HTTP 参数同现状)。
-5. **部署**:`.env` 改 `PAGEFIRE_BASE_DOMAIN=pagefire.openhkt.com,pagefire.hkting.com`,
+5. **部署**:`.env` 改 `PAGEFIRE_BASE_DOMAIN=pagefire.hkting.com,pagefire.openhkt.com`
+   (按用户要求 **hkting 为主域名**,发布链接/MCP endpoint 默认 hkting;openhkt 完全保留),
    scp dist 增量文件 + `pm2 restart pagefire`。
 
 ## 验证
