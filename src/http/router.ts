@@ -7,6 +7,7 @@ import type Database from 'better-sqlite3'
 import { serve404, serve401, serveFile, serveHtmlWithCounter, resolveServePath, serveSite404 } from './serve.js'
 import { ViewCounter } from './counter.js'
 import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
+import { pathHasDotDotSegment } from '../core/validate.js'
 import { hashToken } from '../auth.js'
 import { renderHome } from './home.js'
 import { renderDashboard } from './dashboard.js'
@@ -324,7 +325,7 @@ export async function handleRequest(
     serve404(res)
     return
   }
-  if (requestedPath.includes('..') || requestedPath.includes('\0')) {
+  if (pathHasDotDotSegment(requestedPath) || requestedPath.includes('\0')) {
     serve404(res)
     return
   }

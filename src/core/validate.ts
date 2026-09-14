@@ -16,12 +16,24 @@ export class ValidationError extends Error {
   }
 }
 
+/**
+ * True when `..` appears as a whole path segment (real traversal), false when
+ * it is merely part of a filename — Turbopack emits chunk names like
+ * "0lrc8o_4..x9b.js" that a substring check would wrongly reject.
+ */
+export function pathHasDotDotSegment(p: string): boolean {
+  return p.split(/[\\/]/).includes('..')
+}
+
 export function validatePath(filePath: string, deployRoot: string): string {
-  if (!filePath || filePath.startsWith('/') || filePath.includes('..')) {
+  if (!filePath || filePath.startsWith('/') || pathHasDotDotSegment(filePath)) {
     throw new ValidationError('PATH_TRAVERSAL', `Invalid path: ${filePath}`)
   }
   const normalized = normalize(filePath).replace(/\\/g, '/')
-  if (normalized.startsWith('/') || normalized.startsWith('..')) {
+  // NOTE: no startsWith('..') here — exact `..` segments are already rejected
+  // above, and filenames like "..hidden.txt" are legal. The resolve()
+  // containment check below is the real escape guard.
+  if (normalized.startsWith('/')) {
     throw new ValidationError('PATH_TRAVERSAL', `Path escapes root: ${filePath}`)
   }
   const full = resolve(deployRoot, normalized)

@@ -9,6 +9,18 @@ describe('validatePath', () => {
   it('rejects absolute path', () => { expect(() => validatePath('/etc/passwd', root)).toThrow(ValidationError) })
   it('rejects .. traversal', () => { expect(() => validatePath('../secret', root)).toThrow(ValidationError) })
   it('rejects encoded traversal', () => { expect(() => validatePath('foo/../../etc/passwd', root)).toThrow(ValidationError) })
+  // Turbopack emits chunk names like "0lrc8o_4..x9b.js" — `..` inside a
+  // filename is not traversal; only a whole `..` segment is.
+  it('accepts .. inside a filename (Turbopack chunk names)', () => {
+    expect(() => validatePath('_next/static/chunks/0lrc8o_4..x9b.js', root)).not.toThrow()
+    expect(() => validatePath('a..b.md', root)).not.toThrow()
+    expect(() => validatePath('..hidden.txt', root)).not.toThrow()
+  })
+  it('still rejects .. as a whole path segment', () => {
+    expect(() => validatePath('..', root)).toThrow(ValidationError)
+    expect(() => validatePath('a/../b.js', root)).toThrow(ValidationError)
+    expect(() => validatePath('a/..\\b.js', root)).toThrow(ValidationError)
+  })
 })
 
 describe('validateExtension', () => {

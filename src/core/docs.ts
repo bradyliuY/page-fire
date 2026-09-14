@@ -1,4 +1,5 @@
 import type { FileEntry } from './deploy.js'
+import { pathHasDotDotSegment } from './validate.js'
 import {
   THEMES, resolveTheme, escapeHtml, renderMarkdownBody, extractTitle, stripFrontmatter,
   extractHeadings, injectHeadingIds, renderTocPanel, hasMermaid, mermaidScript,
@@ -91,7 +92,7 @@ export function renderDocsSite(
     if (!mdPath.endsWith('.md')) {
       throw { code: 'INVALID_DOC', message: `文档文件必须以 .md 结尾：${f.path}` }
     }
-    if (mdPath.includes('..')) {
+    if (pathHasDotDotSegment(mdPath)) {
       throw { code: 'PATH_TRAVERSAL', message: `非法路径：${f.path}` }
     }
     const htmlPath = mdPath.replace(/\.md$/, '.html')
