@@ -1,14 +1,17 @@
 import { createReadStream, statSync, existsSync, readFileSync } from 'fs'
-import { extname } from 'path'
-import type { ServerResponse } from 'http'
+import type { Stats } from 'fs'
+import { extname, join } from 'path'
+import type { IncomingMessage, ServerResponse } from 'http'
+import { gzipSync } from 'zlib'
 import { SECURITY_HEADERS, buildSecurityHeaders } from './headers.js'
-import { sanitizeSvg } from '../core/svg.js'
+import { sanitizeSvgCached } from '../core/svg.js'
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.htm': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
   '.json': 'application/json',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -16,66 +19,224 @@ const MIME: Record<string, string> = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
+  '.avif': 'image/avif',
   '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
   '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject',
   '.txt': 'text/plain; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.map': 'application/json',
   '.pdf': 'application/pdf',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
   '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   '.ppt': 'application/vnd.ms-powerpoint',
   '.ppsx': 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
   '.pps': 'application/vnd.ms-powerpoint',
+  '.potx': 'application/vnd.openxmlformats-officedocument.presentationml.template',
 }
 
-export function serveFile(res: ServerResponse, filePath: string, forceDownload = false, cspOverride?: string | null): void {
-  if (!existsSync(filePath)) {
-    serve404(res)
-    return
+// ── Conditional-request / compression helpers ────────────────────────────
+// Pure functions so the serving rules stay unit-testable without HTTP.
+
+/** Weak ETag from file stat — zero hashing cost, stable across redeploys that don't touch the file. */
+function etagFor(stat: { size: number; mtimeMs: number }): string {
+  return `W/"${stat.size}-${Math.floor(stat.mtimeMs)}"`
+}
+
+/**
+ * RFC 7232 If-None-Match evaluation with weak comparison: the `W/` prefix is
+ * ignored so a strong etag from the client matches our weak one with the same
+ * opaque part. `*` matches any existing resource.
+ */
+export function etagMatches(header: string | undefined, etag: string): boolean {
+  if (!header) return false
+  const opaque = (v: string): string => {
+    let s = v.trim()
+    if (s.startsWith('W/')) s = s.slice(2)
+    return s
   }
-  const ext = extname(filePath).toLowerCase()
+  return header.split(',').some(raw => {
+    const p = raw.trim()
+    if (!p) return false
+    if (p === '*') return true
+    return opaque(p) === opaque(etag)
+  })
+}
 
-  // CORS: allow cross-origin image loading (needed by WeChat WKWebView
-  // long-press save, which internally uses canvas and requires CORS headers).
-  res.setHeader('Access-Control-Allow-Origin', '*')
+export type ParsedRange = { start: number; end: number } | null | 'invalid'
 
-  const headers = buildSecurityHeaders(cspOverride)
+/**
+ * Single-range `bytes=` parser. Multi-range and unparseable headers return
+ * null (= serve the full 200 body); syntactically valid ranges that can't be
+ * satisfied (start ≥ size, zero-length suffix) return 'invalid' (= 416).
+ * End is clamped to size-1.
+ */
+export function parseRange(header: string | undefined, size: number): ParsedRange {
+  if (!header) return null
+  const m = /^bytes=(.*)$/.exec(header.trim())
+  if (!m) return null
+  const spec = m[1]
+  if (spec.includes(',')) return null // multi-range: not worth the assembly work → full 200
+  const range = /^(\d*)-(\d*)$/.exec(spec)
+  if (!range) return null
+  const [, a, b] = range
+  if (a === '' && b === '') return null
+  if (a === '') {
+    // suffix form: last N bytes
+    const n = parseInt(b, 10)
+    if (n === 0) return 'invalid'
+    return { start: Math.max(0, size - n), end: size - 1 }
+  }
+  const start = parseInt(a, 10)
+  if (start >= size) return 'invalid'
+  const end = b === '' ? size - 1 : Math.min(parseInt(b, 10), size - 1)
+  return { start, end }
+}
 
-  if (ext === '.svg') {
+/** True when the client's Accept-Encoding lists gzip with a nonzero q-value. */
+export function acceptsGzip(header: string | undefined): boolean {
+  if (!header) return false
+  return header.split(',').some(part => {
+    const [token, ...params] = part.trim().split(';').map(s => s.trim())
+    if (token.toLowerCase() !== 'gzip') return false
+    return !params.some(p => {
+      const q = /^q=(.*)$/.exec(p)
+      return !!q && parseFloat(q[1]) === 0
+    })
+  })
+}
+
+/** Text-ish types worth gzipping. Images/fonts/video already carry their own compression. */
+const COMPRESSIBLE = new Set(['.html', '.htm', '.css', '.js', '.mjs', '.json', '.map', '.txt', '.md', '.svg', '.xml'])
+
+export function isCompressible(ext: string): boolean {
+  return COMPRESSIBLE.has(ext.toLowerCase())
+}
+
+// ── Request-path resolution ──────────────────────────────────────────────
+
+export interface ResolvedPath { filePath: string | null; found: boolean }
+
+function statIsFile(p: string): boolean {
+  try { return statSync(p).isFile() } catch { return false }
+}
+
+/**
+ * Resolve a deployment-relative request path to the file to serve.
+ *
+ *  - direct file hit → served as-is
+ *  - directory → its index.html when present (Next.js export / Hugo / Jekyll
+ *    trailingSlash form). Without an index it stays a 404 — a directory that
+ *    exists must never SPA-fall-through to the root shell.
+ *  - missing + SPA + page-ish extension ('', .html, .htm) → the ROOT
+ *    index.html shell (verified to exist).
+ *
+ * Assumes requestedPath already passed traversal checks in the router.
+ */
+export function resolveServePath(deployDir: string, requestedPath: string, spa: boolean): ResolvedPath {
+  const direct = join(deployDir, requestedPath)
+  try {
+    const st = statSync(direct)
+    if (st.isFile()) return { filePath: direct, found: true }
+    if (st.isDirectory()) {
+      const idx = join(direct, 'index.html')
+      if (statIsFile(idx)) return { filePath: idx, found: true }
+      return { filePath: null, found: false }
+    }
+  } catch { /* missing → maybe SPA fallback */ }
+
+  const ext = extname(requestedPath)
+  if (spa && (ext === '' || ext === '.html' || ext === '.htm')) {
+    const shell = join(deployDir, 'index.html')
+    if (statIsFile(shell)) return { filePath: shell, found: true }
+  }
+  return { filePath: null, found: false }
+}
+
+/**
+ * 404 for a deployment path that doesn't resolve: serve the site's own
+ * 404.html when it ships one (status 404, never cache-sticky), else the
+ * platform's bare 404. Platform-level 404s (bad host / unknown token /
+ * expired) do NOT go through here.
+ */
+export function serveSite404(res: ServerResponse, deployDir: string, cspOverride?: string | null): void {
+  const p = join(deployDir, '404.html')
+  if (statIsFile(p)) {
     try {
-      const raw = readFileSync(filePath, 'utf8')
-      const clean = sanitizeSvg(raw)
-      if (!clean) {
-        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
-        res.setHeader('Content-Type', 'image/svg+xml')
-        res.setHeader('Content-Disposition', 'attachment; filename="image.svg"')
-        res.statusCode = 200
-        res.end(Buffer.from(raw))
-        return
-      }
-      const buf = Buffer.from(clean, 'utf8')
-      for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
-      res.setHeader('Content-Type', 'image/svg+xml')
+      const buf = readFileSync(p)
+      for (const [k, v] of Object.entries(buildSecurityHeaders(cspOverride))) res.setHeader(k, v)
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.setHeader('Cache-Control', 'no-cache')
       res.setHeader('Content-Length', buf.length)
-      res.statusCode = 200
+      res.statusCode = 404
       res.end(buf)
       return
-    } catch {
-      serve404(res)
-      return
-    }
+    } catch { /* unreadable → platform 404 */ }
   }
+  serve404(res)
+}
 
-  const mime = MIME[ext] ?? 'application/octet-stream'
-  const stat = statSync(filePath)
-  if (stat.isDirectory()) { serve404(res); return }   // never stream a directory → would throw EISDIR
+// ── Static file serving ──────────────────────────────────────────────────
+//
+// One entry point for every deployment file. Branch order is load-bearing:
+// stat → 304 short-circuit → SVG sanitize → Range → compression choice →
+// stream. Body headers (Content-Length/Encoding) are set last, per branch,
+// so they always describe the bytes actually sent.
 
+export interface ServeOpts {
+  req?: IncomingMessage          // enables If-None-Match/Range/Accept-Encoding handling
+  cspOverride?: string | null
+  forceDownload?: boolean        // Content-Disposition: attachment (legacy flag, currently unused)
+}
+
+const MIN_GZ_BYTES = 1024        // smaller bodies compress poorly and add latency
+const MAX_GZ_BYTES = 2 * 1024 * 1024 // keep sync gzipSync off the event loop for big files
+
+// gzipSync results keyed by path+mtime. Files are immutable between deploys,
+// so mtime is a sound invalidation key. Bounded by total bytes (LRU) — gz
+// buffers plus everything else must stay well under the 200MB PM2 ceiling.
+const GZ_CACHE_MAX_BYTES = 24 * 1024 * 1024
+const gzCache = new Map<string, Buffer>()
+let gzCacheBytes = 0
+
+function getGzipped(filePath: string, raw: Buffer, mtimeMs: number): Buffer {
+  const key = `${filePath}:${Math.floor(mtimeMs)}`
+  const hit = gzCache.get(key)
+  if (hit) {
+    // LRU refresh: re-insert to move to the back of the eviction order.
+    gzCache.delete(key)
+    gzCache.set(key, hit)
+    return hit
+  }
+  const gz = gzipSync(raw, { level: 6 })
+  gzCache.set(key, gz)
+  gzCacheBytes += gz.length
+  while (gzCacheBytes > GZ_CACHE_MAX_BYTES && gzCache.size > 1) {
+    const oldestKey = gzCache.keys().next().value
+    if (oldestKey === undefined) break
+    gzCacheBytes -= gzCache.get(oldestKey)!.length
+    gzCache.delete(oldestKey)
+  }
+  return gz
+}
+
+/** Set the common 200/206 header group that doesn't depend on body encoding. */
+function setCommonHeaders(res: ServerResponse, headers: Record<string, string>, ext: string, etag: string, cc: string, withAcceptRanges: boolean): void {
   for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
-  res.setHeader('Content-Type', mime)
-  res.setHeader('Content-Length', stat.size)
-  if (forceDownload) res.setHeader('Content-Disposition', 'attachment')
-  res.statusCode = 200
-  const stream = createReadStream(filePath)
+  res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream')
+  res.setHeader('Cache-Control', cc)
+  res.setHeader('ETag', etag)
+  if (isCompressible(ext)) res.setHeader('Vary', 'Accept-Encoding')
+  if (withAcceptRanges) res.setHeader('Accept-Ranges', 'bytes')
+}
+
+/** Stream a byte range (or the whole file) with the existing crash-safe error handler. */
+function streamRange(res: ServerResponse, filePath: string, start?: number, end?: number): void {
+  const stream = createReadStream(filePath, start !== undefined ? { start, end } : undefined)
   // A stream 'error' with no listener is fatal (uncaughtException → process crash). Handle it.
   stream.on('error', (err) => {
     console.error('[serve] stream error:', err)
@@ -83,6 +244,139 @@ export function serveFile(res: ServerResponse, filePath: string, forceDownload =
     else res.destroy()
   })
   stream.pipe(res)
+}
+
+export function serveFile(res: ServerResponse, filePath: string, opts: ServeOpts = {}): void {
+  let stat: Stats
+  try {
+    stat = statSync(filePath)
+  } catch {
+    serve404(res)
+    return
+  }
+  if (stat.isDirectory()) { serve404(res); return }   // never stream a directory → would throw EISDIR
+
+  const ext = extname(filePath).toLowerCase()
+  const etag = etagFor(stat)
+  const cc = (ext === '.html' || ext === '.htm')
+    ? 'no-cache'
+    : 'public, max-age=300, stale-while-revalidate=86400'
+  const req = opts.req
+  const headers = buildSecurityHeaders(opts.cspOverride)
+  const compressible = isCompressible(ext)
+
+  // CORS: allow cross-origin image loading (needed by WeChat WKWebView
+  // long-press save, which internally uses canvas and requires CORS headers).
+  res.setHeader('Access-Control-Allow-Origin', '*')
+
+  const rangeHeader = req?.headers.range as string | undefined
+  const canRange = ext !== '.html' && ext !== '.htm' && ext !== '.svg'
+  const inGzSize = stat.size >= MIN_GZ_BYTES && stat.size <= MAX_GZ_BYTES
+  const wantGz = compressible && inGzSize && !rangeHeader
+    && acceptsGzip(req?.headers['accept-encoding'] as string | undefined)
+
+  // 304 short-circuit — before any body work. Per RFC 7232 a 304 carries the
+  // cache validators but no representation headers (no CT/CL/CE).
+  if (req && etagMatches(req.headers['if-none-match'], etag)) {
+    for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
+    res.setHeader('Cache-Control', cc)
+    res.setHeader('ETag', etag)
+    if (compressible) res.setHeader('Vary', 'Accept-Encoding')
+    res.statusCode = 304
+    res.end()
+    return
+  }
+
+  // SVG: sanitized (memoized) output goes through the buffered tail below —
+  // deterministic per mtime, so the gz cache applies to it as well.
+  if (ext === '.svg') {
+    const clean = sanitizeSvgCached(filePath, stat)
+    if (clean === null) {
+      // Sanitize failed → raw attachment fallback (error-shaped: no ETag/Range/gzip).
+      try {
+        const raw = readFileSync(filePath)
+        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
+        res.setHeader('Content-Type', 'image/svg+xml')
+        res.setHeader('Content-Disposition', 'attachment; filename="image.svg"')
+        res.setHeader('Content-Length', raw.length)
+        res.statusCode = 200
+        res.end(raw)
+      } catch {
+        serve404(res)
+      }
+      return
+    }
+    const buf = Buffer.from(clean, 'utf8')
+    setCommonHeaders(res, headers, ext, etag, cc, false)
+    if (wantGz) {
+      const gz = getGzipped(filePath, buf, stat.mtimeMs)
+      res.setHeader('Content-Encoding', 'gzip')
+      res.setHeader('Content-Length', gz.length)
+      res.statusCode = 200
+      res.end(gz)
+    } else {
+      res.setHeader('Content-Length', buf.length)
+      if (opts.forceDownload) res.setHeader('Content-Disposition', 'attachment')
+      res.statusCode = 200
+      res.end(buf)
+    }
+    return
+  }
+
+  // Range requests: identity only, never combined with Content-Encoding.
+  if (canRange && rangeHeader) {
+    const parsed = parseRange(rangeHeader, stat.size)
+    if (parsed === 'invalid') {
+      for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
+      res.setHeader('Content-Range', `bytes */${stat.size}`)
+      res.setHeader('Accept-Ranges', 'bytes')
+      res.statusCode = 416
+      res.end()
+      return
+    }
+    if (parsed) {
+      setCommonHeaders(res, headers, ext, etag, cc, true)
+      res.setHeader('Content-Range', `bytes ${parsed.start}-${parsed.end}/${stat.size}`)
+      res.setHeader('Content-Length', parsed.end - parsed.start + 1)
+      res.statusCode = 206
+      streamRange(res, filePath, parsed.start, parsed.end)
+      return
+    }
+    // null → unparseable/multi-range: fall through to a full 200.
+  }
+
+  if (wantGz) {
+    let raw: Buffer
+    try { raw = readFileSync(filePath) } catch { serve404(res); return }
+    const gz = getGzipped(filePath, raw, stat.mtimeMs)
+    setCommonHeaders(res, headers, ext, etag, cc, false)
+    res.setHeader('Content-Encoding', 'gzip')
+    res.setHeader('Content-Length', gz.length)
+    res.statusCode = 200
+    res.end(gz)
+    return
+  }
+
+  if (compressible && inGzSize && !rangeHeader) {
+    // Compressible-size file but identity response: buffer it so
+    // Content-Length stays exact (and to avoid one stream stat round-trip).
+    let raw: Buffer
+    try { raw = readFileSync(filePath) } catch { serve404(res); return }
+    setCommonHeaders(res, headers, ext, etag, cc, false)
+    res.setHeader('Content-Length', raw.length)
+    if (opts.forceDownload) res.setHeader('Content-Disposition', 'attachment')
+    res.statusCode = 200
+    res.end(raw)
+    return
+  }
+
+  // Everything else streams raw: binaries (mp4/pdf/fonts/images) and
+  // oversized text files.
+  setCommonHeaders(res, headers, ext, etag, cc, canRange)
+  res.setHeader('Content-Length', stat.size)
+  if (opts.forceDownload) res.setHeader('Content-Disposition', 'attachment')
+  res.statusCode = 200
+  streamRange(res, filePath)
 }
 
 export function serve404(res: ServerResponse): void {
@@ -431,13 +725,32 @@ export function serveHtmlWithCounter(
   res: ServerResponse,
   filePath: string,
   meta: PageMeta,
-  cspOverride?: string | null,
+  opts: { req?: IncomingMessage; cspOverride?: string | null } = {},
 ): void {
-  if (!existsSync(filePath)) { serve404(res); return }
+  let stat: Stats
+  try {
+    stat = statSync(filePath)
+  } catch {
+    serve404(res)
+    return
+  }
 
-  const stat = statSync(filePath)
   if (stat.size > MAX_HTML_INJECT) {
-    serveFile(res, filePath)
+    serveFile(res, filePath, { req: opts.req, cspOverride: opts.cspOverride })
+    return
+  }
+
+  // ETag from file stat only — never mix in meta.views, or the etag would
+  // change on every counter POST and 304 revalidation would never fire. A
+  // 304 keeps a stale painted count, which is fine: the injected script in
+  // the cached body still POSTs /_pf/counter and rewrites the span.
+  const etag = etagFor(stat)
+  if (opts.req && etagMatches(opts.req.headers['if-none-match'], etag)) {
+    for (const [k, v] of Object.entries(buildSecurityHeaders(opts.cspOverride))) res.setHeader(k, v)
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('ETag', etag)
+    res.statusCode = 304
+    res.end()
     return
   }
 
@@ -540,12 +853,24 @@ export function serveHtmlWithCounter(
   }
 
   const buf = Buffer.from(result, 'utf8')
-  const headers = buildSecurityHeaders(cspOverride)
+  const headers = buildSecurityHeaders(opts.cspOverride)
   for (const [k, v] of Object.entries(headers)) res.setHeader(k, v)
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
-  res.setHeader('Content-Length', buf.length)
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('ETag', etag)
+  res.setHeader('Vary', 'Accept-Encoding')
+
+  // The injected body is dynamic (views count in the span), so gzip runs per
+  // request with no cache — bounded work since this path only sees ≤2MB pages
+  // on browser cache misses.
+  let body: Buffer = buf
+  if (buf.length >= MIN_GZ_BYTES && acceptsGzip(opts.req?.headers['accept-encoding'] as string | undefined)) {
+    body = gzipSync(buf, { level: 6 })
+    res.setHeader('Content-Encoding', 'gzip')
+  }
+  res.setHeader('Content-Length', body.length)
   res.statusCode = 200
-  res.end(buf)
+  res.end(body)
 }
 
 export function serve401(res: ServerResponse): void {

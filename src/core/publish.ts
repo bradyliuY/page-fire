@@ -78,7 +78,7 @@ export function publish(
     if (size > MAX_FILE_BYTES) {
       throw {
         code: 'FILE_TOO_LARGE',
-        message: `文件 "${f.path}" 为 ${(size / 1024 / 1024).toFixed(1)} MB，超过单文件 10 MB 上限。大文件请用本地上传方式（pagefire-mcp 的 deploy_dir）发布，避免把内容塞进工具参数。`,
+        message: `文件 "${f.path}" 为 ${(size / 1024 / 1024).toFixed(1)} MB，超过单文件 10 MB 上限。大文件请用本地上传方式（pagefire-mcp 连接器的 deploy_file/deploy_dir）发布，避免把内容塞进工具参数。`,
       }
     }
   }

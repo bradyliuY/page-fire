@@ -34,7 +34,7 @@ export function renderHome(baseDomain: string, requireInvite = false, lang: 'zh'
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     featureList: [
       'deploy_page', 'deploy_zip', 'deploy_markdown', 'deploy_docs',
-      'deploy_files', 'deploy_dir', 'pin_deployment', 'set_access',
+      'deploy_files', 'pin_deployment', 'set_access',
       'list_deployments', 'get_deployment', 'delete_deployment',
     ],
     provider: { '@type': 'Organization', name: 'PageFire', url: `https://${baseDomain}/` },

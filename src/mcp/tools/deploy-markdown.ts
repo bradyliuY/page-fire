@@ -34,7 +34,7 @@ export async function deployMarkdown(
     throw { code: 'INVALID_CONTENT', message: 'markdown is required' }
   }
   if (Buffer.byteLength(args.markdown) > 5 * 1024 * 1024) {
-    throw { code: 'FILE_TOO_LARGE', message: `Markdown 内容超过 5 MB 上限（当前 ${(Buffer.byteLength(args.markdown) / 1024 / 1024).toFixed(1)} MB）。大文件建议拆分成 deploy_docs 多页发布，或使用 deploy_dir 本地上传。` }
+    throw { code: 'FILE_TOO_LARGE', message: `Markdown 内容超过 5 MB 上限（当前 ${(Buffer.byteLength(args.markdown) / 1024 / 1024).toFixed(1)} MB）。大文件建议拆分成 deploy_docs 多页发布，或使用 pagefire-mcp 连接器的 deploy_docs_dir/deploy_dir 本地上传。` }
   }
 
   const mode = args.mode ?? 'article'

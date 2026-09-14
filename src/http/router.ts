@@ -1,10 +1,10 @@
 import { join, resolve, extname } from 'path'
-import { existsSync, readFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { timingSafeEqual } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type Database from 'better-sqlite3'
-import { serve404, serve401, serveFile, serveHtmlWithCounter } from './serve.js'
+import { serve404, serve401, serveFile, serveHtmlWithCounter, resolveServePath, serveSite404 } from './serve.js'
 import { ViewCounter } from './counter.js'
 import { getTokenBySpaceId, getDeploymentByDid } from '../db/repo.js'
 import { hashToken } from '../auth.js'
@@ -328,7 +328,7 @@ export async function handleRequest(
     serve404(res)
     return
   }
-  let filePath = join(deployDir, requestedPath)
+  const filePath = join(deployDir, requestedPath)
 
   // Security: ensure resolved path is within deployDir
   if (!resolve(filePath).startsWith(resolve(deployDir))) {
@@ -399,10 +399,16 @@ export async function handleRequest(
     }
   }
 
+  // Resolve the actual file to serve: bare directories map to their index.html
+  // (/dashboard → /dashboard/index.html) and unknown paths may SPA-fall-back to
+  // the root shell — everything below (favicon default, injection, serving)
+  // works on one final path.
+  const resolved = resolveServePath(deployDir, requestedPath, !!deployment.spa)
+
   // Default PageFire favicon for deployed pages that don't ship their own
   // Must run before the SPA fallback so that SPA mode doesn't swallow it
   const defaultIcon = DEFAULT_PAGE_FAVICONS[requestedPath]
-  if (defaultIcon && !existsSync(filePath)) {
+  if (defaultIcon && !resolved.found) {
     res.setHeader('Content-Type', defaultIcon.type)
     res.setHeader('Cache-Control', 'public, max-age=86400')
     res.setHeader('Content-Length', defaultIcon.buf.length)
@@ -440,19 +446,20 @@ export async function handleRequest(
     return
   }
 
-  // SPA fallback: serve index.html for unknown paths so client-side routing works.
-  // Only applies to extensionless paths (SPA routes like /about) to avoid
-  // swallowing static assets (chart.min.js, favicon.ico, etc.) with HTML content.
-  const ext = extname(requestedPath)
-  if (deployment.spa && !existsSync(filePath) && (ext === '' || ext === '.html' || ext === '.htm')) {
-    filePath = join(deployDir, 'index.html')
+  // Directory index and SPA fallback already happened in resolveServePath:
+  // a miss here is a genuine 404 — prefer the site's own 404.html if it has one.
+  const cspOverride = deployment.content_security_policy
+  if (!resolved.found || !resolved.filePath) {
+    serveSite404(res, deployDir, cspOverride)
+    return
   }
 
-  const cspOverride = deployment.content_security_policy
-
-  // Serve HTML files with view counter injection (when counter is enabled)
+  // Serve HTML files with view counter injection (when counter is enabled).
+  // ext comes from the resolved file, so directory indexes and SPA-fallback
+  // responses get the same OG/favicon/counter treatment as direct .html hits.
+  const ext = extname(resolved.filePath)
   if (counter && (ext === '.html' || ext === '.htm')) {
-    serveHtmlWithCounter(res, filePath, {
+    serveHtmlWithCounter(res, resolved.filePath, {
       views: counter.getViews(deployment.did),
       created_at: deployment.created_at,
       updated_at: deployment.updated_at,
@@ -465,9 +472,9 @@ export async function handleRequest(
       logo_url: `${scheme}://${apex}/logo.png`,
       page_url: `${scheme}://${deployment.domain}/`,
       site_name: apex,
-    }, cspOverride)
+    }, { req, cspOverride })
     return
   }
 
-  serveFile(res, filePath, false, cspOverride)
+  serveFile(res, resolved.filePath, { req, cspOverride })
 }

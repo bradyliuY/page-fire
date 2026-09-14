@@ -47,7 +47,7 @@ function readBody(req: IncomingMessage): Promise<unknown> {
     req.on('data', (c: Buffer) => {
       size += c.length
       if (size > MAX_MCP_BODY) {
-        reject(Object.assign(new Error('请求体过大，超过 70 MB 上限。大文件请用本地上传方式（deploy_dir）。'), { code: 'PAYLOAD_TOO_LARGE' }))
+        reject(Object.assign(new Error('请求体过大，超过 70 MB 上限。大文件请用 pagefire-mcp 连接器的 deploy_dir 本地上传。'), { code: 'PAYLOAD_TOO_LARGE' }))
         req.destroy()
         return
       }

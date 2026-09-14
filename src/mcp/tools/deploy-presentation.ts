@@ -50,7 +50,7 @@ export async function deployPresentation(
       throw { code: 'INVALID_CONTENT', message: 'PDF content is empty' }
     }
     if (pdfBuf.length > 50 * 1024 * 1024) {
-      throw { code: 'FILE_TOO_LARGE', message: `PDF 文件超过 50 MB 上限（当前 ${(pdfBuf.length / 1024 / 1024).toFixed(1)} MB）。超大文件请用 deploy_files 或 deploy_dir 发布。` }
+      throw { code: 'FILE_TOO_LARGE', message: `PDF 文件超过 50 MB 上限（当前 ${(pdfBuf.length / 1024 / 1024).toFixed(1)} MB）。超大文件请用 pagefire-mcp 连接器的 deploy_file/deploy_dir 发布。` }
     }
 
     const title = args.title?.trim() || 'Document'
@@ -78,7 +78,7 @@ export async function deployPresentation(
     throw { code: 'INVALID_CONTENT', message: 'PPTX content is empty' }
   }
   if (pptxBuf.length > 50 * 1024 * 1024) {
-    throw { code: 'FILE_TOO_LARGE', message: `PPTX 文件超过 50 MB 上限（当前 ${(pptxBuf.length / 1024 / 1024).toFixed(1)} MB）。超大文件请用 deploy_files 或 deploy_dir 发布。` }
+    throw { code: 'FILE_TOO_LARGE', message: `PPTX 文件超过 50 MB 上限（当前 ${(pptxBuf.length / 1024 / 1024).toFixed(1)} MB）。超大文件请用 pagefire-mcp 连接器的 deploy_file/deploy_dir 发布。` }
   }
 
   const { files, title, slideCount } = await convertPptx(pptxBuf, {
