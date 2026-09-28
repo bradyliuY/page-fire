@@ -1,0 +1,16 @@
+# 行尾策略 —— 只钉住「错了就会炸」的那一类。
+#
+# shell 脚本必须是 LF。docs/DEPLOY.md 教读者把 scripts/backup.sh 装到服务器并交给
+# cron **直接执行**,内核要解析第一行 shebang。行尾若是 CRLF,shebang 就成了
+# `#!/usr/bin/env bash\r`,内核找不到名为 bash\r 的解释器,报 bad interpreter 后
+# 静默退出:备份再也不跑,而没有任何东西会告诉你。
+#
+# 不加 `* text=auto`:那会对全部历史文件做一次重规范化,把 diff 变成纯噪音,
+# 而 TS / Markdown / 前端资源的行尾错了不会坏任何事。只钉这一个模式。
+#
+# 守卫见 test/unit/shell-line-endings.test.ts。
+*.sh text eol=lf
+
+# 本文件自己也是 LF —— 否则 autocrlf=true 的机器上 git 每次都警告
+# "LF will be replaced by CRLF",让每个 Windows 贡献者去猜这是不是个问题。
+/.gitattributes text eol=lf

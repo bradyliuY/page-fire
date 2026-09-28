@@ -119,7 +119,7 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
 
 ## 测试
 
-- `test/unit/` 26 个文件，vitest + Node 环境，**纯函数为主、多用临时目录，不强依赖完整服务**（`auth.test.ts` 用 `better-sqlite3` `:memory:`）。改动 serve/router/headers/markdown 后重点跑：`serve-file`、`serve-html-counter`、`resolve-serve-path`、`etag`、`counter-inject`、`csp`、`base-domain`、`html-templates`。
+- `test/unit/` 27 个文件，vitest + Node 环境，**纯函数为主、多用临时目录，不强依赖完整服务**（`auth.test.ts` 用 `better-sqlite3` `:memory:`）。改动 serve/router/headers/markdown 后重点跑：`serve-file`、`serve-html-counter`、`resolve-serve-path`、`etag`、`counter-inject`、`csp`、`base-domain`、`html-templates`。
 - `test/integration/` 仅两个 TODO 占位（断言恒真），要跑起来需完整服务。
 - **守卫测试**（都在 `test/unit/`，用 `git ls-files` 扫已提交文件，专门防「同一个事实写在两处然后漂移」）：
   - `html-templates.test.ts` —— 遍历 `src/http/*.ts` 检查 HTML 属性里的弯引号，内联模板最常见的静默错误。
@@ -131,6 +131,7 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
   - `agents-md-sync.test.ts` —— `AGENTS.md` 与 `CLAUDE.md` 除头部外逐字一致（见下）。
   - `readme-parity.test.ts` —— `README.md` 与 `README.en.md` 是同一份文档的两份拷贝，改中文容易忘英文。不比散文（那本来就该不同），只钉翻译**不该动**的东西：标题层级序列、链接目标顺序、环境变量名、MCP 工具名、CLI 子命令、代码块数量。
   - `package-license.test.ts` —— 每个**要发布到 npm** 的包（`packages/*` 里 `private` 不为 true 的）目录下必须有 LICENSE，否则 npm 打出的 tarball 不含许可证正文（`pagefire-mcp` 就这样发过：package.json 写着 MIT，tarball 里没有那张纸）。注意 npm 的许可证文件**不受 `files` 字段限制**，放一份进包目录即可，不必改 `files`。
+  - `shell-line-endings.test.ts` —— 已提交的 `.sh` 在索引里必须是 LF，且由**已提交的 `.gitattributes`**（`*.sh text eol=lf`）声明这条规则。动机：cron 直接执行 `scripts/backup.sh`，CRLF 的 shebang 会报 bad interpreter 后静默退出 —— 备份失效这种死法刚经历过一次。判定用 `git ls-files --eol`（索引侧）；**别用 `git show :path` 查行尾** —— 它套 smudge 过滤，autocrlf=true 的机器上恰好显示相反结论。
 - `packages/mcp-client` 有独立测试，根目录 `pnpm test` 不覆盖它。
 - 根 `tsconfig.json` 是 `NodeNext`：**新增源码的相对导入必须带 `.js` 后缀**。
 
