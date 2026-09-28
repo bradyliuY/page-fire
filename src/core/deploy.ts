@@ -32,20 +32,36 @@ export function deployFiles(sitesDir: string, tokenId: string, did: string, file
       mkdirSync(dirname(destPath), { recursive: true })
       writeFileSync(destPath, buf)
     }
-
-    // Remove existing live dir if any (for redeploy)
-    if (existsSync(liveDir)) {
-      rmSync(liveDir, { recursive: true, force: true })
-    }
-    mkdirSync(dirname(liveDir), { recursive: true })
-    renameSync(tmpDir, liveDir)
-
-    return { fileCount: files.length, sizeBytes: totalSize }
   } catch (err) {
-    // Cleanup tmp on failure
+    // Nothing has touched the live dir yet — the previous version is intact.
     if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true })
     throw err
   }
+
+  // Swap in place: move the current version aside, rename the new one in, then
+  // drop the old copy. Deleting the live dir first would mean a failed swap
+  // leaves the deployment with no content at all, so the old version is kept
+  // until the new one is actually in place and restored if the swap fails.
+  const backupDir = join(sitesDir, tokenId, `${did}.old-${randomBytes(4).toString('hex')}`)
+  const hadLive = existsSync(liveDir)
+
+  try {
+    if (hadLive) renameSync(liveDir, backupDir)
+    mkdirSync(dirname(liveDir), { recursive: true })
+    renameSync(tmpDir, liveDir)
+  } catch (err) {
+    // `rename` is atomic, so a failure leaves the live path either untouched
+    // (step 1 failed) or absent (step 2 failed) — only restore in the latter case.
+    if (hadLive && !existsSync(liveDir) && existsSync(backupDir)) {
+      renameSync(backupDir, liveDir)
+    }
+    if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true })
+    throw err
+  }
+
+  if (existsSync(backupDir)) rmSync(backupDir, { recursive: true, force: true })
+
+  return { fileCount: files.length, sizeBytes: totalSize }
 }
 
 export function deleteDeploymentFiles(sitesDir: string, tokenId: string, did: string): void {
