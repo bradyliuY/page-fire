@@ -121,7 +121,7 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
 - `test/integration/` 仅两个 TODO 占位（断言恒真），要跑起来需完整服务。
 - **守卫测试**（都在 `test/unit/`，用 `git ls-files` 扫已提交文件，专门防「同一个事实写在两处然后漂移」）：
   - `html-templates.test.ts` —— 遍历 `src/http/*.ts` 检查 HTML 属性里的弯引号，内联模板最常见的静默错误。
-  - `public-docs.test.ts` —— 已提交文件里不得有主机 IP / 同机其它服务信息（见「公开仓库的信息边界」）。
+  - `public-docs.test.ts` —— 已提交文件里不得有主机 IP / 同机其它服务信息（见「公开仓库的信息边界」）。邻居名词表**不在这个文件里**，而在 `docs/deploy/sensitive-terms.txt`（已 gitignore）：词表本身也是秘密，写进守卫等于守卫自己泄露它；文件缺失时该条自动跳过（别人的 clone、CI）。
   - `docs-links.test.ts` —— 文档相对链接必须存在**且已提交**（本地有、忘了 `git add` 也算红）。
   - `docs-extension-list.test.ts` —— `docs/MCP_GUIDE.md` 的扩展名表必须逐个等于 `validate.ts:ALLOWED_EXTENSIONS`。
   - `env-example.test.ts` —— `.env.example` 必须覆盖 `config.ts` 读的全部变量（漏一个就是配置漂移，`PAGEFIRE_TOKEN_ENC_KEY` 漏掉尤其危险）。
@@ -145,6 +145,6 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
 - `docs/MCP_GUIDE.md` — 面向使用者的 MCP 手册（工具参数、场景、限制）。
 - `docs/DEPLOY.md` — 公开版部署指南；`docs/deploy/`（gitignore'd，含私钥与真实主机坐标）— 内部部署手册。
 - `packages/mcp-client/README.md` — `pagefire` CLI 与连接器文档。
-- `specs/`、`.specify/`、`.claude/`、`docs/deploy/` 均已 gitignore。
+- `specs/`、`.specify/`、`.claude/`、`.agents/`、`.codex/`、`docs/deploy/` 均已 gitignore；`AGENTS.md` 亦然（它由 CLAUDE.md 生成、按设计只留本地）。
 
 写文档时的守卫见上文「测试」节 —— 那里是守卫的唯一清单，此处不再重复（抄两份必然漂移）。
