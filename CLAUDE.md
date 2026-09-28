@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **PageFire** —— 自托管的静态发布服务。通过 MCP 协议把 HTML / Markdown / ZIP / 目录一键发布成带 HTTPS 的独立子域名页面。类 EdgeOne Pages，但自托管、多租户、即发即得。
 
-线上实例：**pagefire.hkting.com**（`PAGEFIRE_BASE_DOMAIN` 里的 `[0]`，生成的 URL 用它）；`pagefire.openhkt.com` 为兼容保留的第二域名，同样接受访问。
+线上实例：**pagefire.hkting.com** 与 **pagefire.openhkt.com** 两个域名同时在线、功能等价（`PAGEFIRE_BASE_DOMAIN` 是逗号分隔列表，两个都接受访问）。
+
+**但两者分工不同，别当成"主域名 + 备用域名"**：`[0]` 是 `hkting`，所以**部署 URL 按 hkting 生成**；而**产品对外的身份仍在 `openhkt`** —— npm 包 `pagefire-mcp` 的默认端点（`packages/mcp-client/src/index.ts` 的 `DEFAULT_URL`）、两个 `package.json` 的 `homepage`、渲染页脚（`core/docs.ts`、`core/markdown.ts`）、i18n 示例内容、`examples/` 里的链接，全部指向它。改域名不是改文档就能收口的：动 `DEFAULT_URL` 等于改已发布 npm 包给所有用户的默认连接目标。
 
 ## ⚠️ 操作安全(最高优先级)
 
