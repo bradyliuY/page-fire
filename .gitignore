@@ -21,6 +21,14 @@ scratch/
 .env.*
 !.env.example
 
+# 数据库文件 —— 含 token hash / 会话 / 用户,放错位置(比如在仓库根直接起服务)
+# 也必须挡住。dev-data/ 只管本地默认路径,这条管所有路径。
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
 # Node
 node_modules/
 dist/
@@ -50,6 +58,13 @@ docs/deploy/
 # 内部规划草稿 —— 实现前的 spec/task/research，已由 docs/ 正式文档取代
 specs/
 
-# 开发工具内部配置（speckit / Claude Code）
+# 开发工具内部配置（speckit / Claude Code / Codex）
 .specify/
 .claude/
+.agents/
+.codex/
+
+# Codex 的入口文件,由 CLAUDE.md 生成、只差头部三行 —— 本地保留,不入库。
+# 要改成随仓库提交的话,删掉这行即可:test/unit/agents-md-sync.test.ts
+# 对「在」与「不在」两种情形都已适配,不会因此变红。
+AGENTS.md
