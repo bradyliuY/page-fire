@@ -52,6 +52,9 @@ beforeAll(() => {
   writeFileSync(join(dir, 'video.mp4'), Buffer.alloc(100, 7))
   writeFileSync(join(dir, 'data.xyz'), Buffer.alloc(500, 1))
   writeFileSync(join(dir, 'tiny.txt'), Buffer.from('hello'))
+  writeFileSync(join(dir, 'app.wasm'), Buffer.from([0x00, 0x61, 0x73, 0x6d]))
+  writeFileSync(join(dir, 'manifest.webmanifest'), Buffer.from('{"name":"x"}'))
+  writeFileSync(join(dir, 'data.csv'), Buffer.from('a,b\n1,2\n'))
   mkdirSync(join(dir, 'subdir'))
 })
 
@@ -89,6 +92,29 @@ describe('serveFile — basic 200s', () => {
     await serve(res, join(dir, 'subdir'))
     expect(res.statusCode).toBe(404)
     expect(String(Buffer.concat(res.chunks))).toContain('404 Not Found')
+  })
+})
+
+describe('serveFile — PWA / wasm / data types', () => {
+  it('serves .wasm as application/wasm so instantiateStreaming works', async () => {
+    const res = fakeRes()
+    await serve(res, join(dir, 'app.wasm'))
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-type']).toBe('application/wasm')
+  })
+
+  it('serves .webmanifest as application/manifest+json', async () => {
+    const res = fakeRes()
+    await serve(res, join(dir, 'manifest.webmanifest'))
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-type']).toBe('application/manifest+json')
+  })
+
+  it('serves .csv as text/csv', async () => {
+    const res = fakeRes()
+    await serve(res, join(dir, 'data.csv'))
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-type']).toBe('text/csv; charset=utf-8')
   })
 })
 

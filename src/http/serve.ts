@@ -26,7 +26,11 @@ const MIME: Record<string, string> = {
   '.ttf': 'font/ttf',
   '.eot': 'application/vnd.ms-fontobject',
   '.txt': 'text/plain; charset=utf-8',
+  '.csv': 'text/csv; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
+  // Must be exact: WebAssembly.instantiateStreaming rejects octet-stream.
+  '.wasm': 'application/wasm',
+  '.webmanifest': 'application/manifest+json',
   '.xml': 'application/xml; charset=utf-8',
   '.map': 'application/json',
   '.pdf': 'application/pdf',

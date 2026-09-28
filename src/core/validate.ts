@@ -4,7 +4,8 @@ export const ALLOWED_EXTENSIONS = new Set([
   '.html', '.htm', '.css', '.js', '.mjs',
   '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.avif',
   '.woff', '.woff2', '.ttf', '.eot',
-  '.json', '.txt', '.md', '.xml', '.pdf', '.map',
+  '.json', '.txt', '.md', '.xml', '.pdf', '.map', '.csv',
+  '.wasm', '.webmanifest',
   '.mp4', '.webm',
   '.pptx', '.ppt', '.ppsx', '.pps', '.potx',
 ])

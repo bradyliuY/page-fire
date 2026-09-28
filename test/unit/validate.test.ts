@@ -29,6 +29,11 @@ describe('validateExtension', () => {
   it('rejects .php', () => { expect(() => validateExtension('shell.php')).toThrow(ValidationError) })
   it('rejects .sh', () => { expect(() => validateExtension('run.sh')).toThrow(ValidationError) })
   it('rejects .exe', () => { expect(() => validateExtension('bad.exe')).toThrow(ValidationError) })
+  // Real build outputs need these: a Vite/Next bundle can emit .wasm, and any
+  // PWA ships a .webmanifest. Rejecting them made such sites undeployable.
+  it('allows .webmanifest', () => { expect(() => validateExtension('site.webmanifest')).not.toThrow() })
+  it('allows .wasm', () => { expect(() => validateExtension('app.wasm')).not.toThrow() })
+  it('allows .csv', () => { expect(() => validateExtension('data.csv')).not.toThrow() })
 })
 
 describe('validateFileSize', () => {
