@@ -6,151 +6,145 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **PageFire** —— 自托管的静态发布服务。通过 MCP 协议把 HTML / Markdown / ZIP / 目录一键发布成带 HTTPS 的独立子域名页面。类 EdgeOne Pages，但自托管、多租户、即发即得。
 
-线上实例：[pagefire.openhkt.com](https://pagefire.openhkt.com)
+线上实例：**pagefire.hkting.com**（`PAGEFIRE_BASE_DOMAIN` 里的 `[0]`，生成的 URL 用它）；`pagefire.openhkt.com` 为兼容保留的第二域名，同样接受访问。
 
 ## ⚠️ 操作安全(最高优先级)
 
 1. **破坏性命令必须先经用户同意**: `rm -rf`、通配删除、`DROP`/批量 `DELETE`、`mv`/覆盖数据、`git reset --hard`、`git push --force`、`pm2 delete`、改/删 nginx·证书·`.env` 等**不可逆或影响线上数据的操作，执行前必须明确征得用户同意**。
 2. **绝不对数据目录用通配删除**: `/var/pagefire/sites`、`pagefire.db` 是线上用户数据。清理只删明确的单个 `token_id`/`did` 路径，**严禁** `rm -rf /var/pagefire/sites/*`。（曾因通配误删全部 47 个部署）
-3. 线上服务器 (`8.163.52.153`) 上只动 PageFire 自己的进程/目录，**绝不碰 Luminar** (backend/storefront/nginx)。
+3. 线上服务器与其它服务**同机共存**：只动 PageFire 自己的进程/目录，**绝不碰同机其他服务的进程、容器、nginx 配置或证书**（对共享资源只做加法，不做改动）。
+4. **公开仓库的信息边界**（本仓库是 public）：已提交的文件只写**架构与做法**，具体坐标一律用占位符 —— `<your-server-ip>`、`<co-tenant-domain>`、`<nginx-container>`。**主机 IP、SSH 私钥路径、同机其它服务的产品名/域名/容器名/目录**只写进 `docs/deploy/`（gitignore'd，是运维细节的唯一出处）。守卫测试 `test/unit/public-docs.test.ts` 会扫描所有已提交文件，违反即 CI 红。
 
-## 架构约束
-
-1. **纯静态，服务器侧绝不执行用户代码**（无 PHP/SSR）。用户 JS 只在访客浏览器跑。
-2. **token 密钥 (`pf_xxx`) 永不进 URL**。域名只用不透明随机 `space_id`；DB 只存 SHA-256 hash。URL: `https://<did>-<space_id>.domain/`
-3. **单进程三角色**: 同一 Node 进程并起 MCP 写入面 (4100) + HTTP 静态面 (4000)；CLI 是另起的一次性进程。共享 better-sqlite3 (WAL)。
-4. **MCP 用 Streamable HTTP transport**（服务器在远端，不能用 stdio）。
-5. **上传写盘原子化**: 写 tmp → 校验路径穿越/Zip Slip/zip bomb → rename。
-
-## 架构概要
-
-```
-src/
-├── index.ts                  # 进程入口: 并起 MCP + HTTP，捕获未处理异常
-├── config.ts                 # 从 .env / 环境变量读取配置
-│
-├── cli/index.ts              # CLI 入口: token 管理 (create/list/disable/rotate/set-space-id), gc
-├── auth.ts                   # Token 生成 (pf_ + 48 hex)、SHA-256 hash、Bearer 验证
-│
-├── core/                     # 业务核心
-│   ├── deploy.ts             # 文件写入磁盘 (tmp → rename)，FileEntry 接口
-│   ├── publish.ts            # 发布主流程: resolveTarget → checkQuota → deployFiles → DB 记录
-│   ├── validate.ts           # 路径穿越校验、扩展名白名单、文件大小限制、自定义 did/space_id 校验
-│   ├── ids.ts                # 生成 did (6位随机)、space_id (8位随机)，保证唯一
-│   ├── zip.ts                # ZIP 解压 (yauzl)，含路径穿越防护
-│   ├── markdown.ts           # Markdown → HTML (marked)，含 Callout/Mermaid/代码高亮扩展
-│   ├── docs.ts               # 多页文档站渲染: 左导航 + 右 TOC + 自动重写 .md 链接
-│   ├── slides.ts             # remark.js 幻灯片生成
-│   ├── svg.ts                # SVG 清洗 (DOMPurify)
-│   ├── quota.ts              # 配额检查 (部署数/字节数)
-│   ├── token-enc.ts          # AES-256-GCM token 加密/解密
-│   └── presentation/         # PDF/PPTX 解析与转换
-│       ├── pdf.ts
-│       └── pptx.ts
-│
-├── db/
-│   ├── schema.sql            # SQLite 建表 (tokens/users/sessions/deployments/deploy_logs/invites)
-│   ├── migrate.ts            # 打开 DB + 执行 schema + WAL
-│   └── repo.ts               # 所有数据访问层函数 (约 40 个导出函数)
-│
-├── http/                     # HTTP 静态服务(端口 4000)
-│   ├── server.ts             # HTTP 服务器创建与启动
-│   ├── router.ts             # 请求路由核心: 解析 Host 头 → 查 token/deployment → serve 文件
-│   │                         #   根域名: 首页/仪表盘/API playground
-│   │                         #   子域名: 静态文件 + 视图计数器 + SPA fallback
-│   ├── serve.ts              # 文件服务: MIME 类型、HTML 注入计数器、SVG 清洗
-│   ├── headers.ts            # 安全头配置 (CSP, HSTS, X-Frame-Options 等)
-│   ├── counter.ts            # 内存视图计数器 (每 30s 落盘到 SQLite)
-│   ├── api.ts                # REST API: 用户注册/登录/登出/改密码、Token 管理、部署 CRUD
-│   ├── home.ts               # 着陆页 HTML (内联 CSS/html 模板，no JS framework)
-│   ├── dashboard.ts          # 仪表盘 HTML
-│   ├── playground.ts         # API Playground HTML
-│   ├── assets.ts             # 内嵌 logo/favicon base64
-│   └── i18n/                 # 国际化
-│       ├── zh.ts             #   中文文案
-│       └── en.ts             #   英文文案
-│
-└── mcp/                      # MCP Server (端口 4100)
-    ├── server.ts             # McpServer 初始化、Bearer 鉴权、速率限制、工具注册
-    └── tools/
-        ├── deploy-page.ts        # 发布单页 HTML
-        ├── deploy-markdown.ts    # Markdown → HTML 发布
-        ├── deploy-docs.ts        # 多页文档站 (files 参数)
-        ├── deploy-files.ts       # 多文件发布
-        ├── deploy-zip.ts         # ZIP base64 发布
-        ├── deploy-presentation.ts # PDF/PPTX 发布
-        ├── list-deployments.ts   # 列出部署
-        ├── get-deployment.ts     # 查看单部署
-        ├── pin-deployment.ts     # 设为永久
-        ├── delete-deployment.ts  # 删除部署
-        ├── set-access.ts         # 切换公开/口令
-        └── set-space-id.ts       # 更换 space_id
-
-packages/
-└── mcp-client/              # pagefire-mcp npm 包 - 本地 Node 代理(解决 Bun TLS DPI 问题)
-```
-
-## 数据模型
-
-7 张表 (schema.sql):
-- `tokens` — API key 与 space_id 映射，关联 `user_id`（可为 null）
-- `users` — 登录账号，关联 `token_id`（与 tokens 双向 FK，创建时先插 token → 再插 user → 回填 token.user_id）
-- `sessions` — HTTP-only cookie 会话
-- `deployments` — 每行一个独立 URL，含访问控制/pin/过期/SPA 模式
-- `deploy_logs` — 审计日志
-- `invites` — 注册邀请码
-
-文件存储: `/var/pagefire/sites/<token_id>/<did>/`（纯静态，直接 serve）
-
-## 关键模式
-
-- **HTML 模板在 .ts 中**: 着陆页/仪表盘/Playground 都是 `home.ts`/`dashboard.ts`/`playground.ts` 中用内联模板（反引号字符串）渲染，无独立 HTML 文件或前端框架。所有 HTML 属性必须用 ASCII `"`，不能用弯引号 `"`（有专测 `test/unit/html-templates.test.ts` 检查）。
-- **视图计数器**: `ViewCounter` 类维护内存计数，每 30s 批量写回 SQLite。HTML 注入 `_pf/counter` endpoint + 客户端 fetch POST 异步更新。
-- **DB 访问**: 全部通过 `db/repo.ts` 的纯函数，每个函数一条 `db.prepare()`。事务在调用方控制（通常用 `db.transaction()`）。
-- **Auth 双层**: MCP 用 Bearer token（SHA-256 hash 后查 DB）+ 速率限制；Web 用 session cookie（`sessions` 表）。
-- **发布流程**: MCP 工具 → `publish.ts` → `deploy.ts`(写磁盘，原子 rename) → 写 DB。每步都有配额/校验检查。
-
-## 构建与运行
+## 常用命令
 
 ```bash
-pnpm install              # 安装依赖
-pnpm build                # tsc → dist/ + 复制 schema.sql + assets
-pnpm start                # node dist/index.js (MCP:4100 + HTTP:4000)
-pnpm dev                  # tsx watch src/index.ts
-pnpm test                 # vitest run (全部)
-pnpm test:unit            # vitest run test/unit
-pnpm test:integration     # vitest run test/integration (目前仅为占位)
-pnpm lint:quotes          # 检查 HTML 模板中的弯引号 (vitest run test/unit/html-templates.test.ts)
+pnpm install
+pnpm build        # tsc → dist/，并复制 src/db/schema.sql 与 src/assets/(remark.min.js，幻灯片运行时)
+pnpm dev          # tsx watch src/index.ts
+pnpm start        # node dist/index.js (MCP:4100 + HTTP:4000)
+pnpm test         # vitest run (全部)
+pnpm test:unit    # vitest run test/unit
+pnpm lint:quotes  # 检查 HTML 模板中的弯引号
+
+# 跑单个测试文件 / 单个用例
+pnpm exec vitest run test/unit/serve-file.test.ts
+pnpm exec vitest run -t "部分用例名"
+
+pnpm exec tsc --noEmit   # CI 的类型检查(只覆盖 src/，不含 test/ 与 packages/)
 ```
 
-CLI (需先 pnpm build):
+Markdown 图表需先下载自托管 mermaid（缺失时路由会 302 到 CDN）：`node scripts/download-mermaid.mjs`
+
+### 两个不同的 CLI —— 别混淆
+
+| | 服务端管理 CLI | 用户 CLI / MCP 连接器 |
+|---|---|---|
+| 位置 | `src/cli/index.ts` → `dist/cli/index.js` | `packages/mcp-client` (npm 包 `pagefire-mcp`) |
+| 命令 | `token create\|list\|disable\|rotate\|set-space-id`、`gc` | `deploy`、`deploy-docs`、`deploy-markdown`、`deploy-presentation`、`list`、`pin`、`delete` |
+| 用途 | 运维：发 token、回收过期部署 | 发布者：发布与生命周期管理；同时是 stdio MCP bridge |
+
 ```bash
 node dist/cli/index.js token create --slug <name> [--label <text>]
-node dist/cli/index.js token list
-node dist/cli/index.js token disable --slug <name>
-node dist/cli/index.js token rotate --slug <name>
-node dist/cli/index.js token set-space-id --slug <name> --space-id <id>
 node dist/cli/index.js gc
+cd packages/mcp-client && pnpm install && pnpm test   # 该包有独立依赖与测试
 ```
 
-## 测试体系
+## 架构约束(改动前必读)
 
-- **单测**: `test/unit/`，vitest + Node 环境。`auth.test.ts` 使用 `better-sqlite3` `:memory:` 建临时表；`counter-inject.test.ts` 测 HTML 注入逻辑（纯函数、无 DB）。
-- **继承测试**: `test/integration/`，目前仅为 TODO stubs，需要完整服务才能跑。
-- **HTML 模板守卫**: `html-templates.test.ts` 遍历 `src/http/*.ts` 检查 HTML 属性中是否有弯引号——这是模板字面量 HTML 最常见的静默错误。
-- 写新的 .ts 源码时，如果包含 HTML 模板片段，确保属性值只用 ASCII `"`。
+1. **纯静态，服务器侧绝不执行用户代码**（无 PHP/SSR）。用户 JS 只在访客浏览器跑。
+2. **token 密钥 (`pf_xxx`) 永不进 URL、永不入库明文**。域名只用不透明随机 `space_id`；DB 只存 SHA-256 hash。
+3. **单进程三角色**: 同一 Node 进程并起 MCP 写入面 (4100) + HTTP 静态面 (4000)；CLI 是另起的一次性进程。共享 better-sqlite3 (WAL)。
+4. **MCP 用 Streamable HTTP transport**（服务器在远端，不能用 stdio）。
+5. **上传写盘原子化**: 写 `sites/<token_id>/.tmp/` → 校验路径穿越/Zip Slip/zip bomb → rename。
+6. HTML 模板一律内联在 `.ts` 里（无前端框架、无独立 HTML 文件），**属性值只能用 ASCII `"`**，弯引号会让 `test/unit/html-templates.test.ts` 失败。
+
+## 架构要点
+
+### 请求路由:Host 头 → did/space_id
+
+`src/http/server.ts` 先把 `/api/` 前缀交给 `api.ts`，其余全部进 `router.ts`。`router.ts:handleRequest` 的判定顺序：
+
+1. **与域名无关的保留路径**（先于任何域名判断）：`/__pf__/mermaid.min.js`、`/__pf__/remark.min.js`（自托管运行时，缺失则 302 到 CDN）、`/hXvfiH7OHs.txt`（微信 webview 校验）、`/healthz`。
+2. `resolveBaseDomain(host, baseDomains)` 匹配基础域名：**精确等于 apex** → 根域路由（品牌图标、`/dashboard`、`/playground`、其余落到着陆页）；子域名 → 下一步；不匹配 → 404。
+3. 从子域名切出 `did` / `space_id`：优先识别历史遗留的 `<did>--<space_id>`（双横线），否则 `<did>-<space_id>`（单横线），无横线则只当 `space_id`（必然 404）。
+
+> `did` 的字符集是 `[a-z0-9]`（**不含连字符**），正是为了让单横线切分无歧义 —— 见 `core/validate.ts:validateCustomDid`。
+
+**多基础域名**: `PAGEFIRE_BASE_DOMAIN` 支持逗号分隔列表，`config.baseDomains` 全部接受访问，`[0]` 为生成 URL 的主域名（`config.ts:parseBaseDomains`）。
+
+**`_pf/` 命名空间**（部署子域名下，被 `isPageRequest` 排除在口令拦截之外）：`_pf/login`、`_pf/logout`、`_pf/counter`。
+
+### 三套互不相干的鉴权
+
+| 场景 | 凭据 | 存储 |
+|---|---|---|
+| MCP 写入面 | `Authorization: Bearer pf_...` → SHA-256 后查 `tokens` 表且 `status='active'` | DB 存 hash（`src/auth.ts`） |
+| Web 控制台 | `pf_session` cookie（HttpOnly/Secure/SameSite=Lax/30d） | `sessions` 表（`src/http/api.ts`） |
+| 口令保护的部署 | `pf_auth` cookie 或 `X-Passphrase` 头 | **无状态** HMAC 签名 token，密钥派生自 `PAGEFIRE_TOKEN_ENC_KEY`（`src/http/session.ts`） |
+
+MCP 限流：`config.rateLimit`（`PAGEFIRE_RATE_LIMIT`，默认 20）对每个 token 生效，60s 滑动窗口，实现抽在 `src/mcp/rate-limit.ts`（内存 Map，因此是**每进程**而非全局配额）；`server.ts` 的 12 个工具调用点与 `/upload` 共用它，`test/unit/rate-limit.test.ts` 覆盖。注册接口另有 5 次/小时/IP 限流。
+
+### 两条发布通道 —— 10 MB 内联上限的由来
+
+- **内联工具**（`deploy_page`/`deploy_markdown`/`deploy_files`/`deploy_docs`/`deploy_zip`/`deploy_presentation`）：内容走 MCP 工具参数，受 `publish.ts:MAX_FILE_BYTES` 单文件 10 MB 限制，请求体上限 `MAX_MCP_BODY` 70 MB。
+- **带外上传**：`POST /upload`（MCP 端口 4100，64 MB 上限），由 **`packages/mcp-client` 的连接器本地工具** `deploy_dir` / `deploy_docs_dir` / `deploy_file` 调用 —— 它们在客户端读本地磁盘再 POST，`deploy_docs_dir` 走 `render:'docs'`。**这三个不是服务端 MCP 工具**，服务端的 `deploy_files`/`deploy_docs` 只收内联内容。
+
+MCP 传输是**无状态**的（`sessionIdGenerator: undefined`，逐请求新建 `McpServer`），且**没有 `/mcp` 专属路径** —— 除 `/healthz`、`/upload` 外的任何请求都按 MCP 处理。工具注册与 zod schema 都写在 `src/mcp/server.ts`，`src/mcp/tools/*.ts` 只是被调用的普通函数。
+
+### 发布主流程
+
+`src/mcp/tools/*` → `core/publish.ts:publish()` → `resolveTarget`(自定义 did 属己则原地更新、被他人占用则报错) → 校验 CSP → 逐文件 10 MB 校验 → `checkQuota` → `core/deploy.ts:deployFiles`(写 `.tmp/` → rename) → `finalizeDeployment`(写 DB + 审计日志)。
+
+`deployFiles` 对已存在的正式目录是**先改名备份再 rename，失败自动回滚**（备份落到 `sites/<token_id>/<did>.old-<rand>`，成功后删除），所以重发全程旧版本都可访问；`rename` 的原子性保证失败时要么原样、要么恢复。`docs/design.md` §12 的"先备份再替换、失败可回滚"**已实现**，`test/unit/deploy.test.ts` 覆盖（含用 `vi.mock('fs')` 注入 rename 故障验证回滚）。更新时生命周期/访问控制的沿用逻辑见 `finalizeDeployment`。
+
+### 静态服务管线(`src/http/serve.ts`)
+
+`resolveServePath` 决定目标：直接命中文件 → 目录取其 `index.html`（**目录不会 SPA 回退**）→ 缺失且 `spa` 且是页面类扩展名 → 根 `index.html`。路径穿越拦截在 **router** 里做（`decodeURIComponent` → `pathHasDotDotSegment` → `resolve` 前缀包含判断），不在 serve.ts。
+
+`serveFile` 顺序：stat → 弱 ETag `W/"size-mtime"` → HTML `no-cache`/其余 `max-age=300` → **304 短路早于一切正文处理** → SVG 清洗（失败则强制下载头）→ Range（仅 identity、不与压缩并用）→ gzip（可压缩类型、1KB–2MB、gzip 结果按 mtime LRU 缓存）→ 原始流。
+
+HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 meta（显式 → 从 `<img>`/`<title>`/`<h1>` 自动推断 → 平台 logo 兜底）+ 微信 JS-SDK + 浏览量 DOM 与上报脚本。**ETag 只基于文件 stat，不含浏览量**，所以计数变化不会破坏 304。
+
+> `docs/design.md` §11 里写的 `<did>--<space_id>`（双横线）已是遗留格式，现行为单横线。
+
+### 视图计数器(`src/http/counter.ts`)
+
+内存 `pending`(did→增量) + `cached`(did→已落库总数)，**每 60s** 在单事务里批量 `UPDATE ... views = views + ?` 落盘；flush 失败保留 pending 待重试。读路径 = `cached + pending`，不查库。timer 已 `unref`。
+
+### 安全头与 CSP 合并(`src/http/headers.ts`)
+
+默认 CSP 较宽（`script-src` 含 `'unsafe-inline' 'unsafe-eval' https:`），因为要支持用户上传的任意静态站。部署级自定义 CSP 会被 `buildSecurityHeaders`/`enforceMinimumCsp` 合并，强制补回 `script-src 'unsafe-inline'`、`style-src 'unsafe-inline'`、`connect-src 'self'` —— 否则注入的计数器脚本会被自己的 CSP 拦掉。CSP 值在发布时校验（长度 + 控制字符，控制字符会让 `setHeader` 抛错变 500）。
+
+## 测试
+
+- `test/unit/` 23 个文件，vitest + Node 环境，**纯函数为主、多用临时目录，不强依赖完整服务**（`auth.test.ts` 用 `better-sqlite3` `:memory:`）。改动 serve/router/headers/markdown 后重点跑：`serve-file`、`serve-html-counter`、`resolve-serve-path`、`etag`、`counter-inject`、`csp`、`base-domain`、`html-templates`。
+- `test/integration/` 仅两个 TODO 占位（断言恒真），要跑起来需完整服务。
+- **守卫测试**（都在 `test/unit/`，用 `git ls-files` 扫已提交文件，专门防「同一个事实写在两处然后漂移」）：
+  - `html-templates.test.ts` —— 遍历 `src/http/*.ts` 检查 HTML 属性里的弯引号，内联模板最常见的静默错误。
+  - `public-docs.test.ts` —— 已提交文件里不得有主机 IP / 同机其它服务信息（见「公开仓库的信息边界」）。
+  - `docs-links.test.ts` —— 文档相对链接必须存在**且已提交**（本地有、忘了 `git add` 也算红）。
+  - `docs-extension-list.test.ts` —— `docs/MCP_GUIDE.md` 的扩展名表必须逐个等于 `validate.ts:ALLOWED_EXTENSIONS`。
+  - `env-example.test.ts` —— `.env.example` 必须覆盖 `config.ts` 读的全部变量（漏一个就是配置漂移，`PAGEFIRE_TOKEN_ENC_KEY` 漏掉尤其危险）。
+  - `agents-md-sync.test.ts` —— `AGENTS.md` 与 `CLAUDE.md` 除头部外逐字一致（见下）。
+- `packages/mcp-client` 有独立测试，根目录 `pnpm test` 不覆盖它。
+- 根 `tsconfig.json` 是 `NodeNext`：**新增源码的相对导入必须带 `.js` 后缀**。
 
 ## 线上部署
 
-- 代码: `/opt/pagefire` (git clone + pnpm install + pnpm build)
-- 数据: `/var/pagefire/` (sites/ + pagefire.db)
+- 代码: `/opt/pagefire`；数据: `/var/pagefire/`（`sites/<token_id>/<did>/` + `pagefire.db`）
 - PM2: `pm2 start dist/index.js --name pagefire --max-memory-restart 200M`
-- nginx 反代（Docker 容器 `luminar-nginx`，host network）: `*.pagefire` → `127.0.0.1:4000`, `mcp.pagefire` → `127.0.0.1:4100`
-- SSH: `ssh -i docs/deploy/hkt.pem root@8.163.52.153`
-- 备份: `/opt/pagefire/scripts/backup.sh`，cron `37 3 * * *`，SQLite 在线备份 + rsync --link-dest 增量
+- nginx 反代（复用同机已有 nginx 容器，host network，只追加 server 块）: `*.pagefire` → `127.0.0.1:4000`，`mcp.pagefire` → `127.0.0.1:4100`
+- 备份 `/opt/pagefire/scripts/backup.sh`（cron `37 3 * * *`）
+- **服务器地址、SSH 凭据、证书/DNS/nginx 具体操作一律见 `docs/deploy/`（已 gitignore，含私钥）** —— 本文件随公开仓库提交，**不要写入主机 IP、密钥路径、内部服务名或端口占用情况**。
+- 本地默认数据目录是 `./dev-data/`（`dev-data/` 已 gitignore），不是 `/var/pagefire`
 
 ## 文档
 
-- `docs/design.md` — **权威设计文档**，架构决策已确认，改架构前先改这里
-- `docs/deploy/`（gitignore'd，含敏感信息） — 部署手册、私钥、备份脚本
-- `docs/DEPLOY.md` — 公开版部署指南
+- `docs/README.md` — **文档总入口**（按「我想知道什么」查的导航表 + 每个事实的唯一出处表）。新增文档先看这里。
+- `docs/design.md` — **权威设计文档**（架构决策以它为准，改架构前先改这里）。2026-09-28 已就地校正与代码的漂移：单横线 URL 格式、原子发布回滚、工具数 12、CLI 子命令、域名、扩展名清单；文件树仍是设计期草图，当前代码地图以本文「架构概要」为准。
+- `docs/MCP_GUIDE.md` — 面向使用者的 MCP 手册（工具参数、场景、限制）。
+- `docs/DEPLOY.md` — 公开版部署指南；`docs/deploy/`（gitignore'd，含私钥与真实主机坐标）— 内部部署手册。
+- `packages/mcp-client/README.md` — `pagefire` CLI 与连接器文档。
+- `specs/`、`.specify/`、`.claude/`、`docs/deploy/` 均已 gitignore。
+
+写文档时的守卫见上文「测试」节 —— 那里是守卫的唯一清单，此处不再重复（抄两份必然漂移）。

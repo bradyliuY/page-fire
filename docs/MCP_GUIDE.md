@@ -177,7 +177,7 @@ React / Vue / Svelte 等框架打包后只有一个 `index.html`，路由由 JS 
 
 ---
 
-## 10 个 MCP 工具
+## 12 个 MCP 工具
 
 ### `deploy_markdown` — 发布单篇 Markdown
 
@@ -621,7 +621,7 @@ https://<did>-<space_id>.pagefire.openhkt.com/docs/guide.html
 | 单 Token 最多部署数 | 100 个 |
 | 单 Token 总存储上限 | 200 MB |
 | 默认有效期 | 7 天（`pin: true` 则永久） |
-| 允许的文件扩展名 | html, css, js, json, txt, md, xml, svg, png, jpg, jpeg, gif, webp, ico, woff, woff2, ttf, eot, mp4, webm, pdf |
+| 允许的文件扩展名 | 页面：html, htm, css, js, mjs, map<br>图片：png, jpg, jpeg, gif, svg, webp, ico, avif<br>字体：woff, woff2, ttf, eot<br>数据/文档：json, txt, md, xml, pdf, csv, wasm, webmanifest<br>媒体：mp4, webm<br>演示文稿：pptx, ppt, ppsx, pps, potx |
 
 ---
 
@@ -641,10 +641,20 @@ https://<did>-<space_id>.pagefire.openhkt.com/docs/guide.html
 需要在 HTTP 请求头中携带 `X-Passphrase: <密码>` 才能访问。直接在浏览器打开会收到 401 响应。
 
 **Q: 发布后能更新内容吗？**
-目前不支持原地更新，需重新发布（会得到新的 `did` 和 URL），然后删除旧的部署。
+分两种情况：
+
+- **传了 `did` 参数** → 若该 `did` 是你自己已有的部署，则**原地更新**：URL 不变、访问统计保留，旧文件被整体替换。
+- **没传 `did`** → 每次发布生成新的随机 `did`，得到**新的 URL**；要下线旧页面需手动 `delete_deployment`。
+
+所以想「一个链接长期更新」的做法是：首次发布时给一个固定的 `did`（如 `my-report`），以后每次都传同一个 `did`。
 
 **Q: 支持自定义域名吗？**
-当前版本不支持，每次发布使用随机子域名。
+不支持绑定你自己的域名，但**子域名前缀可以自定义**，所以 URL 实际可控：
+
+- `did`（`<did>-<space_id>` 的前半段）：3–32 位，仅 `[a-z0-9]`，不含连字符。
+- `space_id`（后半段，决定「哪个 token 的站点」）：4–20 位 `[a-z0-9-]`，不能以 `-` 开头/结尾、不能含 `--`。用 `set_space_id` 更换。
+
+即 URL 形如 `https://my-report-myteam.pagefire.openhkt.com/`。不传 `did` 时前半段是 6 位随机值，`space_id` 默认 8 位随机值。
 
 **Q: 上传的文件在服务器上执行吗？**
 不会。服务器只静态伺服文件，用户上传的 HTML / JS 只在访客浏览器中运行，服务器侧永远不执行用户代码。

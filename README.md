@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="brand/pagefire-logo.png" height="80" alt="PageFire">
+  <img src="docs/product-design/brand/pagefire-logo.png" height="80" alt="PageFire">
 </p>
 
 <h3 align="center">PageFire</h3>
@@ -53,7 +53,7 @@
 
 ## 核心特性
 
-- **MCP 原生**：10 个 MCP 工具，AI 对话中一句话发布 HTML / Markdown / ZIP / 整目录
+- **MCP 原生**：12 个 MCP 工具，AI 对话中一句话发布 HTML / Markdown / ZIP / 整目录
 - **即发即得**：秒级完成，自动返回可分享的 HTTPS 子域名链接
 - **Markdown 渲染**：完整 GFM 支持，含 Callout 提示框、Mermaid 图表、代码语言标签、折叠区块等
 - **多文档站**：`deploy_docs_dir` 一键生成带左导航 + 右侧 TOC 的多页文档站
@@ -91,10 +91,14 @@ pnpm start
 |------|------|--------|
 | `PAGEFIRE_DB` | SQLite 数据库路径 | `./dev-data/pagefire.db` |
 | `PAGEFIRE_SITES` | 静态文件存储目录 | `./dev-data/sites` |
+| `PAGEFIRE_HTTP_HOST` | HTTP 静态服务绑定地址 | `127.0.0.1` |
 | `PAGEFIRE_HTTP_PORT` | HTTP 静态服务端口 | `4000` |
 | `PAGEFIRE_MCP_PORT` | MCP 服务端口 | `4100` |
-| `PAGEFIRE_BASE_DOMAIN` | 基础域名 | `localhost` |
+| `PAGEFIRE_BASE_DOMAIN` | 基础域名（多域名用逗号分隔，首个为主域名） | `localhost` |
+| `PAGEFIRE_RATE_LIMIT` | 每 token 每 60s 的请求上限 | `20` |
 | `PAGEFIRE_TOKEN_ENC_KEY` | 64 位 hex 加密密钥（必须修改） | — |
+| `PAGEFIRE_REQUIRE_INVITE` | 注册是否需要邀请码 | `false` |
+| `WECHAT_SIGN_API` | 微信 JS-SDK 签名服务地址（可选） | — |
 
 ### 创建 Token
 
@@ -114,6 +118,8 @@ PageFire 有三种用法，共用同一套 API Key：
 - **Web 控制台** —— 浏览器零配置，注册即用，适合手动发布与管理。访问根域名即可。
 - **CLI** —— 终端 / CI 脚本中直接 `pagefire deploy`，适合自动化流水线。
 - **MCP 客户端** —— 在 Claude / Cursor 等对话中一句话发布，适合 AI 工作流。
+
+九种场景的可运行示例（落地页 / 文档站 / SPA / 幻灯片 / 密码保护……）见 [`examples/`](examples/README.md)。
 
 ---
 
@@ -192,19 +198,30 @@ pagefire delete mysite              # 删除
 
 ## MCP 工具列表
 
+服务端注册 **12 个**工具，任何 MCP 客户端都能调用：
+
 | 工具 | 说明 |
 |------|------|
 | `deploy_page` | 发布单个 HTML 字符串 |
 | `deploy_markdown` | 发布 Markdown（自动渲染，支持 Mermaid / Callout） |
-| `deploy_docs_dir` | 发布本地 Markdown 目录 → 多页文档站 |
-| `deploy_dir` | 发布本地目录（支持 `.pagefireignore`） |
+| `deploy_docs` | 发布多页文档站（`files` 参数，左导航 + 右侧 TOC） |
 | `deploy_files` | 发布多文件站点（index.html + 资源） |
 | `deploy_zip` | 发布 ZIP 包（base64 编码） |
+| `deploy_presentation` | 发布 PDF / PPTX 演示文稿 |
 | `list_deployments` | 列出所有部署 |
 | `get_deployment` | 查看部署详情 |
 | `pin_deployment` | 设为永久保留 |
 | `delete_deployment` | 删除部署 |
 | `set_access` | 切换公开/密码保护 |
+| `set_space_id` | 更换子域名的 space_id |
+
+另有 **3 个**由 PageFire MCP 连接器在**本地**注册（不走服务端）—— 因为只有连接器能读你本机的磁盘：
+
+| 工具 | 说明 |
+|------|------|
+| `deploy_dir` | 发布本地目录（支持 `.pagefireignore`） |
+| `deploy_docs_dir` | 发布本地 Markdown 目录 → 多页文档站 |
+| `deploy_file` | 发布单个本地文件 |
 
 ---
 
@@ -262,6 +279,8 @@ src/
 └── mcp/              # MCP Server 与工具定义
 packages/
 └── mcp-client/       # pagefire-mcp npm 连接器包
+examples/             # 九种发布场景的可运行示例
+docs/                 # 文档索引见 docs/README.md
 ```
 
 ---

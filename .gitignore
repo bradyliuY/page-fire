@@ -42,7 +42,7 @@ Thumbs.db
 !docs/**/*.jpg
 !.github/assets/*.png
 !.github/assets/*.jpg
-!brand/*.png
+# 品牌资产已归到 docs/product-design/brand/,由上面的 !docs/**/*.png 放行
 
 # 部署文档 / 服务器相关 —— 含敏感信息，仅本地保留(目录约定,无需写具体文件名)
 docs/deploy/

@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="brand/pagefire-logo.png" height="80" alt="PageFire">
+  <img src="docs/product-design/brand/pagefire-logo.png" height="80" alt="PageFire">
 </p>
 
 <h3 align="center">PageFire</h3>
@@ -53,7 +53,7 @@
 
 ## Key Features
 
-- **MCP-native**: 10 MCP tools — publish HTML, Markdown, ZIP, or an entire directory with one sentence in an AI conversation
+- **MCP-native**: 12 MCP tools — publish HTML, Markdown, ZIP, or an entire directory with one sentence in an AI conversation
 - **Instant publish**: Ready in seconds with an auto-generated shareable HTTPS subdomain URL
 - **Markdown rendering**: Full GFM support with Callout blocks, Mermaid diagrams, code language labels, collapsible sections, and more
 - **Multi-page docs**: `deploy_docs_dir` generates a full documentation site with left sidebar navigation and per-page table of contents
@@ -91,10 +91,14 @@ pnpm start
 |----------|-------------|---------|
 | `PAGEFIRE_DB` | SQLite database path | `./dev-data/pagefire.db` |
 | `PAGEFIRE_SITES` | Static file storage directory | `./dev-data/sites` |
+| `PAGEFIRE_HTTP_HOST` | HTTP static service bind address | `127.0.0.1` |
 | `PAGEFIRE_HTTP_PORT` | HTTP static service port | `4000` |
 | `PAGEFIRE_MCP_PORT` | MCP service port | `4100` |
-| `PAGEFIRE_BASE_DOMAIN` | Base domain | `localhost` |
+| `PAGEFIRE_BASE_DOMAIN` | Base domain (comma-separated for multiple; first is primary) | `localhost` |
+| `PAGEFIRE_RATE_LIMIT` | Requests per token per 60s | `20` |
 | `PAGEFIRE_TOKEN_ENC_KEY` | 64-char hex encryption key (must change) | — |
+| `PAGEFIRE_REQUIRE_INVITE` | Require an invite code to register | `false` |
+| `WECHAT_SIGN_API` | WeChat JS-SDK signature service URL (optional) | — |
 
 ### Create a Token
 
@@ -114,6 +118,8 @@ PageFire offers three usage modes, all sharing the same API Key:
 - **Web Console** — zero-config browser interface, register and use. Great for manual publishing and management. Visit the root domain.
 - **CLI** — run `pagefire deploy` directly in terminal or CI scripts. Perfect for automation pipelines.
 - **MCP Client** — publish with one sentence in Claude, Cursor, or other AI conversations. Ideal for AI workflows.
+
+Runnable examples for nine scenarios (landing page / docs site / SPA / slides / password-protected…) are in [`examples/`](examples/README.md).
 
 ---
 
@@ -192,19 +198,30 @@ Turn the docs/ directory into a multi-page documentation site, dark theme.
 
 ## MCP Tool Reference
 
+The server registers **12 tools**, callable from any MCP client:
+
 | Tool | Description |
 |------|-------------|
 | `deploy_page` | Publish a single HTML string |
 | `deploy_markdown` | Publish Markdown (auto-rendered, supports Mermaid / Callout) |
-| `deploy_docs_dir` | Publish a local Markdown directory → multi-page docs site |
-| `deploy_dir` | Publish a local directory (supports `.pagefireignore`) |
+| `deploy_docs` | Publish a multi-page docs site (`files` argument, sidebar + per-page TOC) |
 | `deploy_files` | Publish a multi-file site (index.html + assets) |
 | `deploy_zip` | Publish a ZIP archive (base64 encoded) |
+| `deploy_presentation` | Publish a PDF / PPTX presentation |
 | `list_deployments` | List all deployments |
 | `get_deployment` | View deployment details |
 | `pin_deployment` | Pin a deployment as permanent |
 | `delete_deployment` | Delete a deployment |
 | `set_access` | Toggle public / password protection |
+| `set_space_id` | Change a subdomain's space_id |
+
+Three more are registered **locally** by the PageFire MCP connector (not server-side) — only the connector can read your local disk:
+
+| Tool | Description |
+|------|-------------|
+| `deploy_dir` | Publish a local directory (supports `.pagefireignore`) |
+| `deploy_docs_dir` | Publish a local Markdown directory → multi-page docs site |
+| `deploy_file` | Publish a single local file |
 
 ---
 
@@ -262,6 +279,8 @@ src/
 └── mcp/              # MCP Server and tool definitions
 packages/
 └── mcp-client/       # pagefire-mcp npm connector package
+examples/             # runnable examples for nine publishing scenarios
+docs/                 # doc index: docs/README.md
 ```
 
 ---

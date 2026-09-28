@@ -30,3 +30,18 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+      # packages/mcp-client 是独立包(自带 lockfile，不是 workspace 成员)，
+      # 且发布到 npm —— 根 pnpm test 的 include 是 test/**，覆盖不到它。
+      # 它的类型检查与测试必须单独跑，否则 CI 全绿也不代表这个包是好的。
+      - name: Install mcp-client dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: packages/mcp-client
+
+      - name: Type check (mcp-client)
+        run: pnpm exec tsc --noEmit
+        working-directory: packages/mcp-client
+
+      - name: Test (mcp-client)
+        run: pnpm test
+        working-directory: packages/mcp-client

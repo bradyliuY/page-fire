@@ -5,8 +5,14 @@
 
 - 日期:2026-06-23
 - 项目名:**PageFire**
-- 域名:`*.pagefire.openhkting.com`
-- 状态:设计已确认,待实现
+- 域名:`*.pagefire.hkting.com`(另有等价的 `*.pagefire.openhkt.com`,见 §4)
+- 状态:已实现(架构以本文为准;与代码漂移处已就地修正)
+
+> **公开边界**:本文只写可公开的架构与做法,服务器坐标一律用占位符(`<your-server-ip>`、
+> `<co-tenant-domain>`、`<nginx-container>`)。真实主机 IP、SSH 凭据、同机其它服务的名字/域名/
+> 容器名/certbot 目录只存在于 `docs/deploy/`(已 gitignore),那里也是**可执行部署步骤的唯一出处**。
+> 因此下文指向 `docs/deploy/...` 的链接对公开读者不可见,属预期 —— 不是坏链。
+> 该边界由 `test/unit/public-docs.test.ts` 守卫。
 
 ---
 
@@ -23,27 +29,27 @@
 | 维度 | 决策 |
 |------|------|
 | 项目名 | **PageFire** |
-| 主域名 | `pagefire.openhkting.com`,通配 `*.pagefire.openhkting.com` |
+| 主域名 | `pagefire.hkting.com`,通配 `*.pagefire.hkting.com` |
 | 多租户 | token = 一个账号/空间;每个 token 映射一个**不透明 space_id**(三级域名身份);可发无限多次(受配额) |
 | 发布单元 | **Deployment** —— 一次发布 = 一个独立随机 ID + 一条独立链接 |
 | 单文件 | 落为该 deployment 的 `index.html`,链接根直达 |
 | 多文件/zip | 整包解到 deployment 根目录,入口 `index.html`,绝对/相对路径都正常 |
-| URL | `https://<did>--<space_id>.pagefire.openhkting.com/`,**全随机不透明,不含 token** |
+| URL | `https://<did>-<space_id>.pagefire.hkting.com/`,**全随机不透明,不含 token** |
 | 防泄漏 | token 密钥永不进 URL;域名用 space_id 映射,可轮换;域名零语义、抗枚举 |
 | 生命周期 | 临时发布默认过期(默认 7 天),可 `pin` 转永久,可 `delete` 立即删 |
 | 访问控制 | 默认公开,支持可选访问口令 |
 | Token 发放 | CLI 手动生成 |
 | 托管 | 纯静态,服务器侧不执行任何用户代码 |
-| Web Server | **复用现有 nginx**(与 Luminar 共用 80/443),PageFire 自带轻量 HTTP 静态服务,nginx 反代到它 |
-| 部署位置 | 与 Luminar 同一台阿里云服务器(`<your-server-ip>`,1.8GB),纯静态 + 单 Node 进程,内存占用低 |
-| 通配 TLS | certbot/acme.sh **DNS-01**(阿里云 DNS 插件)签发 `*.pagefire.openhkting.com`,nginx 终止 TLS |
+| Web Server | **复用现有 nginx**(与其它服务共用 80/443),PageFire 自带轻量 HTTP 静态服务,nginx 反代到它 |
+| 部署位置 | 与同机其它服务共用一台阿里云服务器(`<your-server-ip>`,1.8GB),纯静态 + 单 Node 进程,内存占用低 |
+| 通配 TLS | certbot/acme.sh **DNS-01**(阿里云 DNS 插件)签发 `*.pagefire.hkting.com`,nginx 终止 TLS |
 
 ---
 
 ## 2. 整体架构
 
-> ⚠️ **与原始设计的关键差异**:本服务**与 Luminar 部署在同一台服务器**,该机已有 nginx(docker, host network)独占 80/443。为避免端口冲突、节省内存,PageFire **放弃独立 Caddy**,改为:
-> - nginx 作唯一入口,新增一个 `*.pagefire.openhkting.com` 的 server,反代到 PageFire 内网端口;
+> ⚠️ **与原始设计的关键差异**:本服务**与既有业务部署在同一台服务器**,该机已有 nginx(docker, host network)独占 80/443。为避免端口冲突、节省内存,PageFire **放弃独立 Caddy**,改为:
+> - nginx 作唯一入口,新增一个 `*.pagefire.hkting.com` 的 server,反代到 PageFire 内网端口;
 > - 「解析子域名 → 反查 token/部署 → 定位目录」这部分动态路由(Caddy 本就做不到纯静态)由 **PageFire 自带的 HTTP 静态服务**承担;
 > - 通配 TLS 由 **certbot/acme.sh + 阿里云 DNS-01** 签发,nginx 终止。
 > 详见 §4、§8 及 `docs/deploy/PAGEFIRE_DEPLOY.md`。
@@ -71,8 +77,8 @@
                                                     ▲
                           ┌─────────────────────────┴─────────────────────────┐
                           │  nginx(docker, host network, 80/443)── 唯一入口    │
-                          │  jewelry.openhkt.com/*        → Luminar(现有,不动)│
-                          │  *.pagefire.openhkting.com/*  → 反代 127.0.0.1:4000 │
+                          │  <co-tenant-domain>/*        → 既有业务(现有,不动) │
+                          │  *.pagefire.hkting.com/*  → 反代 127.0.0.1:4000    │
                           │  通配 TLS(certbot/acme.sh DNS-01)、可加限流        │
                           └────────────────────────────────────────────────────┘
 ```
@@ -88,8 +94,8 @@
 不管这次发的是 1 个 HTML 还是 zip 里 20 个 HTML,系统都视为**一次部署**,分配唯一随机 ID,挂在独立的域名根下:
 
 ```
-https://<did>--<space_id>.pagefire.openhkting.com/
-       └ 随机6位,每次发布不同   └ 该 token 的不透明随机身份(非 token,可轮换)
+https://<did>-<space_id>.pagefire.hkting.com/
+       └ 默认随机6位(可自定义)  └ 该 token 的不透明随机身份(非 token,可轮换)
 ```
 
 **为什么不直接把 token 标识放域名(防泄漏)**:
@@ -98,10 +104,10 @@ https://<did>--<space_id>.pagefire.openhkting.com/
 - 一旦某 space_id 被滥用/泄漏关联,可**轮换**成新 space_id(旧链接失效),token 不变。
 - `space_id` 与 `did` 都是高熵随机,域名**零语义、抗枚举**,看不出"谁发的、发了多少"。
 
-- **单文件**:`k3p9xa--v8x2qd.pagefire.openhkting.com/` → 内容即 `index.html`。
+- **单文件**:`k3p9xa-v8x2qd.pagefire.hkting.com/` → 内容即 `index.html`。
 - **多文件/zip**:整包解到该 deployment 根:
   ```
-  t5h2kq--v8x2qd.pagefire.openhkting.com/
+  t5h2kq-v8x2qd.pagefire.hkting.com/
     ├ /            → index.html(入口)
     ├ /about.html
     ├ /css/x.css
@@ -111,29 +117,29 @@ https://<did>--<space_id>.pagefire.openhkting.com/
 - **隔离**:每个 deployment 独立子域名 → 浏览器同源策略天然隔离,A 偷不到 B 的数据。
 
 ### token 主页(可选)
-`https://<space_id>.pagefire.openhkting.com/` 作为该 token 的"三级域名空间"(同样用不透明 space_id,不暴露 token),可选地列出其下所有存活 deployment(简单 dashboard,建议要求登录/口令)。token 主页与各 deployment 都在 `*.pagefire.openhkting.com` 一层内,**一张通配证书全覆盖**。
+`https://<space_id>.pagefire.hkting.com/` 作为该 token 的"三级域名空间"(同样用不透明 space_id,不暴露 token),可选地列出其下所有存活 deployment(简单 dashboard,建议要求登录/口令)。token 主页与各 deployment 都在 `*.pagefire.hkting.com` 一层内,**一张通配证书全覆盖**。
 
 ---
 
 ## 4. 域名 / 证书方案
 
 ```
-通配证书:  *.pagefire.openhkting.com   (DNS-01 签发,一张全覆盖,nginx 终止 TLS)
-泛解析:    *.pagefire.openhkting.com → 服务器公网 IP <your-server-ip>(阿里云一条 A 记录)
+通配证书:  *.pagefire.hkting.com   (DNS-01 签发,一张全覆盖,nginx 终止 TLS)
+泛解析:    *.pagefire.hkting.com → 服务器公网 IP <your-server-ip>(阿里云一条 A 记录)
 
-token 主页:        v8x2qd.pagefire.openhkting.com           (space_id)
-deployment:        k3p9xa--v8x2qd.pagefire.openhkting.com   (did--space_id)
-                   t5h2kq--v8x2qd.pagefire.openhkting.com
+token 主页:        v8x2qd.pagefire.hkting.com           (space_id)
+deployment:        k3p9xa-v8x2qd.pagefire.hkting.com   (did-space_id)
+                   t5h2kq-v8x2qd.pagefire.hkting.com
 ```
 
 **阿里云控制台需要配的两件事(详见 `docs/deploy/PAGEFIRE_DEPLOY.md` §1):**
-1. **泛解析 A 记录**:在 `openhkting.com` 的解析里加一条 —— 主机记录 `*.pagefire`、记录类型 `A`、值 `<your-server-ip>`。这样所有 `<任意>.pagefire.openhkting.com` 都指向服务器。
-2. **DNS-01 自动签发的凭证**:为通配证书 `*.pagefire.openhkting.com` 准备一个阿里云 RAM 子账号的 AccessKey(仅授 DNS 解析读写权限),供 acme.sh/certbot 自动加 TXT 记录验证、自动续期。
+1. **泛解析 A 记录**:在 `hkting.com` 的解析里加一条 —— 主机记录 `*.pagefire`、记录类型 `A`、值 `<your-server-ip>`。这样所有 `<任意>.pagefire.hkting.com` 都指向服务器。
+2. **DNS-01 自动签发的凭证**:为通配证书 `*.pagefire.hkting.com` 准备一个阿里云 RAM 子账号的 AccessKey(仅授 DNS 解析读写权限),供 acme.sh/certbot 自动加 TXT 记录验证、自动续期。
 
-- 通配证书只覆盖一层标签,所以 space_id 主页与 deployment **都压在这一层**(`xxx.pagefire.openhkting.com`),不用四级。
-- `--` 作"did -- space_id"分隔符;两段各自仅 `[a-z0-9]`、定长(建议 did 6 位、space_id 6–8 位、高熵),避免冲突且抗枚举。
+- 通配证书只覆盖一层标签,所以 space_id 主页与 deployment **都压在这一层**(`xxx.pagefire.hkting.com`),不用四级。
+- `-` 作 "did - space_id" 分隔符。did 3–32 位、仅 `[a-z0-9]`(**不含连字符**);space_id 4–20 位 `[a-z0-9-]`(不以 `-` 起止、不含 `--`)。正因 did 无连字符、space_id 无 `--`,按**第一个** `-` 切分即无歧义。默认 did 6 位、space_id 8 位随机,高熵抗枚举。历史 `did--space_id` 格式路由仍兼容(旧链接不失效)。
 - **均为不透明随机串,不含 token**;space_id 可轮换。
-- 后续若要"真四级" `<id>.abc.pagefire...`,需再签一张 `*.abc.pagefire.openhkting.com` 通配证书(DNS-01 同样可自动),接口不变。
+- 后续若要"真四级" `<id>.abc.pagefire...`,需再签一张 `*.abc.pagefire.hkting.com` 通配证书(DNS-01 同样可自动),接口不变。
 
 ---
 
@@ -150,7 +156,7 @@ deployment:        k3p9xa--v8x2qd.pagefire.openhkting.com   (did--space_id)
 - **Zip 解压防护**(新增,因支持 zip):
   - **Zip Slip**:每个条目名解出绝对路径后必须仍在解压根内,否则拒绝。
   - **Zip bomb**:限制解压后总大小、文件数、单文件大小、压缩比上限;超限即中止并清理。
-- **文件类型白名单**:仅 `.html .htm .css .js .png .jpg .jpeg .gif .svg .webp .ico .woff2 .json .txt .md .map`;拒绝 `.php .sh .py .exe .cgi` 等。
+- **文件类型白名单**:扩展名逐条枚举,覆盖页面 / 图片 / 字体 / 数据 / 媒体 / 演示文稿六类,共 33 种;**权威列表见 `src/core/validate.ts` 的 `ALLOWED_EXTENSIONS`**(此处不抄全表,抄了必漂移 —— 本节曾漏掉全部媒体与演示文稿格式)。拒绝 `.php .sh .py .exe .cgi` 等可执行/脚本类。
 - **SVG 清洗**:去内嵌 `<script>` / 事件属性,或强制下载头。
 - **配额**:单文件 / 单 deployment 总大小 / 单 deployment 文件数 / 单 token deployment 数,均设上限(防磁盘塞满型 DoS)。
 
@@ -194,8 +200,8 @@ CREATE TABLE tokens (
 CREATE TABLE deployments (
   id          TEXT PRIMARY KEY,      -- 内部 id
   token_id    TEXT NOT NULL REFERENCES tokens(id),
-  did         TEXT UNIQUE NOT NULL,  -- 域名里的随机6位,如 k3p9xa
-  domain      TEXT UNIQUE NOT NULL,  -- k3p9xa--v8x2qd.pagefire.openhkting.com
+  did         TEXT UNIQUE NOT NULL,  -- 域名里的前缀,默认随机6位、可自定义 3–32 位,如 k3p9xa
+  domain      TEXT UNIQUE NOT NULL,  -- k3p9xa-v8x2qd.pagefire.hkting.com
   title       TEXT,                  -- 可选标题/备注
   access      TEXT DEFAULT 'public', -- public / password
   pass_hash   TEXT,                  -- 访问口令哈希(可选)
@@ -233,6 +239,7 @@ CREATE TABLE deploy_logs (
 | `deploy_files` | 发布多文件(显式文件列表) | `files:[{path, content/base64}]`, `did?`, 其余同上 |
 | `deploy_markdown` | Markdown 渲染成精致网页 | `markdown`, `title?`, `theme?`(light/dark/sepia), `did?`, 其余同上 |
 | `deploy_docs` | 多篇 Markdown → 带侧栏的文档站 | `files:[{path:.md, markdown}]`, `title?`, `theme?`, `did?`, 其余同上 |
+| `deploy_presentation` | PDF / PPTX 演示文稿 → 可翻页网页 | `pdf?`/`pptx?`(base64,二选一), `title?`, `theme?`, `did?`, 其余同上 |
 | `list_deployments` | 列出当前 token 的发布 | `include_expired?` |
 | `get_deployment` | 查详情 + URL | `did` |
 | `pin_deployment` | 置为永久(不过期) | `did` |
@@ -241,7 +248,7 @@ CREATE TABLE deploy_logs (
 | `set_space_id` | 自定义 token 的 space_id(子域名段) | `space_id` |
 
 - **不传 `pin` 的发布默认临时**(`ttl_days` 默认 7);返回最终 URL。
-- 返回值统一含 `url`,如 `https://k3p9xa-v8x2qd.pagefire.openhkting.com/`,以及 `did`、`updated`(是否原地更新)。
+- 返回值统一含 `url`,如 `https://k3p9xa-v8x2qd.pagefire.hkting.com/`,以及 `did`、`updated`(是否原地更新)。
 - **`did` 参数(链接不变)**:可选站点别名(`[a-z0-9]{3,32}`,无连字符)。复用自己拥有的 `did` → 原地覆盖、**URL 完全不变**;未占用 → 以该名建站(`<did>-<space_id>`);被他人占用 → `DID_TAKEN`;不传 → 随机。`deploy_page/zip/files/markdown/docs` 五个发布工具统一支持,更新时保留原 pin/ttl/access(除非显式覆盖),配额按净增量计。
 - **统一发布管线**:所有发布工具最终走 `core/publish.ts`(`resolveTarget` + `finalizeDeployment`);`deploy_markdown`/`deploy_docs` 是纯转换(Markdown → 静态 HTML),发布时渲染,服务端不执行用户代码。
 - token 经 MCP server 启动配置或请求头传入,服务端校验后定位租户。
@@ -252,7 +259,7 @@ PageFire 跑在**远端服务器**,而 Claude/IDE 在**你本地**:
 - ❌ **stdio** 只能拉起本机子进程,连不到远程;
 - ❌ **绑 `127.0.0.1` 的 SSE** 本地客户端也访问不到。
 
-✅ 正解:MCP 用 **Streamable HTTP transport**,经 nginx 暴露一个**固定子域名** `mcp.pagefire.openhkting.com`(由通配证书覆盖),PageFire 进程内 MCP 端只绑 `127.0.0.1:4100`,nginx 反代:
+✅ 正解:MCP 用 **Streamable HTTP transport**,经 nginx 暴露一个**固定子域名** `mcp.pagefire.hkting.com`(由通配证书覆盖),PageFire 进程内 MCP 端只绑 `127.0.0.1:4100`,nginx 反代:
 - 每个请求必须带 `Authorization: Bearer pf_xxx`,服务端校验 token 哈希后定位租户;无 token / 无效 → 401。
 - 这是**唯一对公网开放的写入面**,因此鉴权 + 限流 + 审计必须齐全;它与对外静态服务(`*.pagefire`,只读)是不同 server 块、不同端口。
 - 本地 `claude_desktop_config` / IDE 里配置该 MCP 的 URL + token 即可。
@@ -263,8 +270,11 @@ CLI(在服务器本机运维,不经网络):
 pagefire token create --slug zhangsan --label "给张三"
    # 生成 token(打印一次性明文 pf_xxx)+ 自动分配随机 space_id,打印对应域名
 pagefire token rotate --slug zhangsan       # 轮换 space_id(泄漏时用,旧域名失效,token 不变)
+pagefire token set-space-id --slug zhangsan --space-id myteam   # 换成指定的 space_id
 pagefire token disable --slug zhangsan
 pagefire token list                          # 显示 slug/space_id/状态/配额,不显示明文 token
+pagefire invite create [--label "给张三"]     # 生成注册邀请码(REQUIRE_INVITE=true 时用)
+pagefire invite list                         # 列出邀请码及使用状态
 pagefire gc                                  # 清理过期 deployment(平时由 cron/timer 自动跑)
 ```
 
@@ -272,13 +282,13 @@ pagefire gc                                  # 清理过期 deployment(平时由
 
 ## 8. 部署与运维
 
-> 完整可执行步骤见 **`docs/deploy/PAGEFIRE_DEPLOY.md`**(与 Luminar 同机共存版)。要点:
+> 完整可执行步骤见 **`docs/deploy/PAGEFIRE_DEPLOY.md`**(同机共存版)。要点:
 
-- **Web 层**:复用现有 **nginx**(docker, host network)。新增一个 server 块:`server_name *.pagefire.openhkting.com`,443 终止通配 TLS,`proxy_pass http://127.0.0.1:4000`,透传 `Host` 头。Luminar 的 `jewelry.openhkt.com` server 块保持不动。
-- **动态路由**:PageFire HTTP 静态服务收到请求后,读 `Host` 头解析子域名 `<did>--<space_id>`,用 SQLite `space_id→token_id`、`did→deployment` 反查真实目录(`/var/pagefire/sites/<token_id>/<did>/`)并 serve,注入安全头。空间/部署不存在或已过期 → 404。
-- **TLS**:`acme.sh`(或 certbot)用 **阿里云 DNS-01** 自动签发 `*.pagefire.openhkting.com` 通配证书(需阿里云 RAM AccessKey),装到 nginx 证书目录,自动续期后 `docker restart` nginx。
-- **DNS**:阿里云控制台为 `openhkting.com` 加一条 `*.pagefire A <your-server-ip>`。
-- **服务**:PageFire 单进程由 **PM2** 托管(与 Luminar 的 backend/storefront 同一 PM2),`pm2 save` 持久化;数据目录权限收紧、非 root。
+- **Web 层**:复用现有 **nginx**(docker, host network)。新增一个 server 块:`server_name *.pagefire.hkting.com`,443 终止通配 TLS,`proxy_pass http://127.0.0.1:4000`,透传 `Host` 头。同机既有业务的 server 块保持不动。
+- **动态路由**:PageFire HTTP 静态服务收到请求后,读 `Host` 头解析子域名 `<did>-<space_id>`,用 SQLite `space_id→token_id`、`did→deployment` 反查真实目录(`/var/pagefire/sites/<token_id>/<did>/`)并 serve,注入安全头。空间/部署不存在或已过期 → 404。
+- **TLS**:`acme.sh`(或 certbot)用 **阿里云 DNS-01** 自动签发 `*.pagefire.hkting.com` 通配证书(需阿里云 RAM AccessKey),装到 nginx 证书目录,自动续期后 `docker restart` nginx。
+- **DNS**:阿里云控制台为 `hkting.com` 加一条 `*.pagefire A <your-server-ip>`。
+- **服务**:PageFire 单进程由 **PM2** 托管(与同机其它服务共用同一 PM2),`pm2 save` 持久化;数据目录权限收紧、非 root。
 - **定时任务**:cron 周期执行 `pagefire gc` 清理过期发布。
 - **备份**:定期备份 SQLite + `sites/`。
 - **监控**:磁盘用量、证书有效期、内存余量(全机仅 ~400MB 余量,需盯)、审计日志告警。
@@ -290,7 +300,7 @@ pagefire gc                                  # 清理过期 deployment(平时由
 **MVP(核心链路)**
 1. MCP Server:`deploy_page` + token 鉴权 + 路径/类型校验 + 写盘
 2. SQLite 元数据 + CLI 生成 token
-3. PageFire HTTP 静态服务:`<did>--<space_id>` 子域名解析 + space_id→token 反查 + serve + 安全头;nginx 反代 + 阿里云 DNS-01 通配证书
+3. PageFire HTTP 静态服务:`<did>-<space_id>` 子域名解析 + space_id→token 反查 + serve + 安全头;nginx 反代 + 阿里云 DNS-01 通配证书
 4. PM2 托管 + 非 root + 数据目录权限收紧 + 临时页过期 + `gc`
 
 **第二阶段**
@@ -309,7 +319,7 @@ pagefire gc                                  # 清理过期 deployment(平时由
 ## 10. 已知权衡
 
 - deployment 压在三级域名一层 → 牺牲"真四级层级感",换一张通配证书的极简运维。
-- 与 Luminar 同机共用 nginx + 仅 ~400MB 内存余量 → 省成本但余量紧张;PageFire 纯静态+单轻量 Node 进程占用低,需配 PM2 内存上限并盯监控,必要时升级实例。
+- 与既有业务同机共用 nginx + 仅 ~400MB 内存余量 → 省成本但余量紧张;PageFire 纯静态+单轻量 Node 进程占用低,需配 PM2 内存上限并盯监控,必要时升级实例。
 
 ---
 
@@ -326,16 +336,16 @@ pagefire/
 │   │
 │   ├── mcp/                # —— MCP 写入面(经 nginx + Bearer token 暴露)
 │   │   ├── server.ts       # Streamable HTTP transport,注册工具,逐请求鉴权
-│   │   └── tools/          # deploy_page / deploy_zip / deploy_files / list / get / pin / delete / set_access
+│   │   └── tools/          # 12 个:deploy_page|markdown|docs|files|zip|presentation、list|get|pin|delete_deployment、set_access|set_space_id
 │   │
 │   ├── http/               # —— 对外只读静态面(*.pagefire,经 nginx)
 │   │   ├── server.ts       # 监听 127.0.0.1:4000
-│   │   ├── router.ts       # 解析 Host:<did>--<space_id> → 查 DB → 真实目录;404/过期页
+│   │   ├── router.ts       # 解析 Host:<did>-<space_id> → 查 DB → 真实目录;404/过期页
 │   │   ├── serve.ts        # 发静态文件 + Content-Type + 口令(401)校验
 │   │   └── headers.ts      # CSP / nosniff / Referrer-Policy(HSTS 见 §12)
 │   │
 │   ├── core/               # —— MCP 与 HTTP 共用的业务逻辑
-│   │   ├── deploy.ts       # 原子发布:写 tmp → 校验 → rename(见 §12)
+│   │   ├── deploy.ts       # 原子发布:写 tmp → 校验 → rename(旧目录先备份,失败回滚;见 §12)
 │   │   ├── validate.ts     # 路径穿越 / 类型白名单 / SVG 清洗
 │   │   ├── zip.ts          # 解压 + Zip Slip / zip bomb 防护
 │   │   ├── quota.ts        # 单文件/单部署/单 token 配额
@@ -346,7 +356,7 @@ pagefire/
 │   │   ├── migrate.ts      # 初始化 / 迁移(WAL 模式,支持多进程读)
 │   │   └── repo.ts         # tokens / deployments / deploy_logs 仓储
 │   │
-│   └── cli/index.ts        # pagefire token create|rotate|disable|list、gc
+│   └── cli/index.ts        # pagefire token create|list|disable|rotate|set-space-id、invite create|list、gc
 │
 ├── dist/                   # tsc 构建产物(部署上传 / pm2 start 的目标)
 ├── test/
@@ -354,6 +364,11 @@ pagefire/
 ├── package.json
 └── tsconfig.json
 ```
+
+> ⚠️ 上面是**设计期的结构草图**,只列了架构上有意义的部分。当前**实际**目录(含
+> `http/i18n/`、`core/presentation/`、`core/docs.ts`、`markdown.ts`、`slides.ts`、`svg.ts`、
+> `token-enc.ts`、`mcp/rate-limit.ts` 等)以 **CLAUDE.md「架构概要」** 为准 —— 那里是维护中的代码地图,
+> 本文不再重复维护完整清单。
 
 - **MCP 与静态服务同进程、共享 better-sqlite3 句柄**(开 WAL,CLI/gc 另起进程读写也安全)。
 - 服务器侧只放 `dist/` + `node_modules` + `.env`;数据(`sites/`、`pagefire.db`)在 `/var/pagefire`,与代码分离,便于备份与权限隔离。
@@ -366,7 +381,7 @@ pagefire/
 - **did / space_id 碰撞**:生成后查 DB 唯一性,冲突则重试(高熵下概率极低,但必须处理),N 次仍冲突报错。
 - **健康检查**:静态服务暴露 `GET /healthz`(仅 `127.0.0.1`)→ `200 ok`,供 PM2 / 烟雾测试用;不经子域名解析。
 - **错误页**:空间/部署不存在、已过期、被禁用 → 统一极简 404 页(不泄漏"存在但过期"等信息,抗枚举);口令未过 → 401。
-- **HSTS 风险**:通配证书下若在 `*.pagefire` 注入 `Strict-Transport-Security: includeSubDomains`,会波及 `openhkting.com` 其它子域。**默认不加 includeSubDomains/preload**,仅对本层用普通 HSTS 或干脆不发,避免影响 Luminar 等同根域服务。
+- **HSTS 风险**:通配证书下若在 `*.pagefire` 注入 `Strict-Transport-Security: includeSubDomains`,会波及 `hkting.com` 其它子域。**默认不加 includeSubDomains/preload**,仅对本层用普通 HSTS 或干脆不发,避免影响其它同根域服务。
 - **性能优化(可选,后置)**:静态服务解析出真实目录后,可用 nginx `X-Accel-Redirect` 把发文件交给 nginx,Node 只做鉴权/路由,省内存、抗大文件。MVP 直接 Node 发文件即可。
 - **Content-Type**:按扩展名映射 MIME(白名单内),未知类型回退 `application/octet-stream`;`.svg` 经清洗后才以 `image/svg+xml` 发,否则强制下载头。
 - **限流**:对外页面访问与 MCP 写入面都应限流(nginx `limit_req` 或进程内),防爬/防刷部署。

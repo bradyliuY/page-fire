@@ -7,12 +7,30 @@
 
 set -euo pipefail
 
+# ── 服务器坐标不入库 ──────────────────────────────────────────
+# 本仓库是公开的,不写死主机 IP / 私钥路径。
+# 从环境变量或本地 gitignore'd 的 docs/deploy/ssh.env 读取,例如:
+#   PAGEFIRE_SERVER=root@203.0.113.10
+#   PAGEFIRE_SSH_KEY=docs/deploy/hkt.pem
+if [ -f docs/deploy/ssh.env ]; then
+  # shellcheck disable=SC1091
+  . docs/deploy/ssh.env
+fi
+
+SSH_KEY="${PAGEFIRE_SSH_KEY:-docs/deploy/hkt.pem}"
+SERVER="${PAGEFIRE_SERVER:-}"
+PAGEFIRE_DIR="${PAGEFIRE_DIR:-/opt/pagefire}"
+DB_PATH="${PAGEFIRE_DB_PATH:-/var/pagefire/pagefire.db}"
+
+if [ -z "$SERVER" ]; then
+  echo "❌ 未设置 PAGEFIRE_SERVER —— 服务器地址不入库。" >&2
+  echo "   请用 PAGEFIRE_SERVER=root@<服务器 IP> bash $0 ... 运行," >&2
+  echo "   或写入 docs/deploy/ssh.env(gitignored)。" >&2
+  exit 1
+fi
+
 USERNAME="${1:-}"
 PASSWORD="${2:-1234567}"
-SSH_KEY="docs/deploy/hkt.pem"
-SERVER="root@8.163.52.153"
-PAGEFIRE_DIR="/opt/pagefire"
-DB_PATH="/var/pagefire/pagefire.db"
 
 if [ -z "$USERNAME" ]; then
   echo "用法: bash scripts/reset-password.sh <用户名> [新密码]"

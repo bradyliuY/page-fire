@@ -1,6 +1,6 @@
 // Auto-generated brand assets, base64-embedded for serving on the root domain.
-// LOGO_PNG: horizontal lockup (brand/pagefire-design.png), navy bg keyed transparent + alpha-trimmed.
-// FAVICON_PNG: 64x64 icon (brand/pagefire-logo.png), content-trimmed + squared. Served at /favicon.ico, /favicon.png, /favicon-64.png.
+// LOGO_PNG: horizontal lockup (docs/product-design/brand/pagefire-design.png), navy bg keyed transparent + alpha-trimmed.
+// FAVICON_PNG: 64x64 icon (docs/product-design/brand/pagefire-logo.png), content-trimmed + squared. Served at /favicon.ico, /favicon.png, /favicon-64.png.
 // FAVICON_32_PNG: 32x32 downscale of the 64x64 icon. Served at /favicon-32.png.
 // FAVICON_ICO: real multi-size ICO (16/32/48/64) derived from the 64x64 icon. Served at /favicon.ico with image/x-icon (crawlers expect a real ICO there).
 // APPLE_TOUCH_ICON_PNG: 180x180 re-render from brand source (solid-content square crop). Served at /apple-touch-icon.png.

@@ -2,9 +2,12 @@
 
 日期:2026-09-02 · 状态:已实施
 
+> 本文只保留**可公开**的架构决策。具体服务器坐标(主机 IP、证书目录、同机容器名、
+> SSH 凭据)见 `docs/deploy/PAGEFIRE_DEPLOY.md` —— 该目录已 gitignore,是运维细节的唯一出处。
+
 ## 背景
 
-在 `pagefire.openhkt.com` 之外增加 `pagefire.hkting.com` 作为完全等价的第二访问域名(阿里云 DNS 托管,同机 `8.163.52.153`)。两个域名同时在线,功能一模一样。
+在 `pagefire.openhkt.com` 之外增加 `pagefire.hkting.com` 作为完全等价的第二访问域名(阿里云 DNS 托管,与既有业务同机部署)。两个域名同时在线,功能一模一样。
 
 ## 代码决策
 
@@ -21,14 +24,15 @@
 
 ## 基础设施决策
 
-1. **DNS**(阿里云 API):hkting.com zone 加 `pagefire A` + `*.pagefire A → 8.163.52.153`。
+1. **DNS**(阿里云 API):hkting.com zone 加 `pagefire A` + `*.pagefire A → <your-server-ip>`。
 2. **证书**:通配符必须 DNS-01。acme.sh `--dns dns_ali`(RAM 子账号 AK,仅 AliyunDNS 权限)
-   签 `pagefire.hkting.com + *.pagefire.hkting.com`,装到 `/opt/luminar/certbot/conf/pagefire-hkting/`。
-   reloadcmd 用 `docker exec luminar-nginx nginx -s reload`(比原 `docker restart` 温和)。
+   签 `pagefire.hkting.com + *.pagefire.hkting.com`,装到同机 nginx 容器的 certbot 配置目录
+   (`<nginx-certbot-conf>/pagefire-hkting/`)。
+   reloadcmd 用 `docker exec <nginx-container> nginx -s reload`(比原 `docker restart` 温和)。
 3. **顺带修复**:原 `pagefire.openhkt.com` 通配证书是手动 TXT 签发(`Le_Webroot='dns'`),
    自动续期实际不可用(2026-09-08 起续期失败、~09-21 过期)。用同一 AK 以 dns_ali 重签,
    凭据持久化到 acme.sh → 恢复全自动续期。
-4. **nginx**(只追加,不动 Luminar 既有块):镜像现有两块,`*.pagefire.hkting.com pagefire.hkting.com` → 4000,
+4. **nginx**(只追加,不动既有块):镜像现有两块,`*.pagefire.hkting.com pagefire.hkting.com` → 4000,
    `mcp.pagefire.hkting.com` → 4100(Streamable HTTP 参数同现状)。
 5. **部署**:`.env` 改 `PAGEFIRE_BASE_DOMAIN=pagefire.hkting.com,pagefire.openhkt.com`
    (按用户要求 **hkting 为主域名**,发布链接/MCP endpoint 默认 hkting;openhkt 完全保留),
