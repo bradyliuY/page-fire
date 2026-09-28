@@ -65,6 +65,7 @@ PageFire 的文档入口。**按「你想知道什么」查,不用先猜文件�
 | `test/unit/env-example.test.ts` | `.env.example` 漏掉 `config.ts` 会读的变量 |
 | `test/unit/public-docs.test.ts` | 泄露主机 IP 或同机其它服务信息(邻居词表在 `docs/deploy/sensitive-terms.txt`,已 gitignore) |
 | `test/unit/agents-md-sync.test.ts` | 本地的 `AGENTS.md`(Codex)与 [../CLAUDE.md](../CLAUDE.md) 漂移 |
+| `test/unit/brand-assets.test.ts` | 品牌源图换了而 `assets.ts` 里内嵌的派生资源没跟着换(静默过期) |
 | `test/unit/html-templates.test.ts` | 内联 HTML 模板里的弯引号 |
 
 ## 新增文档时

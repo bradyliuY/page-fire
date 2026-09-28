@@ -119,7 +119,7 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
 
 ## 测试
 
-- `test/unit/` 23 个文件，vitest + Node 环境，**纯函数为主、多用临时目录，不强依赖完整服务**（`auth.test.ts` 用 `better-sqlite3` `:memory:`）。改动 serve/router/headers/markdown 后重点跑：`serve-file`、`serve-html-counter`、`resolve-serve-path`、`etag`、`counter-inject`、`csp`、`base-domain`、`html-templates`。
+- `test/unit/` 24 个文件，vitest + Node 环境，**纯函数为主、多用临时目录，不强依赖完整服务**（`auth.test.ts` 用 `better-sqlite3` `:memory:`）。改动 serve/router/headers/markdown 后重点跑：`serve-file`、`serve-html-counter`、`resolve-serve-path`、`etag`、`counter-inject`、`csp`、`base-domain`、`html-templates`。
 - `test/integration/` 仅两个 TODO 占位（断言恒真），要跑起来需完整服务。
 - **守卫测试**（都在 `test/unit/`，用 `git ls-files` 扫已提交文件，专门防「同一个事实写在两处然后漂移」）：
   - `html-templates.test.ts` —— 遍历 `src/http/*.ts` 检查 HTML 属性里的弯引号，内联模板最常见的静默错误。
@@ -127,6 +127,7 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
   - `docs-links.test.ts` —— 文档相对链接必须存在**且已提交**（本地有、忘了 `git add` 也算红）。
   - `docs-extension-list.test.ts` —— `docs/MCP_GUIDE.md` 的扩展名表必须逐个等于 `validate.ts:ALLOWED_EXTENSIONS`。
   - `env-example.test.ts` —— `.env.example` 必须覆盖 `config.ts` 读的全部变量（漏一个就是配置漂移，`PAGEFIRE_TOKEN_ENC_KEY` 漏掉尤其危险）。
+  - `brand-assets.test.ts` —— `src/http/assets.ts` 里内嵌的品牌资源是源图的派生物，源图一变就必须有人重新生成（详见 `docs/product-design/README.md`）。
   - `agents-md-sync.test.ts` —— `AGENTS.md` 与 `CLAUDE.md` 除头部外逐字一致（见下）。
 - `packages/mcp-client` 有独立测试，根目录 `pnpm test` 不覆盖它。
 - 根 `tsconfig.json` 是 `NodeNext`：**新增源码的相对导入必须带 `.js` 后缀**。
