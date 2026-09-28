@@ -20,22 +20,11 @@ import { verifyBearer } from '../auth.js'
 import { publish } from '../core/publish.js'
 import { renderDocsSite } from '../core/docs.js'
 import type { FileEntry } from '../core/deploy.js'
+import { createRateLimiter } from './rate-limit.js'
 
-// Per-token sliding-window rate limiter (in-memory)
-const rateLimiter = new Map<string, number[]>()
-
-function checkRateLimit(tokenId: string, limit: number): void {
-  const now = Date.now()
-  const window = 60_000
-  const prev = rateLimiter.get(tokenId) ?? []
-  const recent = prev.filter((t) => t > now - window)
-  if (recent.length >= limit) {
-    throw { code: 'RATE_LIMITED', message: '请求太频繁，请稍后重试。' }
-  }
-  recent.push(now)
-  rateLimiter.set(tokenId, recent)
-}
-
+// Per-token sliding-window rate limiter, shared by every MCP tool and /upload.
+// The limit comes from PAGEFIRE_RATE_LIMIT (config.rateLimit).
+const checkRateLimit = createRateLimiter()
 
 /** MCP tool-arg JSON body cap — guards the 1.8 GB box from OOM now that nginx allows big uploads. */
 const MAX_MCP_BODY = 70 * 1024 * 1024
@@ -153,7 +142,7 @@ export async function startMcpServer(
           res.end(JSON.stringify({ error: 'Invalid or missing Bearer token', code: 'UNAUTHORIZED' }))
           return
         }
-        checkRateLimit(token.id, 20)
+        checkRateLimit(token.id, config.rateLimit)
         const ip =
           (req.headers['x-real-ip'] as string | undefined) ??
           (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
@@ -222,7 +211,7 @@ export async function startMcpServer(
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
-          if (tok) checkRateLimit(tok.id, 20)
+          if (tok) checkRateLimit(tok.id, config.rateLimit)
           return makeResult(await deployPage(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
@@ -272,7 +261,7 @@ export async function startMcpServer(
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
-          if (tok) checkRateLimit(tok.id, 20)
+          if (tok) checkRateLimit(tok.id, config.rateLimit)
           return makeResult(await deployZip(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
@@ -334,7 +323,7 @@ export async function startMcpServer(
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
-          if (tok) checkRateLimit(tok.id, 20)
+          if (tok) checkRateLimit(tok.id, config.rateLimit)
           return makeResult(await deployFilesTool(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
@@ -364,7 +353,7 @@ export async function startMcpServer(
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
-          if (tok) checkRateLimit(tok.id, 20)
+          if (tok) checkRateLimit(tok.id, config.rateLimit)
           return makeResult(await deployMarkdown(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
@@ -396,7 +385,7 @@ export async function startMcpServer(
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
-          if (tok) checkRateLimit(tok.id, 20)
+          if (tok) checkRateLimit(tok.id, config.rateLimit)
           return makeResult(await deployDocs(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)
@@ -426,7 +415,7 @@ export async function startMcpServer(
       async (args) => {
         try {
           const tok = verifyBearer(authHeader, db)
-          if (tok) checkRateLimit(tok.id, 20)
+          if (tok) checkRateLimit(tok.id, config.rateLimit)
           return makeResult(await deployPresentation(args, authHeader, db, config, ip))
         } catch (err: any) {
           return makeError(err)

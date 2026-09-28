@@ -52,7 +52,8 @@ export const config: Config = {
   mcpPort: parseInt(process.env.PAGEFIRE_MCP_PORT ?? '4100'),
   baseDomain: baseDomains[0] ?? 'localhost',
   baseDomains: baseDomains.length ? baseDomains : ['localhost'],
-  rateLimit: parseInt(process.env.PAGEFIRE_RATE_LIMIT ?? '30'),
+  // Requests per token per 60s (see src/mcp/rate-limit.ts).
+  rateLimit: parseInt(process.env.PAGEFIRE_RATE_LIMIT ?? '20'),
   tokenEncKey: process.env.PAGEFIRE_TOKEN_ENC_KEY ?? '0'.repeat(64), // must be overridden in production
   requireInvite: process.env.PAGEFIRE_REQUIRE_INVITE === 'true',
   wechatSignApi: process.env.WECHAT_SIGN_API || undefined,
