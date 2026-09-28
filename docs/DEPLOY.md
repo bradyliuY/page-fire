@@ -94,9 +94,29 @@ cp .env.example /opt/pagefire/.env
 | `PAGEFIRE_HTTP_PORT` | 静态服务端口 | `4000` |
 | `PAGEFIRE_MCP_PORT` | MCP 端口 | `4100` |
 | `PAGEFIRE_BASE_DOMAIN` | 基础域名 | `pagefire.yourdomain.com` |
-| `PAGEFIRE_RATE_LIMIT` | 每分钟请求上限 | `30` |
+| `PAGEFIRE_RATE_LIMIT` | 每分钟请求上限(每 token,单进程) | `20` |
+| `PAGEFIRE_TOKEN_ENC_KEY` | 加密密钥,64 位 hex —— **必须改**,见下 | `openssl rand -hex 32` 的输出 |
+| `PAGEFIRE_REQUIRE_INVITE` | 注册是否要邀请码 | `false`(开放注册) |
 
 > SQLite 开 WAL,支持 MCP / HTTP / CLI 多连接读写;数据库会在首次启动时自动建表。
+
+### ⚠️ `PAGEFIRE_TOKEN_ENC_KEY` 必须自己生成
+
+这个密钥有两个用途:
+
+1. 加密存储 `pf_` 密钥(AES-256-GCM);
+2. 派生**口令保护部署**的 HMAC 签名密钥。
+
+第 2 点意味着:**用缺省值或公开值上线,等于没上口令保护** —— 密钥是公开可算的,任何人都能伪造 `pf_auth` cookie,直接进你所有设了口令的页面。
+
+```bash
+# 生成一个,写进 /opt/pagefire/.env
+openssl rand -hex 32
+```
+
+注意密钥长度必须**恰好 32 字节(64 位 hex)**,否则启动时加密会抛错。
+
+> 已经上线、且当初没设这个变量的实例:补上密钥后,**此前发出的口令 cookie 会全部失效**(签名对不上),访客需重新输入口令 —— 这是预期行为,不是故障。
 
 ## 5. 创建第一个 Token(CLI)
 
@@ -206,7 +226,7 @@ PageFire 的数据全在 `/var/pagefire`(`sites/` + `pagefire.db`)。务必配�
 - 静态文件用 `rsync --link-dest` 增量(未变文件硬链接,不重复占空间)
 - 保留最近 N 份,自动轮转
 
-参考脚本与 cron 安装见仓库本地目录 `docs/deploy/backup.sh`(含完整实现与安装命令)。要点:
+参考脚本与 cron 安装见本地目录 `docs/deploy/backup.sh`(含完整实现与安装命令)。注意:该目录已 gitignore,**公开仓库里没有这个文件**,只有本机运维副本中才有。要点:
 
 ```bash
 # 每天 03:37 跑一次,日志写到 /var/log/pagefire-backup.log
