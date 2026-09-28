@@ -213,3 +213,57 @@ describe('公开仓库不泄露运维坐标', () => {
     expect(hits, `以下已提交文件含真实主机 IP,请改用 <your-server-ip> 并把真实值移到 docs/deploy/:\n${hits.join('\n')}`).toEqual([])
   })
 })
+
+/**
+ * 读者向文档 —— 公开读者被邀请去读的那些。它们必须**自给自足**:文里提到的
+ * 每个文件,第三方 clone 下来都得拿得到。
+ *
+ * 反面例子是真实发生过的:`docs/DEPLOY.md` 第九节教人配备份,却让读者去看
+ * `docs/deploy/backup.sh` —— 那目录已 gitignore、公开 clone 里根本没有,而仓库里
+ * 也从没提交过任何 `backup.sh`。于是那条指引对**任何**第三方都走不通,而且不会
+ * 报错:链接守卫早已对 `docs/deploy/` 开了豁免,正是这个豁免让死指引一直绿着。
+ *
+ * 维护者向的文档(CLAUDE.md / CONTRIBUTING.md / 本测试)不在此列 ——
+ * 它们本来就要讲「运维坐标只放 docs/deploy/」这条规则,必须能提这个名字。
+ */
+const READER_FACING = [
+  'README.md',
+  'README.en.md',
+  'docs/DEPLOY.md',
+  'docs/MCP_GUIDE.md',
+  'docs/design.md',
+  'docs/plans/2026-09-02-multi-domain-design.md',
+  'docs/product-design/README.md',
+  'examples/README.md',
+  'packages/mcp-client/README.md',
+]
+
+/** 私有运维目录:公开 clone 里不存在,因此读者向文档不能指过去。 */
+const PRIVATE_DIR = 'docs/deploy'
+
+describe('读者向文档自给自足', () => {
+  it('名单里的文件都真实存在且已提交(名单写错就等于守卫空转)', () => {
+    const files = trackedFiles()
+    for (const f of READER_FACING) {
+      expect(files, `${f} 不在已提交文件里 —— 改名了?那守卫正悄悄漏掉它`).toContain(f)
+    }
+  })
+
+  it(`不提 ${PRIVATE_DIR}(公开 clone 拿不到,指过去就是走不通的指引)`, () => {
+    const hits: string[] = []
+    for (const file of READER_FACING) {
+      const text = readFileSync(join(REPO_ROOT, file), 'utf8')
+      text.split('\n').forEach((line, i) => {
+        // 不区分链接与行内代码:对读者来说两者一样走不通。
+        if (line.includes(PRIVATE_DIR)) {
+          hits.push(`${file}:${i + 1} ${line.trim().slice(0, 100)}`)
+        }
+      })
+    }
+    expect(
+      hits,
+      `读者向文档指向了私有目录 ${PRIVATE_DIR}(公开 clone 里没有):\n${hits.join('\n')}\n` +
+        `要么把读者真正需要的东西提交进仓库(如 scripts/),要么改指向已提交的公开文档。`,
+    ).toEqual([])
+  })
+})

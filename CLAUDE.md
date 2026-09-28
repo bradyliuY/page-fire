@@ -123,8 +123,8 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
 - `test/integration/` 仅两个 TODO 占位（断言恒真），要跑起来需完整服务。
 - **守卫测试**（都在 `test/unit/`，用 `git ls-files` 扫已提交文件，专门防「同一个事实写在两处然后漂移」）：
   - `html-templates.test.ts` —— 遍历 `src/http/*.ts` 检查 HTML 属性里的弯引号，内联模板最常见的静默错误。
-  - `public-docs.test.ts` —— 已提交文件里不得有主机 IP / 同机其它服务信息（见「公开仓库的信息边界」）。邻居名词表**不在这个文件里**，而在 `docs/deploy/sensitive-terms.txt`（已 gitignore）：词表本身也是秘密，写进守卫等于守卫自己泄露它；文件缺失时该条自动跳过（别人的 clone、CI）。
-  - `docs-links.test.ts` —— 文档相对链接必须存在**且已提交**（本地有、忘了 `git add` 也算红）。
+  - `public-docs.test.ts` —— 已提交文件里不得有主机 IP / 同机其它服务信息（见「公开仓库的信息边界」）。邻居名词表**不在这个文件里**，而在 `docs/deploy/sensitive-terms.txt`（已 gitignore）：词表本身也是秘密，写进守卫等于守卫自己泄露它；文件缺失时该条自动跳过（别人的 clone、CI）。另有一条**读者向文档自给自足**：`READER_FACING` 名单里的文档（README、DEPLOY、MCP_GUIDE、design、examples、mcp-client README 等）不得提 `docs/deploy` —— 公开 clone 拿不到那个目录，指过去就是走不通的指引。
+  - `docs-links.test.ts` —— 文档相对链接必须存在**且已提交**（本地有、忘了 `git add` 也算红）。**没有豁免名单**：曾对 `docs/deploy/` 开过一条，结果正好把「本地能打开、clone 下来是死链」护在检查之外（DEPLOY.md 让读者去看私有 `backup.sh` 就这样绿了很久）。正确做法是让公开文档自给自足，不是豁免。
   - `docs-extension-list.test.ts` —— `docs/MCP_GUIDE.md` 的扩展名表必须逐个等于 `validate.ts:ALLOWED_EXTENSIONS`。
   - `env-example.test.ts` —— `.env.example` 必须覆盖 `config.ts` 读的全部变量（漏一个就是配置漂移，`PAGEFIRE_TOKEN_ENC_KEY` 漏掉尤其危险）。
   - `brand-assets.test.ts` —— `src/http/assets.ts` 里内嵌的品牌资源是源图的派生物，源图一变就必须有人重新生成（详见 `docs/product-design/README.md`）。
@@ -137,7 +137,7 @@ HTML 另有 `serveHtmlWithCounter`：注入 favicon 家族 + OG/Twitter 卡片 m
 - 代码: `/opt/pagefire`；数据: `/var/pagefire/`（`sites/<token_id>/<did>/` + `pagefire.db`）
 - PM2: `pm2 start dist/index.js --name pagefire --max-memory-restart 200M`
 - nginx 反代（复用同机已有 nginx 容器，host network，只追加 server 块）: `*.pagefire` → `127.0.0.1:4000`，`mcp.pagefire` → `127.0.0.1:4100`
-- 备份 `/opt/pagefire/scripts/backup.sh`（cron `37 3 * * *`）
+- 备份 `/opt/pagefire/scripts/backup.sh`（cron `37 3 * * *`）—— 源码就是仓库里的 `scripts/backup.sh`，改动后需手动 `cp` 到服务器该路径
 - **服务器地址、SSH 凭据、证书/DNS/nginx 具体操作一律见 `docs/deploy/`（已 gitignore，含私钥）** —— 本文件随公开仓库提交，**不要写入主机 IP、密钥路径、内部服务名或端口占用情况**。
 - 本地默认数据目录是 `./dev-data/`（`dev-data/` 已 gitignore），不是 `/var/pagefire`
 

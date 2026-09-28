@@ -19,10 +19,20 @@ import { dirname, join, resolve } from 'path'
 const REPO_ROOT = join(__dirname, '..', '..')
 
 /**
- * 允许指向「仓库里本来就故意没有」的目标。
- * `docs/deploy/` 是 gitignore 的私有运维手册,公开 clone 里不存在是预期行为。
+ * 这里本来有一条豁免:`docs/deploy/` 是 gitignore 的私有运维手册,公开 clone 里
+ * 不存在,于是守卫对它放行。**那条豁免本身是个缺陷。**
+ *
+ * 它把「本地能打开、clone 下来是死链」这种最该抓的情况,恰好护在了检查之外 ——
+ * `docs/DEPLOY.md` 第九节就这么被放行了很久:它让读者去看 `docs/deploy/backup.sh`,
+ * 而那个目录公开 clone 里没有、仓库里也从没提交过任何 `backup.sh`,指引对**任何**
+ * 第三方都走不通,却一路绿灯。
+ *
+ * 正确做法不是豁免,而是**让公开文档自给自足**:读者需要的东西提交进仓库
+ * (如 `scripts/backup.sh`),文档指向已提交的文件。所以豁免已删除 ——
+ * 现在任何 md 里的相对链接都必须真的能打开。
+ *
+ * (维护者向文档若要提私有目录,写在行内代码里即可 —— 行内代码不算链接。)
  */
-const ALLOW_MISSING = [/^docs\/deploy\//]
 
 /** 外链 / 锚点 / 协议,不检查。 */
 const EXTERNAL = /^(https?:|mailto:|tel:|data:|javascript:|#|\/\/)/i
@@ -94,7 +104,6 @@ describe('文档相对链接有效', () => {
         const decoded = decodeURIComponent(target)
         const asPosix = join(baseDir, decoded).replace(/\\/g, '/')
 
-        if (ALLOW_MISSING.some((re) => re.test(asPosix.replace(/^\.\//, '')))) continue
         if (existsSync(resolve(REPO_ROOT, asPosix))) continue
 
         broken.push(`${file} → ${target}`)
@@ -123,7 +132,6 @@ describe('文档相对链接有效', () => {
         const asPosix = join(baseDir, decodeURIComponent(target)).replace(/\\/g, '/')
         const clean = asPosix.replace(/^\.\//, '').replace(/\/$/, '')
 
-        if (ALLOW_MISSING.some((re) => re.test(clean))) continue
         if (files.has(clean) || dirs.has(clean)) continue
 
         untracked.push(`${file} → ${target}`)

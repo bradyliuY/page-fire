@@ -10,9 +10,8 @@
 
 > **公开边界**:本文只写可公开的架构与做法,服务器坐标一律用占位符(`<your-server-ip>`、
 > `<co-tenant-domain>`、`<nginx-container>`)。真实主机 IP、SSH 凭据、同机其它服务的名字/域名/
-> 容器名/certbot 目录只存在于 `docs/deploy/`(已 gitignore),那里也是**可执行部署步骤的唯一出处**。
-> 因此下文指向 `docs/deploy/...` 的链接对公开读者不可见,属预期 —— 不是坏链。
-> 该边界由 `test/unit/public-docs.test.ts` 守卫。
+> 容器名/certbot 目录都不进仓库,只留在运维本地的私有笔记里。
+> 该边界由 `test/unit/public-docs.test.ts` 守卫;可执行部署步骤见 [部署指南](DEPLOY.md)。
 
 ---
 
@@ -52,7 +51,7 @@
 > - nginx 作唯一入口,新增一个 `*.pagefire.hkting.com` 的 server,反代到 PageFire 内网端口;
 > - 「解析子域名 → 反查 token/部署 → 定位目录」这部分动态路由(Caddy 本就做不到纯静态)由 **PageFire 自带的 HTTP 静态服务**承担;
 > - 通配 TLS 由 **certbot/acme.sh + 阿里云 DNS-01** 签发,nginx 终止。
-> 详见 §4、§8 及 `docs/deploy/PAGEFIRE_DEPLOY.md`。
+> 详见 §4、§8 及 [部署指南](DEPLOY.md)。
 
 ```
 ┌─────────────┐   MCP(stdio / SSE)     ┌────────────────────────────────────┐
@@ -132,7 +131,7 @@ deployment:        k3p9xa-v8x2qd.pagefire.hkting.com   (did-space_id)
                    t5h2kq-v8x2qd.pagefire.hkting.com
 ```
 
-**阿里云控制台需要配的两件事(详见 `docs/deploy/PAGEFIRE_DEPLOY.md` §1):**
+**阿里云控制台需要配的两件事(详见 [部署指南](DEPLOY.md) §1、§2):**
 1. **泛解析 A 记录**:在 `hkting.com` 的解析里加一条 —— 主机记录 `*.pagefire`、记录类型 `A`、值 `<your-server-ip>`。这样所有 `<任意>.pagefire.hkting.com` 都指向服务器。
 2. **DNS-01 自动签发的凭证**:为通配证书 `*.pagefire.hkting.com` 准备一个阿里云 RAM 子账号的 AccessKey(仅授 DNS 解析读写权限),供 acme.sh/certbot 自动加 TXT 记录验证、自动续期。
 
@@ -282,7 +281,7 @@ pagefire gc                                  # 清理过期 deployment(平时由
 
 ## 8. 部署与运维
 
-> 完整可执行步骤见 **`docs/deploy/PAGEFIRE_DEPLOY.md`**(同机共存版)。要点:
+> 完整可执行步骤见 **[部署指南](DEPLOY.md)**。要点:
 
 - **Web 层**:复用现有 **nginx**(docker, host network)。新增一个 server 块:`server_name *.pagefire.hkting.com`,443 终止通配 TLS,`proxy_pass http://127.0.0.1:4000`,透传 `Host` 头。同机既有业务的 server 块保持不动。
 - **动态路由**:PageFire HTTP 静态服务收到请求后,读 `Host` 头解析子域名 `<did>-<space_id>`,用 SQLite `space_id→token_id`、`did→deployment` 反查真实目录(`/var/pagefire/sites/<token_id>/<did>/`)并 serve,注入安全头。空间/部署不存在或已过期 → 404。

@@ -2,7 +2,7 @@
 
 把 PageFire 部署到你自己的 Linux 服务器,对外提供 `*.pagefire.yourdomain.com` 静态发布 + `mcp.pagefire.yourdomain.com` MCP 写入面。
 
-> 本文全部使用占位符(`your-server-ip`、`yourdomain.com`、`pf_xxx` 等),请替换成你自己的值。含真实 IP / 凭证的私有手册请只保留在本地(放 `docs/deploy/`,不入库)。
+> 本文全部使用占位符(`your-server-ip`、`yourdomain.com`、`pf_xxx` 等),请替换成你自己的值。**真实 IP 与凭证别提交进 git** —— 另存到仓库之外(密码管理器、私有笔记都行)。
 
 ## 架构一图
 
@@ -220,18 +220,27 @@ curl -s https://mcp.pagefire.yourdomain.com/mcp \
 
 ## 9. 备份(强烈建议)
 
-PageFire 的数据全在 `/var/pagefire`(`sites/` + `pagefire.db`)。务必配一个定时备份,避免误删 / 损坏后无法恢复:
+PageFire 的数据全在 `/var/pagefire`(`sites/` + `pagefire.db`)。务必配一个定时备份,避免误删 / 损坏后无法恢复。
 
-- 用 SQLite 在线备份 API 取一致快照(WAL 下安全)
-- 静态文件用 `rsync --link-dest` 增量(未变文件硬链接,不重复占空间)
-- 保留最近 N 份,自动轮转
+仓库自带可直接用的 [`scripts/backup.sh`](../scripts/backup.sh),做法:
 
-参考脚本与 cron 安装见本地目录 `docs/deploy/backup.sh`(含完整实现与安装命令)。注意:该目录已 gitignore,**公开仓库里没有这个文件**,只有本机运维副本中才有。要点:
+- **数据库**用 SQLite 在线备份 API 取一致快照 —— WAL 下服务仍在写,直接 `cp` 会拿到撕裂的库
+- **静态文件**用 `rsync --link-dest` 增量:未变的文件与上一份备份共享 inode,所以每份备份都是完整可读的目录树,却几乎不额外占空间
+- 保留最近 14 份,自动轮转
+
+安装:
 
 ```bash
-# 每天 03:37 跑一次,日志写到 /var/log/pagefire-backup.log
+cp scripts/backup.sh /opt/pagefire/scripts/backup.sh
+chmod +x /opt/pagefire/scripts/backup.sh
+
+# 加到 crontab:每天 03:37 跑一次,日志写到 /var/log/pagefire-backup.log
 37 3 * * * /opt/pagefire/scripts/backup.sh >> /var/log/pagefire-backup.log 2>&1
 ```
+
+路径默认取上文那两个目录,可用 `PAGEFIRE_DB` / `PAGEFIRE_SITES` / `PAGEFIRE_BACKUP_DIR` / `PAGEFIRE_BACKUP_KEEP` 覆盖(见脚本头部注释)。
+
+> **没验证过的备份不算备份。** 至少手动演练一次恢复:从某份备份里把数据库与 `sites/` 拷回 `/var/pagefire` 再起服务,确认页面真的打得开。
 
 ## 升级
 
