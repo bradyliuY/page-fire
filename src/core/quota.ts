@@ -1,6 +1,20 @@
 import type Database from 'better-sqlite3'
 import { ValidationError } from './validate.js'
 
+/**
+ * 新 token 的**默认**配额。
+ *
+ * 注意措辞:实际限额是**按 token** 存在 `tokens.quota_deployments` / `tokens.quota_bytes`
+ * 列里的,管理员可以给单个 token 提升,`checkQuota` 读的也是那两列 —— 所以这里是
+ * 「创建时的默认值」,不是全局上限。
+ *
+ * 这两条以前在 CLI 与控制台各硬编码了一遍(值相同,但会各自漂移),统一到这里。
+ * 建表语句里的 `DEFAULT` 是第三份,只在直接 INSERT 不带值时生效 —— 应用两条创建路径
+ * 都显式传值,所以那份实际用不到,改这里就够。
+ */
+export const DEFAULT_QUOTA_DEPLOYMENTS = 100
+export const DEFAULT_QUOTA_BYTES = 200 * 1024 * 1024
+
 export interface QuotaStatus {
   usedDeployments: number; maxDeployments: number
   usedBytes: number; maxBytes: number

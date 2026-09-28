@@ -17,6 +17,7 @@ import {
 } from '../db/repo.js'
 import { deleteDeploymentFiles } from '../core/deploy.js'
 import { validateCustomSpaceId, ValidationError } from '../core/validate.js'
+import { DEFAULT_QUOTA_DEPLOYMENTS, DEFAULT_QUOTA_BYTES } from '../core/quota.js'
 import { SECURITY_HEADERS } from './headers.js'
 
 const USERNAME_RE = /^[a-z0-9_-]{3,20}$/
@@ -503,7 +504,7 @@ function createApiKey(
   const token = createToken(db, {
     slug, space_id: spaceId, token_hash: tokenHash,
     label: label || null, user_id: userId, status: 'active',
-    quota_deployments: 100, quota_bytes: 209715200,
+    quota_deployments: DEFAULT_QUOTA_DEPLOYMENTS, quota_bytes: DEFAULT_QUOTA_BYTES,
   })
   db.prepare('UPDATE tokens SET token_enc = ? WHERE id = ?').run(tokenEnc, token.id)
   return { token, plainToken, spaceId }

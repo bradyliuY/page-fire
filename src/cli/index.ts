@@ -6,6 +6,7 @@ import { generateTokenSecret, hashToken } from '../auth.js'
 import { generateSpaceId } from '../core/ids.js'
 import { deleteDeploymentFiles } from '../core/deploy.js'
 import { validateCustomSpaceId, ValidationError } from '../core/validate.js'
+import { DEFAULT_QUOTA_DEPLOYMENTS, DEFAULT_QUOTA_BYTES } from '../core/quota.js'
 
 const db = openDb(config.db)
 const args = process.argv.slice(2)
@@ -38,7 +39,7 @@ if (cmd === 'token') {
     } else {
       spaceId = generateSpaceId(db)
     }
-    const row = createToken(db, { slug: flags.slug, space_id: spaceId, token_hash: hash, label: flags.label ?? null, status: 'active', quota_deployments: 100, quota_bytes: 209715200 })
+    const row = createToken(db, { slug: flags.slug, space_id: spaceId, token_hash: hash, label: flags.label ?? null, status: 'active', quota_deployments: DEFAULT_QUOTA_DEPLOYMENTS, quota_bytes: DEFAULT_QUOTA_BYTES })
     insertAuditLog(db, { token_id: row.id, action: 'token_create' })
     console.log('Token created:')
     console.log(`  slug:     ${row.slug}`)
